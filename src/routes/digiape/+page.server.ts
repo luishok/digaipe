@@ -5,7 +5,7 @@ import { auth } from '$lib/server/auth';
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
-		return redirect(302, '/demo/better-auth/login');
+		return redirect(302, '/login');
 	}
 	return { user: event.locals.user };
 };
