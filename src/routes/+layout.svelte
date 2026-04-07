@@ -4,11 +4,39 @@
 	//PARA TODA LA PAGINA.. THEME
 	let { children } = $props();
 </script>
-<div class="nav_bar">
-<h1 > this is the main layout</h1>
-</div>
 <svelte:head>
-	<link rel="icon" href={favicon} />
+    <link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<div class="layout-wrapper">
+    
+    <header class="site-header">
+        <div class="logo"><img src='./src/lib/assets/ULA_Logo_big.png' alt="Logo"></div>
+       
+		<a id="menu-icon" class="menu-icon">
+        <i class="fa fa-bars"></i>
+	</a>
+
+		<nav id="navigation-bar" class="nav-bar">
+            <a href="/">Inicio</a>
+            <a href="/contacto">Contacto</a>
+			<a href="#" class="active">Home</a>
+			<a href="#">Services</a>
+			<a href="#">Profile</a>
+			<a href="#">Abouts</a>
+
+		</nav>
+
+    </header>
+
+    <main class="main-content">
+        {@render children()}
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026. Todos los derechos reservados.</p>
+    </footer>
+
+</div>
+
+

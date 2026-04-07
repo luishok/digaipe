@@ -1,4 +1,288 @@
-.nav_bar{
-    background-color: rgb(95, 95, 235);
-    color: white;
+:root {
+  /* 1. PALETA DE COLORES */
+  --ula-blue: #0033a0;         /* Azul Pantone 286 (Color principal) */
+  --ula-grey: #7e7e7ecc;         /* Dorado institucional (Color de acento) */
+  
+  --color-bg-main: #ffffff;    /* Fondo principal blanco */
+  --color-bg-alt: #f4f6f9;     /* Fondo secundario gris muy claro */
+  
+  --color-text-main: #333333;  /* Texto principal (casi negro para mejor lectura) */
+  --color-text-muted: #666666; /* Texto secundario o descriptivo */
+
+  /* 2. TIPOGRAFÍA */
+  /* Fuentes */
+  --font-heading: 'Georgia', 'Times New Roman', serif; /* Aspecto académico para títulos */
+  --font-body: 'Helvetica Neue', Arial, sans-serif;    /* Aspecto limpio para lectura */
+
+  /* Tamaños base (1rem = 16px por defecto en el navegador) */
+  --font-size-base: 16px;
+  
+  /* Escala de encabezados (Headings) */
+  --font-size-h1: 2.5rem;   /* 40px */
+  --font-size-h2: 2rem;     /* 32px */
+  --font-size-h3: 1.75rem;  /* 28px */
+  --font-size-h4: 1.5rem;   /* 24px */
+  --font-size-h5: 1.25rem;  /* 20px */
+  --font-size-h6: 1rem;     /* 16px */
+  
+  --font-size-small: 0.875rem; /* 14px (Para footer o letras pequeñas) */
+
+  /* 3. ESPACIADOS (Márgenes y Paddings) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
 }
+
+/* ==========================================================================
+   RESETEO BÁSICO Y ESTILOS DE ETIQUETAS
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  color: var(--color-text-main);
+  background-color: var(--color-bg-main);
+  line-height: 1.6; /* Interlineado cómodo para leer */
+}
+main.main-content{
+  width: 100%;
+  max-width: 1600px; /* Evita que el texto se estire demasiado en pantallas anchas */
+  margin: 0 auto; /* Centra el contenedor en la pantalla */
+  padding: var(--spacing-xl) var(--spacing-lg); /* Espaciado interno */
+  flex-grow: 1;
+}
+/* --- Títulos --- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--ula-blue); /* Los títulos llevan el azul de la ULA */
+  margin-bottom: var(--spacing-md);
+  line-height: 1.2;
+  font-weight: bold;
+}
+
+h1 { font-size: var(--font-size-h1); }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+h4 { font-size: var(--font-size-h4); }
+h5 { font-size: var(--font-size-h5); }
+h6 { font-size: var(--font-size-h6); }
+
+/* --- Párrafos y Textos --- */
+p {
+  margin-bottom: var(--spacing-md);
+}
+
+small {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+/* --- Enlaces --- */
+a {
+  color: var(--ula-blue);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+  color: var(--ula-grey); /* Cambia al dorado de la ULA al pasar el mouse */
+  text-decoration: underline;
+}
+
+/* --- Botones Genéricos --- */
+button, .btn {
+  display: inline-block;
+  background-color: var(--ula-blue);
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover, .btn:hover {
+  background-color: var(--ula-grey);
+  color: var(--ula-blue);
+}
+
+
+.site-header {
+  background-color: var(--ula-blue);
+  padding: 1.3rem;
+  display: flex;
+  justify-content: space-between;
+}
+.logo {
+  color: white;
+  align-self: center;
+  margin-left: 1.2rem;
+  font-size: 2.5rem;
+}
+
+.nav-bar {
+  margin: auto;
+}
+
+.nav-bar a {
+  color: white;
+  padding: 1.5rem;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 1.2rem;
+}
+
+.menu-icon {
+  color: white;
+  cursor: pointer;
+  display: none;
+}
+
+
+
+/*===== LOGIN STYLES==== */
+
+
+.login-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Divide en dos columnas iguales */
+    min-height: 70vh; /* Altura mínima para que se vea proporcionado */
+    background-color: var(--color-bg-main, #ffffff);
+    border-radius: 12px;
+    overflow: hidden; /* Para que las esquinas de la imagen se redondeen con el contenedor */
+    box-shadow: 0 10px 30px rgba(0, 51, 160, 0.1); /* Sombra con un toque del azul ULA */
+    margin: var(--spacing-xl) 0;
+    border: 1px solid #eaeaea;
+  }
+
+  /* --- Lado de la Imagen --- */
+  .login-image {
+    /* Aquí colocas la ruta de tu imagen */
+    background-image: url('../src/lib/assets/Rectorado-ULA.webp');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    display: flex;
+    align-items: flex-end; /* Coloca el texto en la parte inferior */
+  }
+
+  /* Capa oscura sobre la imagen para que el texto sea legible */
+  .image-overlay {
+    background: linear-gradient(to top, rgba(0, 51, 160, 0.9) 0%, rgba(0, 51, 160, 0.2) 100%);
+    width: 100%;
+    padding: 3rem 2rem;
+    color: white;
+  }
+
+  .image-overlay h2 {
+    color: white;
+    margin-bottom: 0.5rem;
+  }
+
+  .image-overlay p {
+    margin: 0;
+    opacity: 0.9;
+  }
+
+  /* --- Lado del Formulario --- */
+  .login-form-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem;
+  }
+
+  .login-form-content {
+    width: 100%;
+    max-width: 400px; /* Evita que el formulario sea excesivamente ancho */
+  }
+
+  .login-form-content p {
+    margin-bottom: 0.5rem;
+    color: black;
+  }
+
+  .subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  /* --- Estilos de los Inputs --- */
+  .input-group {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .input-group label {
+    font-weight: bold;
+    font-size: var(--font-size-small);
+    margin-bottom: 0.5rem;
+    color: var(--color-text-main);
+  }
+
+  .input-group input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    font-size: var(--font-size-base);
+    font-family: var(--font-body);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* Efecto al hacer clic en el input */
+  .input-group input:focus {
+    outline: none;
+    border-color: var(--ula-blue);
+    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
+  }
+
+  /* --- Enlaces y Botones --- */
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+  }
+
+  .forgot-password {
+    font-size: var(--font-size-small);
+  }
+
+  /* Un botón que ocupa el 100% del ancho */
+  .btn-full {
+    width: 100%;
+    padding: 0.85rem;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  /* ==========================================================================
+     DISEÑO RESPONSIVE (Para celulares y tablets)
+     ========================================================================== */
+  @media (max-width: 768px) {
+    .login-container {
+      grid-template-columns: 1fr; /* Cambia a 1 sola columna */
+    }
+
+    .login-image {
+      /* Ocultamos la imagen en móviles para que vayan directo a hacer login */
+      display: none; 
+    }
+
+    .login-form-wrapper {
+      padding: 2rem 1.5rem;
+    }
+  }
