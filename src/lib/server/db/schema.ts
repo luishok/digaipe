@@ -1,9 +1,20 @@
-import { mysqlTable, serial, int, text } from 'drizzle-orm/mysql-core';
+import {mysqlTable, serial, int, text, varchar, char} from 'drizzle-orm/mysql-core';
+import {SQL, sql} from "drizzle-orm";
 
-export const task = mysqlTable('task', {
+export const careers = mysqlTable('careers', {
 	id: serial('id').primaryKey(),
-	title: text('title').notNull(),
-	priority: int('priority').notNull().default(1)
-});
+	programa_academico: text('programa_academico').notNull(),
+	codigo: int('codigo'),
+	ofae: varchar('ofae', { length: 4 }).notNull(),
+	ocre: int('ocre'),
+	facultad: text('facultad').notNull(),
+	todo: text("todo").generatedAlwaysAs(
+		(): SQL => sql`concat(${careers.programa_academico},"(", ${careers.facultad}, ")")`,
+		{mode: "virtual"}
+	),
+	nucleo: char('nucleo').notNull(),
+	clave: varchar('clave', {length: 5}).notNull(),
+})
+
 
 export * from './auth.schema';

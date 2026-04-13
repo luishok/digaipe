@@ -15,14 +15,14 @@
        
 		<a id="menu-icon" class="menu-icon">
         <i class="fa fa-bars"></i>
-	</a>
+	    </a>
 
 		<nav id="navigation-bar" class="nav-bar">
             <a href="/">Inicio</a>
-            <a href="/contacto">Contacto</a>
-			<a href="#" class="active">Home</a>
-			<a href="#">Services</a>
-			<a href="#">Profile</a>
+            <a href="/contacto">Estadisticas</a>
+			<a href="#" class="active">Carga de datos</a>
+			<a href="#"> Generacion de planilla </a>
+			<a href="#"> Lista </a>
 			<a href="#">Abouts</a>
 
 		</nav>
