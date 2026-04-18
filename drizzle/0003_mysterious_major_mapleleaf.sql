@@ -1,0 +1,1 @@
+ALTER TABLE `admission_modalities` MODIFY COLUMN `nombre` varchar NOT NULL;
