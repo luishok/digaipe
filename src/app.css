@@ -1,7 +1,10 @@
 :root {
   /* 1. PALETA DE COLORES */
   --ula-blue: #0033a0;         /* Azul Pantone 286 (Color principal) */
-  --ula-grey: #7e7e7ecc;         /* Dorado institucional (Color de acento) */
+  --ula-grey: #7e7e7ecc;  
+  --blue-second: #ADD8E6;
+  --blue-third: #B0C4DE;  
+  --blue-ford: #7D9BD4;     /* Dorado institucional (Color de acento) */
   
   --color-bg-main: #ffffff;    /* Fondo principal blanco */
   --color-bg-alt: #f4f6f9;     /* Fondo secundario gris muy claro */
@@ -121,7 +124,7 @@ button:hover, .btn:hover {
 
 .site-header {
   background-color: var(--ula-blue);
-  padding: 1.3rem;
+  padding: 0.5rem;
   display: flex;
   justify-content: space-between;
 }
@@ -129,13 +132,19 @@ button:hover, .btn:hover {
   color: white;
   align-self: center;
   margin-left: 1.2rem;
-  font-size: 2.5rem;
 }
 
 .nav-bar {
   margin: auto;
 }
+.nav-bar .main-menu{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  list-style: none;
+  justify-content: center;
 
+}
 .nav-bar a {
   color: white;
   padding: 1.5rem;
@@ -143,6 +152,53 @@ button:hover, .btn:hover {
   text-decoration: none;
   font-size: 1.2rem;
 }
+.menu-dropdown{
+  position: relative;
+
+}
+
+.menu-dropdown ul{
+  position: absolute;
+  top: 100%; /* Se coloca justo debajo del padre */
+  left: 0;
+  background-color: var(--blue-ford);
+  min-width: 200px;
+  list-style: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  
+  /* Ocultando con transiciones suaves en vez de display:none */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+
+}
+
+.menu-dropdown:hover ul {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.menu-dropdown ul li a {
+  display: block;
+  padding: 15px 20px;
+  color: white;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease, padding-left 0.2s ease;
+}
+
+.menu-dropdown ul li:last-child a {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.menu-dropdown ul li a:hover {
+  background-color: var(--blue-third);
+  padding-left: 25px;
+}
+
 
 .menu-icon {
   color: white;

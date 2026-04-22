@@ -25,26 +25,6 @@
 
 <h2>Carreras</h2>
 
-<div class='table_container'>
-    <table>
-        <thead>
-            {#each headers as header}
-                <th>{header.value}</th>
-            {/each}
-        </thead>
-        <tbody>
-            {#each data.all_careers as career}
-            <tr>
-                {#each headers as header}
-                    <td>{career[header.key]}</td>
-                {/each}
-            </tr>
-            {/each}
-        </tbody>
-    </table>
-</div>
-
-
 {#if $session.data}
 {#if $session.data.user.role === 'admin'}
 
@@ -66,6 +46,27 @@
 </div>
 {/if}
 {/if}
+
+<div class='table_container'>
+    <table>
+        <thead>
+            {#each headers as header}
+                <th>{header.value}</th>
+            {/each}
+        </thead>
+        <tbody>
+            {#each data.all_careers as career}
+            <tr>
+                {#each headers as header}
+                    <td>{career[header.key]}</td>
+                {/each}
+            </tr>
+            {/each}
+        </tbody>
+    </table>
+</div>
+
+
 
 <style>
 
