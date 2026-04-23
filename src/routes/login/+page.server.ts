@@ -32,6 +32,6 @@ export const actions: Actions = {
 			return fail(500, { message: 'Unexpected error' });
 		}
 
-		return redirect(302, '/digiape');
+		return redirect(302, '/digaipe');
 	}
 };
