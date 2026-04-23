@@ -18,7 +18,9 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"db:bootstrap-admin": "npx tsx scripts/bootstrap-admin.ts",
-		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
+		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes",
+		"db:updateall" : "npm run auth:schema && npm run db:generate && npm run db:migrate && npm run db:bootstrap-admin",
+		"db:seed-addmision-mod" : "tsx scripts/load_admission_mod.ts"
 	},
 	"devDependencies": {
 		"@better-auth/cli": "~1.4.21",

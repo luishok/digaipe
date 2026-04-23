@@ -6,9 +6,9 @@ import { parse } from 'csv-parse/sync';
 type NewCareer = typeof careers.$inferInsert;
 type CsvRow = {
 	'Programa Académico': string;
-	'OPSU': int | null;
+	'OPSU': number | null;
 	'OFAE': string | null;
-	'OCRE': int | null;
+	'OCRE': number | null;
 	'Facultad o Núcleo': string;
 	'Nucleo': string;
 	'Clave': string;
@@ -45,9 +45,9 @@ export const actions = {
                 skip_empty_lines: true
             }) as Array<{
                 programa_academico: string;
-                codigo?: int;
+                codigo?: number;
                 ofae?: string;
-                ocre?: int;
+                ocre?: number;
                 facultad: string;
                 nucleo: string;
             }>;
