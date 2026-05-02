@@ -17,7 +17,10 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
+		"db:bootstrap-admin": "npx tsx scripts/bootstrap-admin.ts",
+		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes",
+		"db:updateall" : "npm run auth:schema && npm run db:generate && npm run db:migrate && npm run db:bootstrap-admin",
+		"db:seed-addmision-mod" : "tsx scripts/load_admission_mod.ts"
 	},
 	"devDependencies": {
 		"@better-auth/cli": "~1.4.21",
@@ -39,6 +42,7 @@
 		"prettier-plugin-svelte": "^3.4.1",
 		"svelte": "^5.51.0",
 		"svelte-check": "^4.4.2",
+		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.54.0",
 		"vite": "^7.3.1"

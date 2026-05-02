@@ -7,7 +7,7 @@
 
 <h1> this is the diagiape main page you are authtorized</h1>
 
-<a href="/digiape/admin/roles"> go to admin roles</a>
+<a href="/digaipe/admin/roles"> go to admin roles</a>
 <p> your name is: {data.user.name}</p>
 {#if data.user}
     <form method="post" action="?/signOut" use:enhance>
