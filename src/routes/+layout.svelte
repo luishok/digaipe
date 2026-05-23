@@ -21,12 +21,18 @@
         <ul class="main-menu">
             <li><a href="/">Inicio</a></li>
             <li><a href="/contacto">Estadisticas</a></li>
-			<li><a href="#" class="active">Carga de datos</a></li>
+			<li class='menu-dropdown'><a href="#" class="active">Admisiones</a>
+                <ul>
+                    <li><a href='/digaipe/admisiones'>Admisiones</a></li>
+                    <li><a href='/digaipe/procesos-adm'>Procesos de Admision</a></li>                    
+                </ul>
+            
+            </li>
 			<li><a href="#"> Generacion de planilla </a></li>
 			<li class='menu-dropdown'><a href="#"> Listas </a>
                 <ul>
                     <li><a href='/digaipe/carreras'>Carreras</a></li>
-                    <li><a href='#'>Materias</a></li>
+                    <li><a href='/digaipe/modalidades-adm'>Modalidades Adm</a></li>
                 </ul>
             
             </li>
