@@ -4,6 +4,8 @@ import path from 'node:path';
 import * as XLSX from 'xlsx';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
+import type { AuditContext } from '$lib/server/audit';
+import { writeAuditLog } from '$lib/server/audit';
 import {
 	admissionImportBatches,
 	admissions,
@@ -162,7 +164,7 @@ async function writeUploadFile(file: File, directory: string): Promise<FileWrite
 	return { fileName, filePath, sha256 };
 }
 
-export async function createDraftBatch(formData: FormData, uploadedByUserId: string) {
+export async function createDraftBatch(formData: FormData, uploadedByUserId: string, auditContext?: AuditContext) {
 	const sourceFile = validateFile(formData.get('sourceFile'), ['.xlsx'], 'de admisiones');
 	const estadisticaFile = validateFile(formData.get('estadisticaFile'), ['.pdf'], 'estadistica');
 	const manifestFile = validateFile(formData.get('manifestFile'), ['.pdf'], 'manifest');
@@ -175,20 +177,48 @@ export async function createDraftBatch(formData: FormData, uploadedByUserId: str
 	]);
 	const preview = await previewAdmissionFile(source.filePath);
 
-	const [result] = await db.insert(admissionImportBatches).values({
-		uploadedByUserId,
-		sourceFileName: source.fileName,
-		sourceFilePath: source.filePath,
-		sourceFileSha256: source.sha256,
-		estadisticaFileName: estadistica.fileName,
-		estadisticaFilePath: estadistica.filePath,
-		estadisticaFileSha256: estadistica.sha256,
-		manifestFileName: manifest.fileName,
-		manifestFilePath: manifest.filePath,
-		manifestFileSha256: manifest.sha256,
-		rowCount: preview.rows.length,
-		warningCount: preview.warnings.length,
-		errorCount: preview.errors.length
+	const [result] = await db.transaction(async (tx) => {
+		const [insertResult] = await tx.insert(admissionImportBatches).values({
+			uploadedByUserId,
+			sourceFileName: source.fileName,
+			sourceFilePath: source.filePath,
+			sourceFileSha256: source.sha256,
+			estadisticaFileName: estadistica.fileName,
+			estadisticaFilePath: estadistica.filePath,
+			estadisticaFileSha256: estadistica.sha256,
+			manifestFileName: manifest.fileName,
+			manifestFilePath: manifest.filePath,
+			manifestFileSha256: manifest.sha256,
+			rowCount: preview.rows.length,
+			warningCount: preview.warnings.length,
+			errorCount: preview.errors.length
+		});
+
+		if (auditContext) {
+			await writeAuditLog(tx, auditContext, {
+				action: 'admission_import_batch.created',
+				entityType: 'admission_import_batch',
+				entityId: insertResult.insertId,
+				before: null,
+				after: {
+					id: insertResult.insertId,
+					status: 'draft',
+					rowCount: preview.rows.length,
+					warningCount: preview.warnings.length,
+					errorCount: preview.errors.length
+				},
+				metadata: {
+					sourceFileName: source.fileName,
+					sourceFileSha256: source.sha256,
+					estadisticaFileName: estadistica.fileName,
+					estadisticaFileSha256: estadistica.sha256,
+					manifestFileName: manifest.fileName,
+					manifestFileSha256: manifest.sha256
+				}
+			});
+		}
+
+		return [insertResult];
 	});
 
 	const batchId = Number(result.insertId);
@@ -329,7 +359,7 @@ function buildPreviewRow(
 	};
 }
 
-export async function saveAdmissionBatch(batchId: number) {
+export async function saveAdmissionBatch(batchId: number, auditContext?: AuditContext) {
 	const [batch] = await db
 		.select()
 		.from(admissionImportBatches)
@@ -415,6 +445,28 @@ export async function saveAdmissionBatch(batchId: number) {
 				savedAt: new Date()
 			})
 			.where(eq(admissionImportBatches.id, batchId));
+
+		if (auditContext) {
+			await writeAuditLog(tx, auditContext, {
+				action: 'admission_import_batch.saved',
+				entityType: 'admission_import_batch',
+				entityId: batchId,
+				before: {
+					status: batch.status,
+					rowCount: batch.rowCount,
+					warningCount: batch.warningCount,
+					errorCount: batch.errorCount,
+					savedAt: batch.savedAt
+				},
+				after: {
+					status: 'saved',
+					rowCount: preview.rows.length,
+					warningCount: preview.warnings.length,
+					errorCount: 0
+				},
+				metadata: { insertedAdmissionCount: preview.rows.length }
+			});
+		}
 	});
 
 	return { saved: true, rowCount: preview.rows.length, warningCount: preview.warnings.length };

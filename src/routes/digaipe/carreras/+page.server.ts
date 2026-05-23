@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db/index';
 import { careers } from '$lib/server/db/schema';
+import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
 import { parse } from 'csv-parse/sync';
 
 type NewCareer = typeof careers.$inferInsert;
@@ -15,6 +16,10 @@ type CsvRow = {
 };
 
 
+function isUploadedFile(value: FormDataEntryValue | null): value is File {
+    return value instanceof File && value.size > 0;
+}
+
 export const load: PageServerLoad = async () => {
     const list_all_careers = await db.select().from(careers);
     return {
@@ -26,12 +31,21 @@ export const load: PageServerLoad = async () => {
 
 
 export const actions = {
-    default: async ({ request }) => {
+    default: async (event) => {
+        if (!event.locals.user) {
+            return { error: true, message: "Debe iniciar sesion." };
+        }
+
+        const { request } = event;
         const formData = await request.formData();
         const file = formData.get('csvFile');
+        const auditContext = auditContextFromEvent(event);
 
-        if (!file || file.size === 0) {
+        if (!isUploadedFile(file)) {
             return { error: true, message: "No se seleccionó ningún archivo." };
+        }
+        if (!auditContext) {
+            return { error: true, message: "Debe iniciar sesion." };
         }
 
         try {
@@ -43,14 +57,7 @@ export const actions = {
                 columns: true,
                 delimiter: ';',
                 skip_empty_lines: true
-            }) as Array<{
-                programa_academico: string;
-                codigo?: number;
-                ofae?: string;
-                ocre?: number;
-                facultad: string;
-                nucleo: string;
-            }>;
+            }) as CsvRow[];
 
             // const values = records.map((row)=>({
             //     programa_academico: row['Programa Académico'],
@@ -63,18 +70,28 @@ export const actions = {
             // }))
 
             const values: NewCareer[] = records.map((row) => ({
-                programa_academico: row['Programa Académico'],
+                programa_academico: String(row['Programa Académico'] ?? ''),
                 codigo: row['OPSU'] ? Number(row['OPSU']) : null,
-                ofae: row['OFAE'],
+                ofae: String(row['OFAE'] ?? ''),
                 ocre: row['OCRE'] ? Number(row['OCRE']) : null,
-                facultad: row['Facultad o Núcleo'],
-                nucleo: row['Nucleo'],
-                clave: row['Clave']
+                facultad: String(row['Facultad o Núcleo'] ?? ''),
+                nucleo: String(row['Nucleo'] ?? ''),
+                clave: String(row['Clave'] ?? '')
             }));
             // 3. Insertar en la base de datos
            
 
-            await db.insert(careers).values(values);
+            await db.transaction(async (tx) => {
+                await tx.insert(careers).values(values);
+                await writeAuditLog(tx, auditContext, {
+                    action: 'career.imported',
+                    entityType: 'career',
+                    entityId: 'csv_import',
+                    before: null,
+                    after: { rowCount: values.length },
+                    metadata: { fileName: file.name }
+                });
+            });
             // await db.insert(careers).values({
             //     programa_academico: 'Ingeniería Geológica',
             //     codigo: 10593,

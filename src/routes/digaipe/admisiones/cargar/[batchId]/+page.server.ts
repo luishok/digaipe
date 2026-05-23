@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { admissionImportBatches } from '$lib/server/db/schema';
 import { previewAdmissionFile, saveAdmissionBatch } from '$lib/server/admisiones/import';
+import { auditContextFromEvent } from '$lib/server/audit';
 import { and, eq } from 'drizzle-orm';
 
 function parseBatchId(value: string) {
@@ -51,7 +52,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	save: async ({ request, locals, params }) => {
+	save: async (event) => {
+		const { request, locals, params } = event;
 		if (!locals.user) return fail(401, { message: 'Debe iniciar sesion.' });
 
 		const batchId = parseBatchId(params.batchId);
@@ -75,7 +77,10 @@ export const actions: Actions = {
 		if (!batch) return fail(404, { message: 'No existe el lote de admisiones.' });
 
 		try {
-			const result = await saveAdmissionBatch(batchId);
+			const auditContext = auditContextFromEvent(event);
+			if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
+
+			const result = await saveAdmissionBatch(batchId, auditContext);
 			return {
 				message: `Se guardaron ${result.rowCount} admisiones.`,
 				...result

@@ -7,6 +7,7 @@ import {
 	char,
 	boolean,
 	date,
+	json,
 	timestamp,
 	index,
 	primaryKey,
@@ -68,6 +69,25 @@ export const APActiveDates = mysqlTable('ap_active_dates', {
 }));
 
 // ── Catalog: OCRE process types (ADM, DIFMAT, …) ──────────────────────────
+export const auditLogs = mysqlTable('audit_logs', {
+	id: serial('id').primaryKey(),
+	actorUserId: varchar('actor_user_id', { length: 36 }).notNull().references(() => user.id),
+	action: varchar('action', { length: 128 }).notNull(),
+	entityType: varchar('entity_type', { length: 128 }).notNull(),
+	entityId: varchar('entity_id', { length: 128 }).notNull(),
+	before: json('before'),
+	after: json('after'),
+	metadata: json('metadata'),
+	ipAddress: text('ip_address'),
+	userAgent: text('user_agent'),
+	createdAt: timestamp('created_at', { fsp: 3 }).defaultNow().notNull(),
+}, (table) => [
+	index('audit_logs_actor_idx').on(table.actorUserId),
+	index('audit_logs_entity_idx').on(table.entityType, table.entityId),
+	index('audit_logs_action_idx').on(table.action),
+	index('audit_logs_created_at_idx').on(table.createdAt),
+]);
+
 export const ocre_types = mysqlTable('ocre_types', {
 	id:   serial('id').primaryKey(),
 	code: varchar('code', { length: 10 }).notNull().unique(),  // 'ADM' | 'DIFMAT'

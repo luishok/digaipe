@@ -5,6 +5,8 @@
 
     let dateInput = $state('');
     let dates = $state<string[]>([]);
+    let dateInputs = $state<Record<number, string>>({});
+    let pendingDates = $state<Record<number, string[]>>({});
 
     function addDate() {
         if (!dateInput || dates.includes(dateInput)) return;
@@ -20,26 +22,37 @@
         }
     }
 
-    let headers = [
-        { key: 'id', value: 'ID' },
-        { key: 'code', value: 'Código' },
-        { key: 'dates', value: 'Fechas' }
-    ];
+    function processPendingDates(processId: number) {
+        return pendingDates[processId] ?? [];
+    }
+
+    function addProcessDate(processId: number, existingDates: string[]) {
+        const processDateInput = dateInputs[processId];
+        const currentDates = processPendingDates(processId);
+        if (!processDateInput || existingDates.includes(processDateInput) || currentDates.includes(processDateInput)) return;
+
+        pendingDates = { ...pendingDates, [processId]: [...currentDates, processDateInput] };
+        dateInputs = { ...dateInputs, [processId]: '' };
+    }
+
+    function removePendingProcessDate(processId: number, date: string) {
+        pendingDates = {
+            ...pendingDates,
+            [processId]: processPendingDates(processId).filter((pendingDate) => pendingDate !== date)
+        };
+    }
+
+    function clearPendingProcessDates(processId: number) {
+        pendingDates = { ...pendingDates, [processId]: [] };
+    }
 
 
 
-
-    // Estado local para controlar los 5 segundos de visibilidad
-    let mostrarMensaje = false;
 
     // Escuchamos de forma reactiva cuando "form.saved" pase a ser verdadero
     $effect(() => {
         if (form?.saved) {
-            mostrarMensaje = true;
-
             const timer = setTimeout(() => {
-
-                mostrarMensaje = false;
                 location.reload();
                 // Si necesitas limpiar el estado del form:
                 if (form) form.saved = false; 
@@ -348,7 +361,7 @@ h1{
         <p style='font-weight: bold;'>Fechas Seleccionadas</p>
         <ul>
             
-            {#each dates as date}
+            {#each dates as date (date)}
                 <li>
                     {date}
                     <button type="button" class="button-red" onclick={() => removeDate(date)}>x</button>
@@ -406,17 +419,61 @@ h1{
             <table>
                 <thead>
                 <tr>
-                    {#each headers as header}
-                        <th>{header.value}</th>
-                    {/each}
+                    <th>ID</th>
+                    <th>CÃ³digo</th>
+                    <th>Estado</th>
+                    <th>Fechas</th>
+                    <th>Agregar fechas</th>
                 </tr>
                 </thead>
                 <tbody>
-                {#each data.all_admission_proc as process}
+                {#each data.all_admission_proc as process (process.id)}
                     <tr>
-                        {#each headers as header}
-                            <td>{process[header.key]}</td>
-                        {/each}
+                        <td>{process.id}</td>
+                        <td>{process.code}</td>
+                        <td>{process.isEnabled ? 'Activo' : 'Sin fechas'}</td>
+                        <td>{process.dates.length > 0 ? process.dates.join(', ') : 'Sin fechas activas'}</td>
+                        <td>
+                            <input class="input-date" type="date" bind:value={dateInputs[process.id]} />
+                            <button type="button" onclick={() => addProcessDate(process.id, process.dates)}>+</button>
+
+                            {#if processPendingDates(process.id).length > 0}
+                                <ul>
+                                    {#each processPendingDates(process.id) as date (date)}
+                                        <li>
+                                            {date}
+                                            <button
+                                                type="button"
+                                                class="button-red"
+                                                onclick={() => removePendingProcessDate(process.id, date)}
+                                            >x</button>
+                                        </li>
+                                    {/each}
+                                </ul>
+
+                                <form
+                                    class="save-dates-form"
+                                    method="POST"
+                                    action="?/saveDates"
+                                    use:enhance={() => {
+                                        return async ({ result, update }) => {
+                                            await update();
+                                            if (result.type === 'success') {
+                                                clearPendingProcessDates(process.id);
+                                            }
+                                        };
+                                    }}
+                                >
+                                    <input type="hidden" name="processId" value={process.id} />
+                                    <input
+                                        type="hidden"
+                                        name="dates"
+                                        value={JSON.stringify(processPendingDates(process.id))}
+                                    />
+                                    <button type="submit">Save Dates</button>
+                                </form>
+                            {/if}
+                        </td>
                     </tr>
                 {/each}
                 </tbody>

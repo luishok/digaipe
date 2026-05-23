@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { admissionImportBatches } from '$lib/server/db/schema';
 import { createDraftBatch, saveAdmissionBatch } from '$lib/server/admisiones/import';
+import { auditContextFromEvent } from '$lib/server/audit';
 import { desc, eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -30,12 +31,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	preview: async ({ request, locals }) => {
+	preview: async (event) => {
+		const { request, locals } = event;
 		if (!locals.user) return fail(401, { message: 'Debe iniciar sesion.' });
 
 		try {
 			const formData = await request.formData();
-			const result = await createDraftBatch(formData, locals.user.id);
+			const auditContext = auditContextFromEvent(event);
+			if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
+
+			const result = await createDraftBatch(formData, locals.user.id, auditContext);
 			return {
 				step: 'preview',
 				message:
@@ -52,7 +57,8 @@ export const actions: Actions = {
 		}
 	},
 
-	save: async ({ request, locals }) => {
+	save: async (event) => {
+		const { request, locals } = event;
 		if (!locals.user) return fail(401, { message: 'Debe iniciar sesion.' });
 
 		const formData = await request.formData();
@@ -62,7 +68,10 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await saveAdmissionBatch(batchId);
+			const auditContext = auditContextFromEvent(event);
+			if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
+
+			const result = await saveAdmissionBatch(batchId, auditContext);
 			return {
 				step: 'save',
 				message: `Se guardaron ${result.rowCount} admisiones.`,
