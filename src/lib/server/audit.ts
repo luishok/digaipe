@@ -31,7 +31,8 @@ const sensitiveKeys = new Set([
 	'apellidosNombres',
 	'telefono',
 	'correo',
-	'email'
+	'email',
+	'genero'
 ]);
 
 export function auditContextFromEvent(event: RequestEvent): AuditContext | null {

@@ -101,6 +101,7 @@ export const students = mysqlTable('students', {
 	apellidos_nombres: varchar('apellidos_nombres', { length: 255 }).notNull(),
 	telefono:         varchar('telefono', { length: 60 }),
 	correo:           varchar('correo', { length: 255 }),
+	genero:           varchar('genero', { length: 20 }),
 });
 
 // ── Admissions (core record — one row per student+career assignment) ────────

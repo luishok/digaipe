@@ -50,6 +50,7 @@
 	},
 	"dependencies": {
 		"csv-parse": "^6.2.1",
+		"pdf-lib": "^1.17.1",
 		"xlsx": "^0.18.5"
 	}
 }

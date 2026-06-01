@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as XLSX from 'xlsx';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import type { AuditContext } from '$lib/server/audit';
 import { writeAuditLog } from '$lib/server/audit';
@@ -29,6 +29,7 @@ export type AdmissionPreviewRow = {
 	apellidosNombres: string;
 	telefono: string | null;
 	correo: string | null;
+	genero: string | null;
 	opcion: string;
 	periodoIngreso: string;
 	fechaAsignacion: string;
@@ -89,6 +90,13 @@ function cleanUpper(value: unknown): string {
 
 function normalizeCatalogCode(value: unknown): string {
 	return cleanUpper(value).replace(/^\.+/, '').trim().replace(/\s+/g, '');
+}
+
+function normalizeProcessCode(value: unknown): string {
+	const cleaned = cleanUpper(value);
+	const matches = cleaned.match(/\.?\s*UA\d+\/\d{2}-\d{2}-\d{2}/g);
+	const latestCode = matches?.at(-1) ?? cleaned;
+	return normalizeCatalogCode(latestCode);
 }
 
 function emptyDotToNull(value: unknown): string | null {
@@ -287,11 +295,12 @@ function buildPreviewRow(
 ): AdmissionPreviewRow {
 	const warnings: AdmissionPreviewIssue[] = [];
 	const errors: AdmissionPreviewIssue[] = [];
-	const numAsignacion = normalizeCatalogCode(rawRow.Num_Asignacion);
+	const numAsignacion = normalizeProcessCode(rawRow.Num_Asignacion);
 	const cedula = cleanUpper(rawRow.Ced_estudiante);
 	const apellidosNombres = cleanString(rawRow.Apel_Nom);
 	const telefono = emptyDotToNull(rawRow.Telefono);
 	const correo = emptyDotToNull(rawRow.Correo_e);
+	const genero = emptyDotToNull(rawRow.Sex);
 	const opcion = normalizeCatalogCode(rawRow.Opcion);
 	const periodoIngreso = cleanUpper(rawRow.Periodo_ingreso);
 	const fechaAsignacion = parseDateValue(rawRow.Fecha_asignacion);
@@ -344,6 +353,7 @@ function buildPreviewRow(
 		apellidosNombres,
 		telefono,
 		correo,
+		genero,
 		opcion,
 		periodoIngreso,
 		fechaAsignacion,
@@ -402,13 +412,15 @@ export async function saveAdmissionBatch(batchId: number, auditContext?: AuditCo
 					cedula: row.cedula,
 					apellidos_nombres: row.apellidosNombres,
 					telefono: row.telefono,
-					correo: row.correo
+					correo: row.correo,
+					genero: row.genero
 				})
 				.onDuplicateKeyUpdate({
 					set: {
 						apellidos_nombres: row.apellidosNombres,
 						telefono: row.telefono,
-						correo: row.correo
+						correo: row.correo,
+						genero: sql`coalesce(values(genero), ${students.genero})`
 					}
 				});
 

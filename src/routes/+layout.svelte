@@ -28,7 +28,7 @@
                 </ul>
             
             </li>
-			<li><a href="#"> Generacion de planilla </a></li>
+			<li><a href="/digaipe/generacion-planilla"> Generacion de planilla </a></li>
 			<li class='menu-dropdown'><a href="#"> Listas </a>
                 <ul>
                     <li><a href='/digaipe/carreras'>Carreras</a></li>

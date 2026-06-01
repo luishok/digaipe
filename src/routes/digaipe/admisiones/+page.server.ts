@@ -82,7 +82,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		.leftJoin(ocre_types, eq(admissions.ocreTypeId, ocre_types.id))
 		.leftJoin(admissionImportBatches, eq(admissions.importBatchId, admissionImportBatches.id))
 		.orderBy(desc(admissions.fechaAsignacion), desc(admissions.id))
-		.limit(500);
+		.limit(50);
 
 	const rows = whereClause ? await query.where(whereClause) : await query;
 
