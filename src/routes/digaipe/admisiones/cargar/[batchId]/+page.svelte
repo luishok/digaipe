@@ -8,84 +8,102 @@
 	const canSave = $derived(data.batch.status === 'draft' && errors.length === 0);
 </script>
 
-<h1>Vista previa del lote #{data.batch.id}</h1>
 
 <p><a href={resolve('/digaipe/admisiones/cargar')}>Volver a cargar admisiones</a></p>
 <p><a href={resolve('/digaipe/admisiones')}>Volver al listado</a></p>
+<h1>Vista previa del lote #{data.batch.id}</h1>
+
+
 
 {#if form?.message}
 	<p>{form.message}</p>
 {/if}
+<div class='div-card'>
+	<h2>Archivos</h2>
+	<p>Estado: {data.batch.status}</p>
+	<ul>
+		<li>Admisiones: {data.batch.sourceFileName}</li>
+		<li>Estadistica: {data.batch.estadisticaFileName}</li>
+		<li>Manifest: {data.batch.manifestFileName}</li>
+	</ul>
 
-<h2>Archivos</h2>
-<ul>
-	<li>Admisiones: {data.batch.sourceFileName}</li>
-	<li>Estadistica: {data.batch.estadisticaFileName}</li>
-	<li>Manifest: {data.batch.manifestFileName}</li>
-</ul>
-
-<p>Estado: {data.batch.status}</p>
-<p>
-	{data.preview.rows.length} filas, {warnings.length} advertencias, {errors.length} errores.
-</p>
+	
+	<p>
+		{data.preview.rows.length} filas, {warnings.length} advertencias, {errors.length} errores.
+	</p>
+</div>
 
 {#if data.batch.status !== 'draft'}
 	<p>Este lote ya fue guardado.</p>
 {:else if canSave}
 	<form method="POST" action="?/save">
 		<input type="hidden" name="batchId" value={data.batch.id} />
-		<button type="submit">Guardar admisiones</button>
+		<button type="submit" class='button-sticky'>Guardar admisiones</button>
 	</form>
 {:else}
-	<p>Corrija los errores y vuelva a cargar los archivos para poder guardar.</p>
+	<p style='color: red;'>*Corrija los errores y vuelva a cargar los archivos para poder guardar.</p>
 {/if}
-
+<div class='container-advertencias-errores'>
 {#if warnings.length > 0}
-	<h2>Advertencias</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>Fila</th>
-				<th>Campo</th>
-				<th>Mensaje</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each warnings as warning (`${warning.row}-${warning.field}-${warning.message}`)}
+	<div class="advertencias_container div-card">
+		<img src='/src/lib/assets/alert.png' alt="Advertencias" width="24" height="24" />
+		<h2>Advertencias: {warnings.length}</h2>
+		<div class='contenedor_tabla'>
+		<table class='table_container'>
+			<thead>
 				<tr>
-					<td>{warning.row}</td>
-					<td>{warning.field}</td>
-					<td>{warning.message}</td>
+					<th>Fila</th>
+					<th>Campo</th>
+					<th>Mensaje</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each warnings as warning (`${warning.row}-${warning.field}-${warning.message}`)}
+					<tr>
+						<td>{warning.row}</td>
+						<td>{warning.field}</td>
+						<td>{warning.message}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+		</div>
+	</div>
 {/if}
 
 {#if errors.length > 0}
-	<h2>Errores</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>Fila</th>
-				<th>Campo</th>
-				<th>Mensaje</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each errors as previewError (`${previewError.row}-${previewError.field}-${previewError.message}`)}
+<div class="errores_container div-card">
+<img src='/src/lib/assets/error.png' alt="Advertencias" width="24" height="24" />
+	<h2>Errores: {errors.length}</h2>
+		<div class='contenedor_tabla'>
+		<table class='table_container'>
+			<thead>
 				<tr>
-					<td>{previewError.row}</td>
-					<td>{previewError.field}</td>
-					<td>{previewError.message}</td>
+					<th>Fila</th>
+					<th>Campo</th>
+					<th>Mensaje</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each errors as previewError (`${previewError.row}-${previewError.field}-${previewError.message}`)}
+					<tr>
+						<td>{previewError.row}</td>
+						<td>{previewError.field}</td>
+						<td>{previewError.message}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+		</div>
+	</div>
 {/if}
-
+</div>
+<div class='div-card'>
+	
 <h2>Vista previa</h2>
-<table>
+<p style='width:100%'><strong>Nota:</strong> Las advertencias no impiden guardar el lote, pero los errores sí.</p>
+<div class='contenedor_tabla' style='max-height: 500px;'>
+<table class='table_container'> 
 	<thead>
 		<tr>
 			<th>Fila</th>
@@ -125,3 +143,5 @@
 		{/each}
 	</tbody>
 </table>
+</div>
+</div>

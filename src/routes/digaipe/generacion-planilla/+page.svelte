@@ -22,7 +22,7 @@
 {#if data.admissions.length === 0}
 	<p>No hay admisiones disponibles para generar planilla hoy.</p>
 {:else}
-	<table>
+	<table class='table_container'>
 		<thead>
 			<tr>
 				<th>Cedula</th>

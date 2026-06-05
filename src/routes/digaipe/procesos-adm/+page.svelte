@@ -72,7 +72,7 @@ h1{
     .process-container{
         display: flex;
         gap: 2rem;
-       height: 50vh;
+       height: max-content;
     }
     .process-container p{
         margin: 0;
@@ -91,7 +91,7 @@ h1{
             padding: 24px;
     border-radius: 12px;
     box-shadow: 0 4px 6px 4px rgba(0, 0, 0, 0.05), 0 2px 4px 4px rgba(0, 0, 0, 0.03);
-    font-family: system-ui, -apple-system, sans-serif;
+
         
     }
 
@@ -117,6 +117,7 @@ h1{
     gap: 6px; /* Controla la separación entre el texto y el input */
     font-weight: 600; /* Opcional: para que resalte un poco más el título */
     margin: 0 1em;
+    width:fit-content
 }
     .process-right{
         background-color: var(--ula-light);
@@ -124,7 +125,7 @@ h1{
             padding: 24px;
     border-radius: 12px;
     box-shadow: 0 4px 6px 4px rgba(0, 0, 0, 0.05), 0 2px 4px 4px rgba(0, 0, 0, 0.03);
-    font-family: system-ui, -apple-system, sans-serif;
+
        
     }
 
@@ -132,18 +133,7 @@ h1{
 
 
 
-    .input-date, .input-text {
-    width: 50%;
-    padding: 10px 14px;
-    font-size: 15px;
-    color: #1e293b; /* Texto oscuro para legibilidad */
-    background-color: #ffffff; /* Predominantemente blanco */
-    border: 1px solid #cbd5e1; /* Borde gris suave por defecto */
-    border-radius: 8px; /* Bordes redondeados modernos */
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    box-sizing: border-box;
-}
+  
 
 /* Efecto Hover (Cuando el mouse pasa por encima) */
 .input-date:hover {
@@ -250,12 +240,6 @@ h1{
 }
 
 /* Contenedor responsivo de la tabla */
-.process-right .table_container {
-    width: 100%;
-    overflow-x: auto; /* Permite scroll horizontal en móviles si es necesario */
-    border: 1px solid #e2e8f0; /* Borde sutil alrededor de la tabla */
-    border-radius: 8px;
-}
 
 /* Estilos generales de la tabla */
 .process-right table {
@@ -317,7 +301,7 @@ h1{
         <h2>Crear Proceso de Admisión</h2>
         <div class='item-process-left'>
         <form class='create-process' id='create-process-form' method="POST" action="?/create" use:enhance>
-            <div class="input-group">
+            <div class="input-group2">
                 <label for="process-code" class="label-text">Código del Proceso</label>
                 <input 
                     id="process-code" 
@@ -420,7 +404,7 @@ h1{
                 <thead>
                 <tr>
                     <th>ID</th>
-                    <th>CÃ³digo</th>
+                    <th>Codigo</th>
                     <th>Estado</th>
                     <th>Fechas</th>
                     <th>Agregar fechas</th>

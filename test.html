@@ -1,0 +1,436 @@
+<style>
+article{
+padding:20px;
+}
+.toc-container {
+    background-color: #757575; /* Color gris oscuro del fondo */
+    color: #ffffff;
+    padding: 20px 25px;
+    margin: 10px auto;
+  }
+
+  .toc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+  }
+
+  .toc-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+color: white;
+  }
+
+  .reading-time {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+  }
+
+  /* Icono de reloj simple usando SVG */
+  .clock-icon {
+    width: 24px;
+    height: 24px;
+    margin-left: 10px;
+    border: 2px solid white;
+    border-radius: 50%;
+    position: relative;
+  }
+  .clock-icon::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 8px;
+    background: white;
+    top: 4px;
+    left: 9px;
+  }
+  .clock-icon::before {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 2px;
+    background: white;
+    top: 11px;
+    left: 9px;
+  }
+
+  .toc-grid {
+    display: flex;
+    gap: 30px;
+    justify-content: space-between;
+  }
+.toc-item a{
+color: white;
+}
+  .toc-item {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  /* Punto de la lista personalizado */
+  .bullet {
+    width: 6px;
+    height: 6px;
+    background-color: white;
+    border-radius: 50%;
+    margin-top: 7px;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+.hyperlink {
+    color: #787878;
+    text-decoration: underline;
+}
+
+.listen-container{
+    background-color: #cccccc;
+    color: #0000;
+
+    padding: 20px 25px;
+    display: flex;
+    margin: 10px auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+
+}
+.listen-container h3{
+ font-size: 24px;
+}
+.listen-container h3, .listen-container p{margin: 0; color: black;
+}
+.listen-container .clock-icon{
+    border: 2px solid black;
+}
+.listen-container .clock-icon::before, .listen-container .clock-icon::after{
+ background: black;
+}
+.listen-container audio::-webkit-media-controls-panel {
+  background-color: #757575;
+}
+
+.listen-container audio::-webkit-media-controls-play-button {
+  background-color: #ffffff;
+  border-radius: 50%;
+}
+.section-image-text{
+display: flex;
+        align-items: flex-start;
+        gap: 40px;
+ 
+        color: #333;
+        margin: 40px auto;
+}
+
+.section-image-text .text-column, .section-image-text .image-column{
+ flex: 1;
+}
+.section-image-text .image-column img{
+width: 100%;
+        height: auto;
+        display: block;
+}
+section.blog-points {
+margin-bottom: 8rem;
+}
+section.blog-points h3{
+ font-weight:600;
+}
+.quote-box{
+margin: 4rem 0;
+}
+.quote-box h2{
+font-weight: 300;
+}
+
+
+.product-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+
+  .product-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .image-container {
+    position: relative;
+    width: 100%;
+    background-color: #e5e5e5; /* Color de fondo gris claro similar a la imagen */
+    aspect-ratio: 1 / 1.1; /* Proporción ligeramente vertical */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .image-container img {
+    max-width: 100%;
+    max-height: 1000%;
+    object-fit: contain;
+  }
+
+  .product-link {
+    color: black;
+    text-decoration: underline 1px;
+    font-size: 18px;
+    text-align: center;
+    cursor: pointer;
+font-weight: 400;
+  }
+
+  .product-link:hover {
+    color: #787878;
+  }
+
+
+
+
+.medical-doctor-card{
+display: flex;
+    background-color: #cccc;
+    padding: 40px;
+}
+.medical-doctor-card .doctor-container, .medical-doctor-card .doctor-text{
+flex: 1;
+}
+.medical-doctor-card .doctor-container{
+    justify-content: center;
+}
+.doctor-name h4, .doctor-name h5{
+margin: 0;
+
+}
+.medical-doctor-card .doctor-text p{
+color: black;
+}
+  /* Ajuste para móviles */
+  @media (max-width: 768px) {
+article{
+ padding: 0;
+}
+    .toc-grid {
+      flex-direction: column;
+      gap: 15px;
+    }
+    .toc-header, .listen-container, .medical-doctor-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .reading-time {
+      order: -1; /* Pone el tiempo arriba en móviles */
+    }
+
+.section-image-text{
+flex-direction: column;
+}
+.column-reverse-mobile{
+flex-direction: column-reverse;
+
+}
+.product-grid {
+      flex-wrap: wrap;
+gap: 10px;
+    }
+    .product-card {
+      flex: 0 0 calc(50% - 10px);
+      margin-bottom: 30px;
+    }
+  }
+
+    </style>
+
+<article>
+    <!-- Tabla de Contenidos -->
+    <div class="toc-container">
+        <div class="toc-header">
+            <h2 class="toc-title">Table of content: What you will learn</h2>
+            <div class="reading-time">
+                Reading time 4 mins
+                <div class="clock-icon"></div>
+            </div>
+        </div>
+
+        <div class="toc-grid">
+            <div class="toc-item">
+                <span class="bullet"></span>
+                <span><a href="#why-most-protocols-skip" style="text-decoration: underline;">Why Most Protocols Skip the Most Critical Step</a></span>
+            </div>
+            <div class="toc-item">
+                <span class="bullet"></span>
+                <span><a href="#complexion-code-glow-bridge" style="text-decoration: underline;">How Complexion Code Glow Functions as the Clinical Bridge</a></span>
+            </div>
+            <div class="toc-item">
+                <span class="bullet"></span>
+                <span><a href="#why-step-is-non-negotiable" style="text-decoration: underline;">Why This Step Is Clinically Non-Negotiable</a></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Section -->
+    <div class="listen-container">
+        <h3>Listen on the Go</h3>
+        <div class="flex">
+            <p>Listen Time 5mins</p>
+            <div class="clock-icon"></div>
+        </div>
+        <div>
+            <audio controls="">
+                <source src="https://cdn.shopify.com/s/files/1/1047/2716/files/How_to_build_the_foundation_for_visible_radiance.m4a?v=1780071558" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+    </div>
+
+    <!-- Quote Box / Hero Title -->
+    <div class="quote-box">
+       <h2>Why smart antioxidants are the clinical bridge between barrier repair and depigmentation </h2> <p>There is a stage between barrier stabilization and corrective depigmentation that most protocols skip — and it is exactly where results either hold or fall apart.</p>
+    </div>
+
+    <!-- Punto 1 -->
+    <section class="section-image-text blog-points" id="why-most-protocols-skip">
+        <div class="text-column" style="align-self: center;">
+        <h3>Why Most Protocols Skip the Most Critical Step</h3>
+        <p>
+            After the <strong>barrier</strong> is restored, introducing <strong>smart antioxidant activity</strong> prepares the skin for targeted correction. This step:
+        </p>
+        <ul>
+            <li>Reduces residual <strong>oxidative stress</strong> before applying corrective actives</li>
+            <li>Gently modulates <strong>pigment</strong> without triggering <strong>inflammation</strong></li>
+            <li>Builds the biological environment where <strong>depigmentation</strong> can succeed</li>
+        </ul>
+        </div>
+        <div class="image-column">
+            <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/02_Radiant_Woman.jpg?v=1780071582" alt="Skin Biology Radiance">
+
+        </div>
+    </section>
+
+    <!-- Punto 2 (Imagen Izquierda, Texto Derecha) -->
+    <section class="section-image-text blog-points" id="complexion-code-glow-bridge">
+        <div class="image-column">
+            <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/03_Radiant_Woman.jpg?v=1780071582" alt="Visible Radiance Glow">
+        </div>
+        <div class="text-column" style="align-self: center;">
+            <h3>How Complexion Code Glow Functions as the Clinical Bridge</h3>
+            <p><a href="/products/promed-complexion-code-glow" class="hyperlink" target="_blank"><strong>Complexion Code Glow</strong></a></p>
+            <ul>
+                <li>Smart <strong>antioxidants</strong> that act on the cellular level</li>
+                <li>Gentle <strong>pigment modulation</strong> without aggressive actives</li>
+                <li>Progressive, healthy <strong>luminosity</strong> that holds over time</li>
+                <li>Ideal for sensitive, reactive, or <strong>post-procedure skin</strong></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Punto 3 (Texto Izquierda, Imagen Derecha) -->
+    <section class="section-image-text blog-points column-reverse-mobile">
+        <div class="text-column">
+            <h3>The Week 2 Healthy Radiance Protocol</h3>
+            <p>Carry forward from Week 1: <a href="/products/hydra-gel-cleanser" class="hyperlink" target="_blank">Hydra Gel Cleanser</a> + <a href="/products/moisturizer-code-plus" class="hyperlink" target="_blank">Moisturizer Code Repair</a> + <a href="/products/total-code-protection-spf-50" class="hyperlink" target="_blank">Total Code Protection SPF 50+</a></p>
+            <p>Add: <a href="/products/complexion-code-glow" class="hyperlink" target="_blank">Complexion Code Glow</a></p>
+            <br>
+            <p><strong>AM:</strong> Cleanser → Complexion Code Glow → Moisturizer Code Repair → SPF 50+</p>
+            <p><strong>PM:</strong> Cleanser → Complexion Code Glow → Moisturizer Code Repair</p>
+        </div>
+        <!-- <div class="image-column">
+            <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/04_Bundle-Moisturizer-Code-Plus-Total-Code-SPF.webp?v=1779199070" alt="Week 2 Skincare Protocol">
+        </div> -->
+    </section>
+
+    <!-- Punto 4 -->
+    <section class="blog-points" id="why-step-is-non-negotiable">
+        <h3>Why This Step Is Clinically Non-Negotiable</h3>
+        <p>Without <strong>antioxidant preparation</strong> before <strong>depigmentation</strong>:</p>
+        <ul>
+            <li><strong>Oxidative stress</strong> can reactivate melanocyte activity</li>
+            <li>Corrective treatments may produce inconsistent or <strong>short-lived results</strong></li>
+            <li>Skin <strong>sensitivity</strong> during the active treatment phase increases</li>
+        </ul>
+        <p><a href="/products/promed-complexion-code-glow" class="hyperlink" target="_blank">Complexion Code Glow</a> creates the internal conditions where the next corrective step can perform at full potential.</p>
+        <p>Radiance is the confirmation that the skin's biology is moving in the right direction.</p>
+    </section>
+
+    <!-- Sección de Productos en Pares Perfectos -->
+    <section class="blog-points"> 
+        <h3>Add Complexion Code Glow to Your Protocol</h3>
+        
+        <!-- Primer Par de Productos -->
+        <div class="product-grid">
+            <div class="product-card">
+                <div class="image-container">
+                    <a href="/products/promed-complexion-code-glow" target="_blank">
+                        <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/Complexion_code_glow_blog_image.webp?v=1779765745" alt="Complexion Code Glow">
+                    </a>
+                </div>
+                <a href="/products/promed-complexion-code-glow" target="_blank" class="product-link">Complexion Code Glow</a>
+                <p style="text-align: center; font-size: 14px; color: #555; margin-top: 5px;">Smart antioxidants + radiance + gentle pigment modulation</p>
+            </div>
+
+            <div class="product-card">
+                <div class="image-container">
+                    <a href="/products/promed-complexion-code-plus-system" target="_blank">
+                        <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/Explore_System.webp?v=1778538264" alt="Complexion Code Plus System">
+                    </a>
+                </div>
+                <a href="/products/promed-complexion-code-plus-system" target="_blank" class="product-link">Complexion Code Plus System</a>
+                <p style="text-align: center; font-size: 14px; color: #555; margin-top: 5px;">Cleanser + Moisturizer Code Repair + SPF + Complexion Code Glow</p>
+            </div>
+        </div>
+
+        <!-- Segundo Par de Productos -->
+        <div class="product-grid">
+            <div class="product-card">
+                <div class="image-container">
+                    <a href="/products/code-glow-duo" target="_blank"> 
+                        <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/Code_and_glow_duo.webp?v=1777912403" alt="Code &amp; Glow Duo">
+                    </a>
+                </div>
+                <a href="/products/code-glow-duo" target="_blank" class="product-link">Code &amp; Glow Duo</a>
+                <p style="text-align: center; font-size: 14px; color: #555; margin-top: 5px;">Complexion Code Plus + Complexion Code Glow</p>
+            </div>
+
+            <div class="product-card">
+                <div class="image-container">
+                    <a href="/collections/pigmentation" target="_blank"> 
+                        <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/Hyperpigmentation_Banner_1.webp?v=1780080997" alt="Full Pigmentation Collection">
+                    </a>
+                </div>
+                <a href="/collections/pigmentation" target="_blank" class="product-link">Full Pigmentation Collection</a>
+                <p style="text-align: center; font-size: 14px; color: #555; margin-top: 5px;">Complete target stabilization &amp; professional treatment support</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Doctor Card -->
+    <section class="blog-points">
+        <div class="medical-doctor-card">
+            <div class="doctor-container">
+                <img src="https://cdn.shopify.com/s/files/1/1047/2716/files/DR._JUAN_CAMILO.jpg?v=1778534893" alt="Dr Juan Camilo" height="100">
+                <div class="doctor-name">
+                    <h4><strong>Dr. Juan Camilo Calderon</strong></h4>
+                    <h5>Medical Doctor</h5>
+                </div>
+            </div>
+            <div class="doctor-text">
+                <p>A physician trained in Dermatology and aesthetic medicine immunology. He is also a professor, scientific consultant, international speaker, and dermatology publication reviewer.</p>
+            </div>
+        </div>
+    </section>
+
+</article>

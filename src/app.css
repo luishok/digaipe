@@ -14,7 +14,7 @@
 
   /* 2. TIPOGRAFÍA */
   /* Fuentes */
-  --font-heading: 'Georgia', 'Times New Roman', serif; /* Aspecto académico para títulos */
+  --font-heading: 'Helvetica Neue', Arial, sans-serif; /* Aspecto académico para títulos */
   --font-body: 'Helvetica Neue', Arial, sans-serif;    /* Aspecto limpio para lectura */
 
   /* Tamaños base (1rem = 16px por defecto en el navegador) */
@@ -62,6 +62,7 @@ main.main-content{
   margin: 0 auto; /* Centra el contenedor en la pantalla */
   padding: var(--spacing-xl) var(--spacing-lg); /* Espaciado interno */
   flex-grow: 1;
+  min-height: 90vh;
 }
 /* --- Títulos --- */
 h1, h2, h3, h4, h5, h6 {
@@ -73,12 +74,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 { font-size: var(--font-size-h1); }
+main h1{
+  text-align: center;
+}
+
 h2 { font-size: var(--font-size-h2); }
 h3 { font-size: var(--font-size-h3); }
 h4 { font-size: var(--font-size-h4); }
 h5 { font-size: var(--font-size-h5); }
 h6 { font-size: var(--font-size-h6); }
 
+
+h2
 /* --- Párrafos y Textos --- */
 p {
   margin-bottom: var(--spacing-md);
@@ -122,11 +129,73 @@ button:hover, .btn:hover {
 }
 
 
+
+
+.table_container {
+    width: 100%;
+    overflow-x: auto; /* Permite scroll horizontal en móviles */
+    margin: 1rem 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table_container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: sans-serif;
+    background-color: white;
+    text-align: left;
+}
+
+.table_container thead {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.table_container th {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.table_container td {
+    padding: 12px 16px;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.9rem;
+}
+
+/* Efecto Zebra (Filas alternas) */
+.table_container tbody tr:nth-child(even) {
+    background-color: #fcfcfd;
+}
+
+/* Efecto Hover para resaltar la fila actual */
+.table_container tbody tr:hover {
+    background-color: #f1f5f9;
+    transition: background-color 0.2s ease;
+}
+
+/* Quitar el borde inferior a la última fila */
+.table_container tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+
+
+
+
 .site-header {
   background-color: var(--ula-blue);
   padding: 0.5rem;
   display: flex;
   justify-content: space-between;
+  min-height: 10vh;
 }
 .logo {
   color: white;
@@ -151,6 +220,11 @@ button:hover, .btn:hover {
   cursor: pointer;
   text-decoration: none;
   font-size: 1.2rem;
+  border: 1px solid transparent;
+}
+.nav-bar a:hover {
+  border: 1px solid white;
+  border-radius: 8px;
 }
 .menu-dropdown{
   position: relative;
@@ -276,6 +350,53 @@ button:hover, .btn:hover {
   }
 
   /* --- Estilos de los Inputs --- */
+input[type="text"]:focus, input[type="date"]:focus, input[type="search"]:focus, select:focus, input[type="file"]:focus, input[type="email"]:focus, input[type="tel"]:focus {
+   outline: none;
+    border-color: var(--ula-blue);
+    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
+
+}
+input[type="text"]:hover, input[type="date"]:hover, input[type="search"]:hover, select:hover, input[type="file"]:hover, input[type="email"]:hover, input[type="tel"]:hover {
+    border-color: var(--ula-blue);
+    cursor: pointer;
+}
+
+input[type="text"], input[type="date"], input[type="search"], select, input[type="file"], input[type="email"], input[type="tel"]{
+    width: 50%;
+    padding: 10px 14px;
+    font-size: 15px;
+    color: #1e293b; /* Texto oscuro para legibilidad */
+    background-color: #ffffff; /* Predominantemente blanco */
+    border: 1px solid #cbd5e1; /* Borde gris suave por defecto */
+    border-radius: 8px; /* Bordes redondeados modernos */
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+
+}
+
+.item-process-left label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* Controla la separación entre el texto y el input */
+    font-weight: 600; /* Opcional: para que resalte un poco más el título */
+    margin: 0 1em;
+    width:fit-content
+}
+
+.label-input{
+  width: fit-content;
+}
+.label-input label{
+
+   display: flex;
+    flex-direction: column;
+    gap: 6px; /* Controla la separación entre el texto y el input */
+    font-weight: 600; /* Opcional: para que resalte un poco más el título */
+    margin: 0 1em;
+    width:fit-content
+}
+
   .input-group {
     margin-bottom: 1.5rem;
     display: flex;
@@ -300,7 +421,7 @@ button:hover, .btn:hover {
   }
 
   /* Efecto al hacer clic en el input */
-  .input-group input:focus {
+  .input-group input:focus{
     outline: none;
     border-color: var(--ula-blue);
     box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
@@ -342,3 +463,64 @@ button:hover, .btn:hover {
       padding: 2rem 1.5rem;
     }
   }
+
+
+
+
+
+
+
+  .button-sticky{
+	position: fixed;
+	bottom: 20px;
+	padding: 1em 3em;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 9999;
+	font-size: 20px;
+	font-weight: 600;
+}
+.container-advertencias-errores{
+	display: flex;
+	gap: 2rem;
+	flex-wrap: wrap;
+}
+.container-advertencias-errores .advertencias_container,.container-advertencias-errores .errores_container{
+	flex: 1;
+	min-width: 300px;
+	max-height: 400px;
+	overflow-y: hidden;
+}
+.div-card h2{
+	margin: 0;
+}
+.div-card{
+	display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: center;
+	padding: 1rem;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	margin-top: 3rem;
+
+}
+.contenedor_tabla{
+	overflow-x: auto;
+	width: 100%;
+	max-height: 300px;
+	overflow-y: scroll;
+}
+
+.container-update-student{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2rem;
+
+}
+.container-update-student input, .container-update-student select{
+  flex: 1;
+  min-width: 250px;
+}
