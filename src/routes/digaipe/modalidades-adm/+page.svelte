@@ -12,7 +12,7 @@
     ];
 </script>
 
-<h2>Modalidades de Admisión</h2>
+<h1>Modalidades de Admisión</h1>
 <div class="table_container">
     <table>
         <thead>

@@ -60,7 +60,7 @@
 
 
 
-<h2 style='text-align: center;'>Carreras</h2>
+<h1 style='text-align: center;'>Carreras</h1>
 
 
 

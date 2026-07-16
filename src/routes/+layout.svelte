@@ -20,7 +20,7 @@
 		<nav id="navigation-bar" class="nav-bar">
         <ul class="main-menu">
             <li><a href="/">Inicio</a></li>
-            <li><a href="/contacto">Estadisticas</a></li>
+            <li><a href="/data">Estadisticas</a></li>
 			<li class='menu-dropdown'><a href="#" class="active">Admisiones</a>
                 <ul>
                     <li><a href='/digaipe/admisiones'>Admisiones</a></li>
@@ -36,7 +36,7 @@
                 </ul>
             
             </li>
-			<li><a href="#">Abouts</a></li>
+			<li><a href="/ayuda">Ayuda</a></li>
         </ul>
 
 		</nav>
