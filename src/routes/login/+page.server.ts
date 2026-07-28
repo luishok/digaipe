@@ -3,6 +3,12 @@ import type { Actions } from './$types';
 import type { PageServerLoad } from './$types';
 import { auth } from '$lib/server/auth';
 import { APIError } from 'better-auth/api';
+import {
+	anonymousAuditContextFromEvent,
+	hashAuditIdentifier,
+	writeAuditLog
+} from '$lib/server/audit';
+import { db } from '$lib/server/db';
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
@@ -26,11 +32,25 @@ export const actions: Actions = {
 				}
 			});
 		} catch (error) {
+			await writeAuditLog(db, anonymousAuditContextFromEvent(event), {
+				action: 'auth.sign_in_failed',
+				entityType: 'authentication',
+				entityId: hashAuditIdentifier(email),
+				metadata: { identifierHash: hashAuditIdentifier(email) },
+				outcome: 'failure'
+			});
 			if (error instanceof APIError) {
 				return fail(400, { message: error.message || 'Signin failed' });
 			}
 			return fail(500, { message: 'Unexpected error' });
 		}
+
+		await writeAuditLog(db, anonymousAuditContextFromEvent(event), {
+			action: 'auth.sign_in_succeeded',
+			entityType: 'authentication',
+			entityId: hashAuditIdentifier(email),
+			metadata: { identifierHash: hashAuditIdentifier(email) }
+		});
 
 		return redirect(302, '/digaipe');
 	}

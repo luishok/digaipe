@@ -1,7 +1,5 @@
 <script>
-    import Landing from "$lib/components/landing.svelte";
+	import Landing from '$lib/components/landing.svelte';
 </script>
-<Landing>
 
-
-</Landing>
+<Landing></Landing>

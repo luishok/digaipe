@@ -1,4 +1,4 @@
-import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
+import { auditContextFromEvent, setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
 import { db } from '$lib/server/db';
 import { APActiveDates, proceso_admission } from '$lib/server/db/schema';
 import { fail, type Actions } from '@sveltejs/kit';
@@ -31,9 +31,8 @@ export const actions: Actions = {
 		if (existing.length > 0) return fail(409, { error: `Code "${code}" already exists` });
 
 		const result = await db.transaction(async (tx) => {
-			const [insertResult] = await tx
-				.insert(proceso_admission)
-				.values({ code, isEnabled: false });
+			await setAuditDatabaseContext(tx, auditContext);
+			const [insertResult] = await tx.insert(proceso_admission).values({ code, isEnabled: false });
 
 			await writeAuditLog(tx, auditContext, {
 				action: 'admission_process.created',
@@ -79,6 +78,7 @@ export const actions: Actions = {
 
 		const addedDates = await db
 			.transaction(async (tx) => {
+				await setAuditDatabaseContext(tx, auditContext);
 				const [process] = await tx
 					.select({
 						id: proceso_admission.id,
@@ -120,7 +120,12 @@ export const actions: Actions = {
 					action: 'admission_process.dates_added',
 					entityType: 'admission_process',
 					entityId: processId,
-					before: { id: processId, code: process.code, isEnabled: process.isEnabled, activeDates: existingDates },
+					before: {
+						id: processId,
+						code: process.code,
+						isEnabled: process.isEnabled,
+						activeDates: existingDates
+					},
 					after: {
 						id: processId,
 						code: process.code,

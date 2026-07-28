@@ -87,13 +87,19 @@ export const load: PageServerLoad = async ({ url }) => {
 	const rows = whereClause ? await query.where(whereClause) : await query;
 
 	const [processes, periods, modalities, careerOptions] = await Promise.all([
-		db.select({ code: proceso_admission.code }).from(proceso_admission).orderBy(proceso_admission.code),
+		db
+			.select({ code: proceso_admission.code })
+			.from(proceso_admission)
+			.orderBy(proceso_admission.code),
 		db
 			.select({ period: admissions.periodoIngreso })
 			.from(admissions)
 			.groupBy(admissions.periodoIngreso)
 			.orderBy(desc(admissions.periodoIngreso)),
-		db.select({ code: mod_admission.code, name: mod_admission.name }).from(mod_admission).orderBy(mod_admission.code),
+		db
+			.select({ code: mod_admission.code, name: mod_admission.name })
+			.from(mod_admission)
+			.orderBy(mod_admission.code),
 		db
 			.select({ opcion: admissions.opcion })
 			.from(admissions)

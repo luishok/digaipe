@@ -14,7 +14,9 @@ type DigaipePlanillaData = {
 };
 
 const PAGE_H = 467.8;
-const CHECKBOX_TOPS = [69.3, 82.9, 96.5, 110.2, 123.8, 137.4, 151.0, 164.7, 178.3, 191.9, 205.6, 219.2];
+const CHECKBOX_TOPS = [
+	69.3, 82.9, 96.5, 110.2, 123.8, 137.4, 151.0, 164.7, 178.3, 191.9, 205.6, 219.2
+];
 const TEMPLATE_PATH = path.resolve(process.cwd(), 'static', 'digaipe_form.pdf');
 
 function text(value: string | number | null | undefined) {

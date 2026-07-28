@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import type { AuditContext } from '$lib/server/audit';
-import { writeAuditLog } from '$lib/server/audit';
+import { setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
 import {
 	admissionImportBatches,
 	admissions,
@@ -146,7 +146,11 @@ function isUploadFile(value: FormDataEntryValue | null): value is File {
 	return value instanceof File && value.size > 0;
 }
 
-function validateFile(file: FormDataEntryValue | null, allowedExtensions: string[], label: string): File {
+function validateFile(
+	file: FormDataEntryValue | null,
+	allowedExtensions: string[],
+	label: string
+): File {
 	if (!isUploadFile(file)) {
 		throw new Error(`Debe cargar el archivo ${label}.`);
 	}
@@ -172,7 +176,11 @@ async function writeUploadFile(file: File, directory: string): Promise<FileWrite
 	return { fileName, filePath, sha256 };
 }
 
-export async function createDraftBatch(formData: FormData, uploadedByUserId: string, auditContext?: AuditContext) {
+export async function createDraftBatch(
+	formData: FormData,
+	uploadedByUserId: string,
+	auditContext?: AuditContext
+) {
 	const sourceFile = validateFile(formData.get('sourceFile'), ['.xlsx'], 'de admisiones');
 	const estadisticaFile = validateFile(formData.get('estadisticaFile'), ['.pdf'], 'estadistica');
 	const manifestFile = validateFile(formData.get('manifestFile'), ['.pdf'], 'manifest');
@@ -186,6 +194,7 @@ export async function createDraftBatch(formData: FormData, uploadedByUserId: str
 	const preview = await previewAdmissionFile(source.filePath);
 
 	const [result] = await db.transaction(async (tx) => {
+		if (auditContext) await setAuditDatabaseContext(tx, auditContext);
 		const [insertResult] = await tx.insert(admissionImportBatches).values({
 			uploadedByUserId,
 			sourceFileName: source.fileName,
@@ -271,7 +280,9 @@ async function loadCatalogs(): Promise<ResolvedCatalogs> {
 	const [processRows, careerRows, modalityRows, ocreTypeRows] = await Promise.all([
 		db.select({ id: proceso_admission.id, code: proceso_admission.code }).from(proceso_admission),
 		db.select({ id: careers.id, ofae: careers.ofae, name: careers.todo }).from(careers),
-		db.select({ id: mod_admission.id, code: mod_admission.code, name: mod_admission.name }).from(mod_admission),
+		db
+			.select({ id: mod_admission.id, code: mod_admission.code, name: mod_admission.name })
+			.from(mod_admission),
 		db.select({ id: ocre_types.id, code: ocre_types.code, name: ocre_types.name }).from(ocre_types)
 	]);
 
@@ -283,7 +294,12 @@ async function loadCatalogs(): Promise<ResolvedCatalogs> {
 	};
 }
 
-function addRequiredError(errors: AdmissionPreviewIssue[], row: number, field: string, value: string) {
+function addRequiredError(
+	errors: AdmissionPreviewIssue[],
+	row: number,
+	field: string,
+	value: string
+) {
 	if (!value) errors.push({ row, field, message: `${field} es requerido.` });
 }
 
@@ -317,17 +333,31 @@ function buildPreviewRow(
 	addRequiredError(errors, rowNumber, 'Opcion', opcion);
 	addRequiredError(errors, rowNumber, 'Moda_Ingre', modaIngreso);
 	addRequiredError(errors, rowNumber, 'Cod_Ocre', codOcre);
-	if (ano === null) errors.push({ row: rowNumber, field: 'Ano', message: 'Ano debe ser numerico.' });
-	if (proceso === null) errors.push({ row: rowNumber, field: 'Proceso', message: 'Proceso debe ser numerico.' });
+	if (ano === null)
+		errors.push({ row: rowNumber, field: 'Ano', message: 'Ano debe ser numerico.' });
+	if (proceso === null)
+		errors.push({ row: rowNumber, field: 'Proceso', message: 'Proceso debe ser numerico.' });
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaAsignacion)) {
-		errors.push({ row: rowNumber, field: 'Fecha_asignacion', message: 'Fecha_asignacion debe ser una fecha valida.' });
+		errors.push({
+			row: rowNumber,
+			field: 'Fecha_asignacion',
+			message: 'Fecha_asignacion debe ser una fecha valida.'
+		});
 	}
 
 	if (cleanString(rawRow.Telefono) === '.') {
-		warnings.push({ row: rowNumber, field: 'Telefono', message: 'Telefono contiene solo un punto y se guardara vacio.' });
+		warnings.push({
+			row: rowNumber,
+			field: 'Telefono',
+			message: 'Telefono contiene solo un punto y se guardara vacio.'
+		});
 	}
 	if (cleanString(rawRow.Correo_e) === '.') {
-		warnings.push({ row: rowNumber, field: 'Correo_e', message: 'Correo_e contiene solo un punto y se guardara vacio.' });
+		warnings.push({
+			row: rowNumber,
+			field: 'Correo_e',
+			message: 'Correo_e contiene solo un punto y se guardara vacio.'
+		});
 	}
 
 	const process = catalogs.processesByCode.get(numAsignacion) ?? null;
@@ -335,14 +365,38 @@ function buildPreviewRow(
 	const modality = catalogs.modalitiesByCode.get(modaIngreso) ?? null;
 	const ocreType = catalogs.ocreTypesByCode.get(codOcre) ?? null;
 
-	if (numAsignacion && !process) errors.push({ row: rowNumber, field: 'Num_Asignacion', message: `No existe el proceso ${numAsignacion}.` });
-	if (opcion && !career) errors.push({ row: rowNumber, field: 'Opcion', message: `No existe una carrera con codigo OFAE ${opcion}.` });
-	if (modaIngreso && !modality) errors.push({ row: rowNumber, field: 'Moda_Ingre', message: `No existe la modalidad ${modaIngreso}.` });
-	if (codOcre && !ocreType) errors.push({ row: rowNumber, field: 'Cod_Ocre', message: `No existe el tipo OCRE ${codOcre}.` });
+	if (numAsignacion && !process)
+		errors.push({
+			row: rowNumber,
+			field: 'Num_Asignacion',
+			message: `No existe el proceso ${numAsignacion}.`
+		});
+	if (opcion && !career)
+		errors.push({
+			row: rowNumber,
+			field: 'Opcion',
+			message: `No existe una carrera con codigo OFAE ${opcion}.`
+		});
+	if (modaIngreso && !modality)
+		errors.push({
+			row: rowNumber,
+			field: 'Moda_Ingre',
+			message: `No existe la modalidad ${modaIngreso}.`
+		});
+	if (codOcre && !ocreType)
+		errors.push({
+			row: rowNumber,
+			field: 'Cod_Ocre',
+			message: `No existe el tipo OCRE ${codOcre}.`
+		});
 
 	const duplicateKey = `${cedula}:${opcion}:${numAsignacion}`;
 	if (seenAdmissions.has(duplicateKey)) {
-		errors.push({ row: rowNumber, field: 'Ced_estudiante', message: 'Admision duplicada dentro del archivo.' });
+		errors.push({
+			row: rowNumber,
+			field: 'Ced_estudiante',
+			message: 'Admision duplicada dentro del archivo.'
+		});
 	}
 	seenAdmissions.add(duplicateKey);
 
@@ -396,6 +450,7 @@ export async function saveAdmissionBatch(batchId: number, auditContext?: AuditCo
 	await assertNoExistingAdmissions(preview.rows, catalogs);
 
 	await db.transaction(async (tx) => {
+		if (auditContext) await setAuditDatabaseContext(tx, auditContext);
 		for (const row of preview.rows) {
 			const process = catalogs.processesByCode.get(row.numAsignacion);
 			const career = catalogs.careersByOfae.get(row.opcion);
@@ -493,7 +548,9 @@ async function assertNoExistingAdmissions(rows: AdmissionPreviewRow[], catalogs:
 		.from(students)
 		.where(inArray(students.cedula, cedulas));
 
-	const studentIdByCedula = new Map(existingStudents.map((student) => [student.cedula, student.id]));
+	const studentIdByCedula = new Map(
+		existingStudents.map((student) => [student.cedula, student.id])
+	);
 	for (const row of rows) {
 		const studentId = studentIdByCedula.get(row.cedula);
 		const process = catalogs.processesByCode.get(row.numAsignacion);

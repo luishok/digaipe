@@ -1,42 +1,42 @@
 :root {
-  /* 1. PALETA DE COLORES */
-  --ula-blue: #0033a0;         /* Azul Pantone 286 (Color principal) */
-  --ula-grey: #7e7e7ecc;  
-  --blue-second: #ADD8E6;
-  --blue-third: #B0C4DE;  
-  --blue-ford: #7D9BD4;     /* Dorado institucional (Color de acento) */
-  
-  --color-bg-main: #ffffff;    /* Fondo principal blanco */
-  --color-bg-alt: #f4f6f9;     /* Fondo secundario gris muy claro */
-  
-  --color-text-main: #333333;  /* Texto principal (casi negro para mejor lectura) */
-  --color-text-muted: #666666; /* Texto secundario o descriptivo */
+	/* 1. PALETA DE COLORES */
+	--ula-blue: #0033a0; /* Azul Pantone 286 (Color principal) */
+	--ula-grey: #7e7e7ecc;
+	--blue-second: #add8e6;
+	--blue-third: #b0c4de;
+	--blue-ford: #7d9bd4; /* Dorado institucional (Color de acento) */
 
-  /* 2. TIPOGRAFÍA */
-  /* Fuentes */
-  --font-heading: 'Helvetica Neue', Arial, sans-serif; /* Aspecto académico para títulos */
-  --font-body: 'Helvetica Neue', Arial, sans-serif;    /* Aspecto limpio para lectura */
+	--color-bg-main: #ffffff; /* Fondo principal blanco */
+	--color-bg-alt: #f4f6f9; /* Fondo secundario gris muy claro */
 
-  /* Tamaños base (1rem = 16px por defecto en el navegador) */
-  --font-size-base: 16px;
-  
-  /* Escala de encabezados (Headings) */
-  --font-size-h1: 2.5rem;   /* 40px */
-  --font-size-h2: 2rem;     /* 32px */
-  --font-size-h3: 1.75rem;  /* 28px */
-  --font-size-h4: 1.5rem;   /* 24px */
-  --font-size-h5: 1.25rem;  /* 20px */
-  --font-size-h6: 1rem;     /* 16px */
-  
-  --font-size-small: 0.875rem; /* 14px (Para footer o letras pequeñas) */
+	--color-text-main: #333333; /* Texto principal (casi negro para mejor lectura) */
+	--color-text-muted: #666666; /* Texto secundario o descriptivo */
 
-  /* 3. ESPACIADOS (Márgenes y Paddings) */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
+	/* 2. TIPOGRAFÍA */
+	/* Fuentes */
+	--font-heading: 'Helvetica Neue', Arial, sans-serif; /* Aspecto académico para títulos */
+	--font-body: 'Helvetica Neue', Arial, sans-serif; /* Aspecto limpio para lectura */
+
+	/* Tamaños base (1rem = 16px por defecto en el navegador) */
+	--font-size-base: 16px;
+
+	/* Escala de encabezados (Headings) */
+	--font-size-h1: 2.5rem; /* 40px */
+	--font-size-h2: 2rem; /* 32px */
+	--font-size-h3: 1.75rem; /* 28px */
+	--font-size-h4: 1.5rem; /* 24px */
+	--font-size-h5: 1.25rem; /* 20px */
+	--font-size-h6: 1rem; /* 16px */
+
+	--font-size-small: 0.875rem; /* 14px (Para footer o letras pequeñas) */
+
+	/* 3. ESPACIADOS (Márgenes y Paddings) */
+	--spacing-xs: 4px;
+	--spacing-sm: 8px;
+	--spacing-md: 16px;
+	--spacing-lg: 24px;
+	--spacing-xl: 32px;
+	--spacing-xxl: 48px;
 }
 
 /* ==========================================================================
@@ -44,433 +44,451 @@
    ========================================================================== */
 
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
 }
 
 body {
-  font-family: var(--font-body);
-  font-size: var(--font-size-base);
-  color: var(--color-text-main);
-  background-color: var(--color-bg-main);
-  line-height: 1.6; /* Interlineado cómodo para leer */
+	font-family: var(--font-body);
+	font-size: var(--font-size-base);
+	color: var(--color-text-main);
+	background-color: var(--color-bg-main);
+	line-height: 1.6; /* Interlineado cómodo para leer */
 }
-main.main-content{
-  width: 100%;
-  max-width: 1600px; /* Evita que el texto se estire demasiado en pantallas anchas */
-  margin: 0 auto; /* Centra el contenedor en la pantalla */
-  padding: var(--spacing-xl) var(--spacing-lg); /* Espaciado interno */
-  flex-grow: 1;
-  min-height: 90vh;
+main.main-content {
+	width: 100%;
+	max-width: 1600px; /* Evita que el texto se estire demasiado en pantallas anchas */
+	margin: 0 auto; /* Centra el contenedor en la pantalla */
+	padding: var(--spacing-xl) var(--spacing-lg); /* Espaciado interno */
+	flex-grow: 1;
+	min-height: 90vh;
 }
 /* --- Títulos --- */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
-  color: var(--ula-blue); /* Los títulos llevan el azul de la ULA */
-  margin-bottom: var(--spacing-md);
-  line-height: 1.2;
-  font-weight: bold;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-heading);
+	color: var(--ula-blue); /* Los títulos llevan el azul de la ULA */
+	margin-bottom: var(--spacing-md);
+	line-height: 1.2;
+	font-weight: bold;
 }
 
-h1 { font-size: var(--font-size-h1); }
-main h1{
-  text-align: center;
+h1 {
+	font-size: var(--font-size-h1);
+}
+main h1 {
+	text-align: center;
 }
 
-h2 { font-size: var(--font-size-h2); }
-h3 { font-size: var(--font-size-h3); }
-h4 { font-size: var(--font-size-h4); }
-h5 { font-size: var(--font-size-h5); }
-h6 { font-size: var(--font-size-h6); }
-
+h2 {
+	font-size: var(--font-size-h2);
+}
+h3 {
+	font-size: var(--font-size-h3);
+}
+h4 {
+	font-size: var(--font-size-h4);
+}
+h5 {
+	font-size: var(--font-size-h5);
+}
+h6 {
+	font-size: var(--font-size-h6);
+}
 
 h2
 /* --- Párrafos y Textos --- */
 p {
-  margin-bottom: var(--spacing-md);
+	margin-bottom: var(--spacing-md);
 }
 
 small {
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
+	font-size: var(--font-size-small);
+	color: var(--color-text-muted);
 }
 
 /* --- Enlaces --- */
 a {
-  color: var(--ula-blue);
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s ease-in-out;
+	color: var(--ula-blue);
+	text-decoration: none;
+	font-weight: 500;
+	transition: color 0.2s ease-in-out;
 }
 
 a:hover {
-  color: var(--ula-grey); /* Cambia al dorado de la ULA al pasar el mouse */
-  text-decoration: underline;
+	color: var(--ula-grey); /* Cambia al dorado de la ULA al pasar el mouse */
+	text-decoration: underline;
 }
 
 /* --- Botones Genéricos --- */
-button, .btn {
-  display: inline-block;
-  background-color: var(--ula-blue);
-  color: #ffffff;
-  font-family: var(--font-body);
-  font-size: var(--font-size-base);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+button,
+.btn {
+	display: inline-block;
+	background-color: var(--ula-blue);
+	color: #ffffff;
+	font-family: var(--font-body);
+	font-size: var(--font-size-base);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
 }
 
-button:hover, .btn:hover {
-  background-color: var(--ula-grey);
-  color: var(--ula-blue);
+button:hover,
+.btn:hover {
+	background-color: var(--ula-grey);
+	color: var(--ula-blue);
 }
-
-
-
 
 .table_container {
-    width: 100%;
-    overflow-x: auto; /* Permite scroll horizontal en móviles */
-    margin: 1rem 0;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	width: 100%;
+	overflow-x: auto; /* Permite scroll horizontal en móviles */
+	margin: 1rem 0;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .table_container table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: sans-serif;
-    background-color: white;
-    text-align: left;
+	width: 100%;
+	border-collapse: collapse;
+	font-family: sans-serif;
+	background-color: white;
+	text-align: left;
 }
 
 .table_container thead {
-    background-color: #f8fafc;
-    border-bottom: 2px solid #e2e8f0;
+	background-color: #f8fafc;
+	border-bottom: 2px solid #e2e8f0;
 }
 
 .table_container th {
-    padding: 12px 16px;
-    font-weight: 600;
-    color: #475569;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
+	padding: 12px 16px;
+	font-weight: 600;
+	color: #475569;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.05em;
 }
 
 .table_container td {
-    padding: 12px 16px;
-    color: #1e293b;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.9rem;
+	padding: 12px 16px;
+	color: #1e293b;
+	border-bottom: 1px solid #f1f5f9;
+	font-size: 0.9rem;
 }
 
 /* Efecto Zebra (Filas alternas) */
 .table_container tbody tr:nth-child(even) {
-    background-color: #fcfcfd;
+	background-color: #fcfcfd;
 }
 
 /* Efecto Hover para resaltar la fila actual */
 .table_container tbody tr:hover {
-    background-color: #f1f5f9;
-    transition: background-color 0.2s ease;
+	background-color: #f1f5f9;
+	transition: background-color 0.2s ease;
 }
 
 /* Quitar el borde inferior a la última fila */
 .table_container tbody tr:last-child td {
-    border-bottom: none;
+	border-bottom: none;
 }
-
-
-
-
-
 
 .site-header {
-  background-color: var(--ula-blue);
-  padding: 0.5rem;
-  display: flex;
-  justify-content: space-between;
-  min-height: 10vh;
+	background-color: var(--ula-blue);
+	padding: 0.5rem;
+	display: flex;
+	justify-content: space-between;
+	min-height: 10vh;
 }
 .logo {
-  color: white;
-  align-self: center;
-  margin-left: 1.2rem;
+	color: white;
+	align-self: center;
+	margin-left: 1.2rem;
 }
 
 .nav-bar {
-  margin: auto;
+	margin: auto;
 }
-.nav-bar .main-menu{
-  width: 100%;
-  display: flex;
-  align-items: center;
-  list-style: none;
-  justify-content: center;
-
+.nav-bar .main-menu {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	list-style: none;
+	justify-content: center;
 }
 .nav-bar a {
-  color: white;
-  padding: 1.5rem;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 1.2rem;
-  border: 1px solid transparent;
+	color: white;
+	padding: 1.5rem;
+	cursor: pointer;
+	text-decoration: none;
+	font-size: 1.2rem;
+	border: 1px solid transparent;
 }
 .nav-bar a:hover {
-  border: 1px solid white;
-  border-radius: 8px;
+	border: 1px solid white;
+	border-radius: 8px;
 }
-.menu-dropdown{
-  position: relative;
-
+.menu-dropdown {
+	position: relative;
 }
 
-.menu-dropdown ul{
-  position: absolute;
-  top: 100%; /* Se coloca justo debajo del padre */
-  left: 0;
-  background-color: var(--blue-ford);
-  min-width: 200px;
-  list-style: none;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-  
-  /* Ocultando con transiciones suaves en vez de display:none */
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: all 0.3s ease;
+.menu-dropdown ul {
+	position: absolute;
+	top: 100%; /* Se coloca justo debajo del padre */
+	left: 0;
+	background-color: var(--blue-ford);
+	min-width: 200px;
+	list-style: none;
+	border-radius: 0 0 8px 8px;
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 
+	/* Ocultando con transiciones suaves en vez de display:none */
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(10px);
+	transition: all 0.3s ease;
 }
 
 .menu-dropdown:hover ul {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
 }
 .menu-dropdown ul li a {
-  display: block;
-  padding: 15px 20px;
-  color: white;
-  text-decoration: none;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s ease, padding-left 0.2s ease;
+	display: block;
+	padding: 15px 20px;
+	color: white;
+	text-decoration: none;
+	border-bottom: 1px solid #f0f0f0;
+	transition:
+		background-color 0.2s ease,
+		padding-left 0.2s ease;
 }
 
 .menu-dropdown ul li:last-child a {
-  border-bottom: none;
-  border-radius: 0 0 8px 8px;
+	border-bottom: none;
+	border-radius: 0 0 8px 8px;
 }
 
 .menu-dropdown ul li a:hover {
-  background-color: var(--blue-third);
-  padding-left: 25px;
+	background-color: var(--blue-third);
+	padding-left: 25px;
 }
-
 
 .menu-icon {
-  color: white;
-  cursor: pointer;
-  display: none;
+	color: white;
+	cursor: pointer;
+	display: none;
 }
-
-
 
 /*===== LOGIN STYLES==== */
 
-
 .login-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Divide en dos columnas iguales */
-    min-height: 70vh; /* Altura mínima para que se vea proporcionado */
-    background-color: var(--color-bg-main, #ffffff);
-    border-radius: 12px;
-    overflow: hidden; /* Para que las esquinas de la imagen se redondeen con el contenedor */
-    box-shadow: 0 10px 30px rgba(0, 51, 160, 0.1); /* Sombra con un toque del azul ULA */
-    margin: var(--spacing-xl) 0;
-    border: 1px solid #eaeaea;
-  }
-
-  /* --- Lado de la Imagen --- */
-  .login-image {
-    /* Aquí colocas la ruta de tu imagen */
-    background-image: url('../src/lib/assets/Rectorado-ULA.webp');
-    background-size: cover;
-    background-position: center;
-    position: relative;
-    display: flex;
-    align-items: flex-end; /* Coloca el texto en la parte inferior */
-  }
-
-  /* Capa oscura sobre la imagen para que el texto sea legible */
-  .image-overlay {
-    background: linear-gradient(to top, rgba(0, 51, 160, 0.9) 0%, rgba(0, 51, 160, 0.2) 100%);
-    width: 100%;
-    padding: 3rem 2rem;
-    color: white;
-  }
-
-  .image-overlay h2 {
-    color: white;
-    margin-bottom: 0.5rem;
-  }
-
-  .image-overlay p {
-    margin: 0;
-    opacity: 0.9;
-  }
-
-  /* --- Lado del Formulario --- */
-  .login-form-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 3rem;
-  }
-
-  .login-form-content {
-    width: 100%;
-    max-width: 400px; /* Evita que el formulario sea excesivamente ancho */
-  }
-
-  .login-form-content p {
-    margin-bottom: 0.5rem;
-    color: black;
-  }
-
-  .subtitle {
-    color: var(--color-text-muted);
-    margin-bottom: 2rem;
-  }
-
-  /* --- Estilos de los Inputs --- */
-input[type="text"]:focus, input[type="date"]:focus, input[type="search"]:focus, select:focus, input[type="file"]:focus, input[type="email"]:focus, input[type="tel"]:focus {
-   outline: none;
-    border-color: var(--ula-blue);
-    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
-
-}
-input[type="text"]:hover, input[type="date"]:hover, input[type="search"]:hover, select:hover, input[type="file"]:hover, input[type="email"]:hover, input[type="tel"]:hover {
-    border-color: var(--ula-blue);
-    cursor: pointer;
+	display: grid;
+	grid-template-columns: 1fr 1fr; /* Divide en dos columnas iguales */
+	min-height: 70vh; /* Altura mínima para que se vea proporcionado */
+	background-color: var(--color-bg-main, #ffffff);
+	border-radius: 12px;
+	overflow: hidden; /* Para que las esquinas de la imagen se redondeen con el contenedor */
+	box-shadow: 0 10px 30px rgba(0, 51, 160, 0.1); /* Sombra con un toque del azul ULA */
+	margin: var(--spacing-xl) 0;
+	border: 1px solid #eaeaea;
 }
 
-input[type="text"], input[type="date"], input[type="search"], select, input[type="file"], input[type="email"], input[type="tel"]{
-    width: 50%;
-    padding: 10px 14px;
-    font-size: 15px;
-    color: #1e293b; /* Texto oscuro para legibilidad */
-    background-color: #ffffff; /* Predominantemente blanco */
-    border: 1px solid #cbd5e1; /* Borde gris suave por defecto */
-    border-radius: 8px; /* Bordes redondeados modernos */
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    box-sizing: border-box;
+/* --- Lado de la Imagen --- */
+.login-image {
+	/* Aquí colocas la ruta de tu imagen */
+	background-image: url('../src/lib/assets/Rectorado-ULA.webp');
+	background-size: cover;
+	background-position: center;
+	position: relative;
+	display: flex;
+	align-items: flex-end; /* Coloca el texto en la parte inferior */
+}
 
+/* Capa oscura sobre la imagen para que el texto sea legible */
+.image-overlay {
+	background: linear-gradient(to top, rgba(0, 51, 160, 0.9) 0%, rgba(0, 51, 160, 0.2) 100%);
+	width: 100%;
+	padding: 3rem 2rem;
+	color: white;
+}
+
+.image-overlay h2 {
+	color: white;
+	margin-bottom: 0.5rem;
+}
+
+.image-overlay p {
+	margin: 0;
+	opacity: 0.9;
+}
+
+/* --- Lado del Formulario --- */
+.login-form-wrapper {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 3rem;
+}
+
+.login-form-content {
+	width: 100%;
+	max-width: 400px; /* Evita que el formulario sea excesivamente ancho */
+}
+
+.login-form-content p {
+	margin-bottom: 0.5rem;
+	color: black;
+}
+
+.subtitle {
+	color: var(--color-text-muted);
+	margin-bottom: 2rem;
+}
+
+/* --- Estilos de los Inputs --- */
+input[type='text']:focus,
+input[type='date']:focus,
+input[type='search']:focus,
+select:focus,
+input[type='file']:focus,
+input[type='email']:focus,
+input[type='tel']:focus {
+	outline: none;
+	border-color: var(--ula-blue);
+	box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
+}
+input[type='text']:hover,
+input[type='date']:hover,
+input[type='search']:hover,
+select:hover,
+input[type='file']:hover,
+input[type='email']:hover,
+input[type='tel']:hover {
+	border-color: var(--ula-blue);
+	cursor: pointer;
+}
+
+input[type='text'],
+input[type='date'],
+input[type='search'],
+select,
+input[type='file'],
+input[type='email'],
+input[type='tel'] {
+	width: 50%;
+	padding: 10px 14px;
+	font-size: 15px;
+	color: #1e293b; /* Texto oscuro para legibilidad */
+	background-color: #ffffff; /* Predominantemente blanco */
+	border: 1px solid #cbd5e1; /* Borde gris suave por defecto */
+	border-radius: 8px; /* Bordes redondeados modernos */
+	outline: none;
+	transition:
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
+	box-sizing: border-box;
 }
 
 .item-process-left label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px; /* Controla la separación entre el texto y el input */
-    font-weight: 600; /* Opcional: para que resalte un poco más el título */
-    margin: 0 1em;
-    width:fit-content
+	display: flex;
+	flex-direction: column;
+	gap: 6px; /* Controla la separación entre el texto y el input */
+	font-weight: 600; /* Opcional: para que resalte un poco más el título */
+	margin: 0 1em;
+	width: fit-content;
 }
 
-.label-input{
-  width: fit-content;
+.label-input {
+	width: fit-content;
 }
-.label-input label{
-
-   display: flex;
-    flex-direction: column;
-    gap: 6px; /* Controla la separación entre el texto y el input */
-    font-weight: 600; /* Opcional: para que resalte un poco más el título */
-    margin: 0 1em;
-    width:fit-content
+.label-input label {
+	display: flex;
+	flex-direction: column;
+	gap: 6px; /* Controla la separación entre el texto y el input */
+	font-weight: 600; /* Opcional: para que resalte un poco más el título */
+	margin: 0 1em;
+	width: fit-content;
 }
 
-  .input-group {
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-  }
+.input-group {
+	margin-bottom: 1.5rem;
+	display: flex;
+	flex-direction: column;
+}
 
-  .input-group label {
-    font-weight: bold;
-    font-size: var(--font-size-small);
-    margin-bottom: 0.5rem;
-    color: var(--color-text-main);
-  }
+.input-group label {
+	font-weight: bold;
+	font-size: var(--font-size-small);
+	margin-bottom: 0.5rem;
+	color: var(--color-text-main);
+}
 
-  .input-group input {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: none;
-    border-bottom: 1px solid #ccc;
-    font-size: var(--font-size-base);
-    font-family: var(--font-body);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
+.input-group input {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	border: none;
+	border-bottom: 1px solid #ccc;
+	font-size: var(--font-size-base);
+	font-family: var(--font-body);
+	transition:
+		border-color 0.3s ease,
+		box-shadow 0.3s ease;
+}
 
-  /* Efecto al hacer clic en el input */
-  .input-group input:focus{
-    outline: none;
-    border-color: var(--ula-blue);
-    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
-  }
+/* Efecto al hacer clic en el input */
+.input-group input:focus {
+	outline: none;
+	border-color: var(--ula-blue);
+	box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.1);
+}
 
-  /* --- Enlaces y Botones --- */
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 1.5rem;
-  }
+/* --- Enlaces y Botones --- */
+.form-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 1.5rem;
+}
 
-  .forgot-password {
-    font-size: var(--font-size-small);
-  }
+.forgot-password {
+	font-size: var(--font-size-small);
+}
 
-  /* Un botón que ocupa el 100% del ancho */
-  .btn-full {
-    width: 100%;
-    padding: 0.85rem;
-    font-weight: bold;
-    font-size: 1.1rem;
-  }
+/* Un botón que ocupa el 100% del ancho */
+.btn-full {
+	width: 100%;
+	padding: 0.85rem;
+	font-weight: bold;
+	font-size: 1.1rem;
+}
 
-  /* ==========================================================================
+/* ==========================================================================
      DISEÑO RESPONSIVE (Para celulares y tablets)
      ========================================================================== */
-  @media (max-width: 768px) {
-    .login-container {
-      grid-template-columns: 1fr; /* Cambia a 1 sola columna */
-    }
+@media (max-width: 768px) {
+	.login-container {
+		grid-template-columns: 1fr; /* Cambia a 1 sola columna */
+	}
 
-    .login-image {
-      /* Ocultamos la imagen en móviles para que vayan directo a hacer login */
-      display: none; 
-    }
+	.login-image {
+		/* Ocultamos la imagen en móviles para que vayan directo a hacer login */
+		display: none;
+	}
 
-    .login-form-wrapper {
-      padding: 2rem 1.5rem;
-    }
-  }
+	.login-form-wrapper {
+		padding: 2rem 1.5rem;
+	}
+}
 
-
-
-
-
-
-
-  .button-sticky{
+.button-sticky {
 	position: fixed;
 	bottom: 20px;
 	padding: 1em 3em;
@@ -480,47 +498,47 @@ input[type="text"], input[type="date"], input[type="search"], select, input[type
 	font-size: 20px;
 	font-weight: 600;
 }
-.container-advertencias-errores{
+.container-advertencias-errores {
 	display: flex;
 	gap: 2rem;
 	flex-wrap: wrap;
 }
-.container-advertencias-errores .advertencias_container,.container-advertencias-errores .errores_container{
+.container-advertencias-errores .advertencias_container,
+.container-advertencias-errores .errores_container {
 	flex: 1;
 	min-width: 300px;
 	max-height: 400px;
 	overflow-y: hidden;
 }
-.div-card h2{
+.div-card h2 {
 	margin: 0;
 }
-.div-card{
+.div-card {
 	display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-    flex-direction: row;
-    align-items: center;
+	gap: 2rem;
+	flex-wrap: wrap;
+	flex-direction: row;
+	align-items: center;
 	padding: 1rem;
 	border: 1px solid #ccc;
 	border-radius: 8px;
 	margin-top: 3rem;
-
 }
-.contenedor_tabla{
+.contenedor_tabla {
 	overflow-x: auto;
 	width: 100%;
 	max-height: 300px;
 	overflow-y: scroll;
 }
 
-.container-update-student{
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 2rem;
-
+.container-update-student {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 2rem;
 }
-.container-update-student input, .container-update-student select{
-  flex: 1;
-  min-width: 250px;
+.container-update-student input,
+.container-update-student select {
+	flex: 1;
+	min-width: 250px;
 }

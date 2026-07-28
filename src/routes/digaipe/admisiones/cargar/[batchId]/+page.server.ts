@@ -47,7 +47,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		return { batch, preview };
 	} catch (loadError) {
-		error(500, loadError instanceof Error ? loadError.message : 'No se pudo previsualizar el lote.');
+		error(
+			500,
+			loadError instanceof Error ? loadError.message : 'No se pudo previsualizar el lote.'
+		);
 	}
 };
 

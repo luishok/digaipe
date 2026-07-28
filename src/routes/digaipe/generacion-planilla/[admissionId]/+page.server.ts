@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
+import { auditContextFromEvent, setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
 import {
 	buildLegacyPlanillaFields,
 	cleanNullableFormValue,
@@ -17,7 +17,9 @@ function parseAdmissionId(value: string) {
 }
 
 function cleanRequiredFormValue(value: FormDataEntryValue | null, maxLength: number) {
-	return String(value ?? '').trim().slice(0, maxLength);
+	return String(value ?? '')
+		.trim()
+		.slice(0, maxLength);
 }
 
 function validEmail(value: string | null) {
@@ -41,7 +43,8 @@ export const actions: Actions = {
 
 		const admissionId = parseAdmissionId(event.params.admissionId);
 		const admission = await getActiveAdmissionForPlanilla(admissionId);
-		if (!admission) return fail(404, { message: 'Admision no disponible para generar planilla hoy.' });
+		if (!admission)
+			return fail(404, { message: 'Admision no disponible para generar planilla hoy.' });
 
 		const formData = await event.request.formData();
 		const apellidosNombres = cleanRequiredFormValue(formData.get('apellidosNombres'), 255);
@@ -55,6 +58,7 @@ export const actions: Actions = {
 		if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
 
 		await db.transaction(async (tx) => {
+			await setAuditDatabaseContext(tx, auditContext);
 			await tx
 				.update(students)
 				.set({

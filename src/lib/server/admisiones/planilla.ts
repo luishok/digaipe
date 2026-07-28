@@ -9,14 +9,12 @@ import {
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
+import { caracasDateKey } from './processing';
 
 export type PlanillaAdmission = Awaited<ReturnType<typeof getActiveAdmissionForPlanilla>>;
 
 export function getTodayDateKey(date = new Date()) {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
+	return caracasDateKey(date);
 }
 
 function activeDateValue(today: string) {
@@ -78,7 +76,10 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 		.limit(100);
 }
 
-export async function getActiveAdmissionForPlanilla(admissionId: number, today = getTodayDateKey()) {
+export async function getActiveAdmissionForPlanilla(
+	admissionId: number,
+	today = getTodayDateKey()
+) {
 	const [admission] = await db
 		.select({
 			id: admissions.id,
