@@ -76,233 +76,291 @@
 	data-sveltekit-reload
 	onsubmit={() => (busy = true)}
 >
-	<fieldset>
+	<fieldset class='filter-card'>
 		<legend>Reporte y fechas</legend>
-		<p>
-			<label
-				>Tipo de reporte
-				<select name="reportMode" bind:value={reportMode}>
-					<option value="general">Análisis general (datos)</option>
-					<option value="consolidado">Consolidado de revisión</option>
-					<option value="estadisticas">Estadísticas</option>
-					<option value="reconciliacion">Reconciliación (embudo)</option>
-				</select>
-			</label>
-		</p>
-		<p>
-			<label
-				>Base de fecha
-				<select name="dateBasis">
-					<option
-						value="asignacion"
-						selected={(data.spec?.dateBasis ?? 'asignacion') === 'asignacion'}
-						>Fecha de asignación origen</option
-					>
-					<option value="digaipe" selected={data.spec?.dateBasis === 'digaipe'}
-						>Fecha válida DIGAIPE</option
-					>
-				</select>
-			</label>
-		</p>
-		<p>
-			<label>Desde <input type="date" name="dateFrom" bind:value={dateFrom} required /></label>
-			<label>Hasta <input type="date" name="dateTo" bind:value={dateTo} required /></label>
-		</p>
-		<p>
-			<span>Rangos rápidos:</span>
-			<button type="button" onclick={() => preset('hoy')}>Hoy</button>
-			<button type="button" onclick={() => preset('7')}>Últimos 7 días</button>
-			<button type="button" onclick={() => preset('mes')}>Este mes</button>
-			<button type="button" onclick={() => preset('ano')}>Este año</button>
-		</p>
-		<p>
-			<label>
+		<div class='filter-row-flex'>
+			<div class='label-input'>
+				<label
+					>Tipo de reporte
+					<select name="reportMode" bind:value={reportMode}>
+						<option value="general">Análisis general (datos)</option>
+						<option value="consolidado">Consolidado de revisión</option>
+						<option value="estadisticas">Estadísticas</option>
+						<option value="reconciliacion">Reconciliación (embudo)</option>
+					</select>
+				</label>
+			</div>
+			<div class='label-input'>
+				<label
+					>Base de fecha
+					<select name="dateBasis">
+						<option
+							value="asignacion"
+							selected={(data.spec?.dateBasis ?? 'asignacion') === 'asignacion'}
+							>Fecha de asignación origen</option
+						>
+						<option value="digaipe" selected={data.spec?.dateBasis === 'digaipe'}
+							>Fecha válida DIGAIPE</option
+						>
+					</select>
+				</label>
+			</div>
+		</div>
+		<div class='filter-row-flex'>
+			<div class='label-input'>
+				<label>Desde <input type="date" name="dateFrom" bind:value={dateFrom} required /></label>
+			</div>
+			<div class='label-input'>
+				<label>Hasta <input type="date" name="dateTo" bind:value={dateTo} required /></label>
+			</div>
+			<!-- Cambiar esta sección dentro del filter-row-flex de fechas: -->
+			<div class='quick-range-wrapper'>
+				<p class='label-rangos'>Rangos rápidos</p>
+				<div class="quick-buttons">
+					<button type="button" onclick={() => preset('hoy')}>Hoy</button>
+					<button type="button" onclick={() => preset('7')}>Últimos 7 días</button>
+					<button type="button" onclick={() => preset('mes')}>Este mes</button>
+					<button type="button" onclick={() => preset('ano')}>Este año</button>
+				</div>
+			</div>
+		</div>
+		<div class='filter-row-checkbox'>
+			<label class='checkbox-label'>
 				<input
 					type="checkbox"
 					name="includeStudentData"
 					checked={data.spec?.includeStudentData ?? false}
 				/> Incluir cédula y nombre del estudiante
 			</label>
-		</p>
+		</div>
 	</fieldset>
 
-	<fieldset>
-		<legend>Filtros (selección múltiple)</legend>
-		<p>
-			<label
-				>Proceso
-				<select name="filter_process" multiple>
-					{#each data.options.processes as value (value)}<option
-							{value}
-							selected={has(data.spec?.filters.process, value)}>{value}</option
-						>{/each}
-				</select>
-			</label>
-		</p>
-		<p>
-			<label
-				>Período
-				<select name="filter_period" multiple>
-					{#each data.options.periods as value (value)}<option
-							{value}
-							selected={has(data.spec?.filters.period, value)}>{value}</option
-						>{/each}
-				</select>
-			</label>
-		</p>
-		<p>
-			<label
-				>Modalidad
-				<select name="filter_modality" multiple>
-					{#each data.options.modalities as value (value)}<option
-							{value}
-							selected={has(data.spec?.filters.modality, value)}>{value}</option
-						>{/each}
-				</select>
-			</label>
-		</p>
-		<p>
-			<label
-				>Estado
-				<select name="filter_status" multiple>
-					{#each data.options.statuses as value (value)}<option
-							{value}
-							selected={has(data.spec?.filters.status, value)}>{value}</option
-						>{/each}
-				</select>
-			</label>
-		</p>
-		<p>
-			<label
-				>Facultad
-				<select name="filter_faculty" multiple>
-					{#each data.options.faculties as value (value)}<option
-							{value}
-							selected={has(data.spec?.filters.faculty, value)}>{value}</option
-						>{/each}
-				</select>
-			</label>
-		</p>
-		<fieldset>
-			<legend>Carrera</legend>
-			<p>
-				<label>Buscar carrera <input type="search" bind:value={careerSearch} /></label>
-			</p>
-			<ul>
-				{#each filteredCareers as value (value)}
-					<li>
-						<label
-							><input
-								type="checkbox"
-								name="filter_career"
-								{value}
-								checked={has(data.spec?.filters.career, value)}
-							/>
-							{value}</label
-						>
-					</li>
-				{/each}
-			</ul>
-		</fieldset>
-		<p><label>Buscar <input name="search" value={data.spec?.filters.search ?? ''} /></label></p>
-	</fieldset>
+	<!-- Filtros Múltiples Principal -->
+<fieldset class="filter-card">
+    <legend>Filtros (selección múltiple)</legend>
 
-	{#if reportMode === 'general'}
-		<fieldset>
-			<legend>Columnas a incluir</legend>
-			<ul>
-				{#each data.generalColumns as column (column.key)}
-					<li>
-						<label
-							><input
-								type="checkbox"
-								name="col"
-								value={column.key}
-								checked={colChecked(column.key)}
-							/>
-							{column.label}</label
-						>
-					</li>
-				{/each}
-			</ul>
-		</fieldset>
-	{:else if reportMode === 'estadisticas'}
-		<fieldset>
-			<legend>Desgloses a incluir</legend>
-			<ul>
-				{#each data.breakdownTitles as title (title)}
-					<li>
-						<label
-							><input type="checkbox" name="dim" value={title} checked={dimChecked(title)} />
-							{title}</label
-						>
-					</li>
-				{/each}
-			</ul>
-		</fieldset>
-	{:else if reportMode === 'reconciliacion'}
-		<fieldset>
-			<legend>Matriz cruzada</legend>
-			<p>
-				<label
-					>Dimensión de filas
-					<select name="matrixDimension">
-						<option
-							value="carrera"
-							selected={(data.spec?.matrixDimension ?? 'carrera') === 'carrera'}>Carrera</option
-						>
-						<option value="facultad" selected={data.spec?.matrixDimension === 'facultad'}
-							>Facultad</option
-						>
-						<option value="modalidad" selected={data.spec?.matrixDimension === 'modalidad'}
-							>Modalidad</option
-						>
-					</select>
-				</label>
-			</p>
-		</fieldset>
-	{/if}
+    <!-- Fila 1: Selects Múltiples en Grid -->
+    <div class="filter-row-flex">
+        <div class="label-input">
+            <label>
+                Proceso
+                <select name="filter_process" multiple class="multi-select">
+                    {#each data.options.processes as value (value)}
+                        <option {value} selected={has(data.spec?.filters.process, value)}>{value}</option>
+                    {/each}
+                </select>
+            </label>
+        </div>
 
-	<p>
+        <div class="label-input">
+            <label>
+                Período
+                <select name="filter_period" multiple class="multi-select">
+                    {#each data.options.periods as value (value)}
+                        <option {value} selected={has(data.spec?.filters.period, value)}>{value}</option>
+                    {/each}
+                </select>
+            </label>
+        </div>
+
+        <div class="label-input">
+            <label>
+                Modalidad
+                <select name="filter_modality" multiple class="multi-select">
+                    {#each data.options.modalities as value (value)}
+                        <option {value} selected={has(data.spec?.filters.modality, value)}>{value}</option>
+                    {/each}
+                </select>
+            </label>
+        </div>
+
+        <div class="label-input">
+            <label>
+                Estado
+                <select name="filter_status" multiple class="multi-select">
+                    {#each data.options.statuses as value (value)}
+                        <option {value} selected={has(data.spec?.filters.status, value)}>{value}</option>
+                    {/each}
+                </select>
+            </label>
+        </div>
+
+        <div class="label-input">
+            <label>
+                Facultad
+                <select name="filter_faculty" multiple class="multi-select">
+                    {#each data.options.faculties as value (value)}
+                        <option {value} selected={has(data.spec?.filters.faculty, value)}>{value}</option>
+                    {/each}
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <!-- Búsqueda General de Texto -->
+    <div class="filter-row-flex">
+        <div class="label-input full-width text-search">
+            <label>
+                Buscar
+                <input name="search" value={data.spec?.filters.search ?? ''} placeholder="Búsqueda por texto..." />
+            </label>
+        </div>
+    </div>
+
+    <!-- Sub-fieldset: Selección de Carrera con buscador -->
+    <fieldset class="sub-fieldset">
+        <legend>Carreras</legend>
+        <div class="label-input mb-3">
+            <label>
+                Buscar carrera
+                <input type="search" bind:value={careerSearch} placeholder="Filtrar carreras..." />
+            </label>
+        </div>
+
+        <div class="checkbox-scroll-box">
+            <div class="checkbox-grid">
+                {#each filteredCareers as value (value)}
+                    <label class="checkbox-chip">
+                        <input
+                            type="checkbox"
+                            name="filter_career"
+                            {value}
+                            checked={has(data.spec?.filters.career, value)}
+                        />
+                        <span>{value}</span>
+                    </label>
+                {/each}
+            </div>
+        </div>
+    </fieldset>
+</fieldset>
+
+<!-- Opciones dinámicas según el tipo de reporte -->
+{#if reportMode === 'general'}
+    <fieldset class="filter-card mt-4">
+        <legend>Columnas a incluir</legend>
+        <div class="checkbox-grid">
+            {#each data.generalColumns as column (column.key)}
+                <label class="checkbox-chip">
+                    <input
+                        type="checkbox"
+                        name="col"
+                        value={column.key}
+                        checked={colChecked(column.key)}
+                    />
+                    <span>{column.label}</span>
+                </label>
+            {/each}
+        </div>
+    </fieldset>
+
+{:else if reportMode === 'estadisticas'}
+    <fieldset class="filter-card mt-4">
+        <legend>Desgloses a incluir</legend>
+        <div class="checkbox-grid">
+            {#each data.breakdownTitles as title (title)}
+                <label class="checkbox-chip">
+                    <input type="checkbox" name="dim" value={title} checked={dimChecked(title)} />
+                    <span>{title}</span>
+                </label>
+            {/each}
+        </div>
+    </fieldset>
+
+{:else if reportMode === 'reconciliacion'}
+    <fieldset class="filter-card mt-4">
+        <legend>Matriz cruzada</legend>
+        <div class="filter-row-flex">
+            <div class="label-input">
+                <label>
+                    Dimensión de filas
+                    <select name="matrixDimension">
+                        <option value="carrera" selected={(data.spec?.matrixDimension ?? 'carrera') === 'carrera'}>Carrera</option>
+                        <option value="facultad" selected={data.spec?.matrixDimension === 'facultad'}>Facultad</option>
+                        <option value="modalidad" selected={data.spec?.matrixDimension === 'modalidad'}>Modalidad</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+    </fieldset>
+{/if}
+
+
+
+	<div class="filter-actions">
 		<button type="submit" disabled={busy}>Vista previa</button>
 		<button type="submit" formaction="/digaipe/estadisticas/pdf">Descargar PDF</button>
 		<button type="submit" formaction="/digaipe/estadisticas/csv">Descargar CSV</button>
 		<button type="button" onclick={copyLink}>{copied ? 'Enlace copiado' : 'Copiar enlace'}</button>
 		<a href={resolve('/digaipe/estadisticas')}>Limpiar</a>
-	</p>
+	</div>
 </form>
 
 {#if data.errors.length}
-	<section aria-live="polite">
-		<h2>No se puede generar el reporte</h2>
-		<ul>
-			{#each data.errors as error, i (i)}<li>{error}</li>{/each}
-		</ul>
-	</section>
+    <!-- Alerta de Errores -->
+    <section aria-live="polite" class="report-alert alert-error">
+        <div class="alert-header">
+            <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+            </svg>
+            <h2>No se puede generar el reporte</h2>
+        </div>
+        <ul class="alert-list">
+            {#each data.errors as error, i (i)}
+                <li>{error}</li>
+            {/each}
+        </ul>
+    </section>
+
 {:else if data.report}
-	<section>
-		<h2>Resultado</h2>
-		<p>
-			{data.spec?.reportMode === 'reconciliacion' ? 'Total de asignados' : 'Total de admisiones'}:
-			{data.report.totalAdmissions}
-		</p>
-		<p>Total de estudiantes únicos: {data.report.totalUniqueStudents}</p>
-		{#if data.report.totalAdmissions > 5000}
-			<p role="alert">
-				Este reporte incluye {data.report.totalAdmissions} admisiones; la exportación puede tardar y generar
-				un archivo grande.
-			</p>
-		{/if}
-		<!-- Query-carrying download links: resolve() takes no query string, so the rule is scoped off. -->
-		<!-- eslint-disable svelte/no-navigation-without-resolve -->
-		<p>
-			<a href={`${resolve('/digaipe/estadisticas/csv')}?${data.exportQuery}`}>Exportar CSV</a>
-			<a href={`${resolve('/digaipe/estadisticas/pdf')}?${data.exportQuery}`}>Exportar PDF</a>
-		</p>
-		<!-- eslint-enable svelte/no-navigation-without-resolve -->
-	</section>
+    <!-- Tarjeta de Resultados -->
+    <section class="report-card">
+        <h2 class="report-title">Resultado</h2>
+
+        <!-- Grilla de Métricas / KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-label">
+                    {data.spec?.reportMode === 'reconciliacion' ? 'Total de asignados' : 'Total de admisiones'}
+                </span>
+                <span class="kpi-value">{data.report.totalAdmissions.toLocaleString()}</span>
+            </div>
+
+            <div class="kpi-card">
+                <span class="kpi-label">Total de estudiantes únicos</span>
+                <span class="kpi-value">{data.report.totalUniqueStudents.toLocaleString()}</span>
+            </div>
+        </div>
+
+        <!-- Advertencia de volumen de datos altos -->
+        {#if data.report.totalAdmissions > 5000}
+            <div role="alert" class="report-alert alert-warning">
+                <svg class="alert-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                </svg>
+                <span>
+                    Este reporte incluye <strong>{data.report.totalAdmissions.toLocaleString()}</strong> admisiones; 
+                    la exportación puede tardar y generar un archivo grande.
+                </span>
+            </div>
+        {/if}
+
+        <!-- Botones de Exportación -->
+        <!-- eslint-disable svelte/no-navigation-without-resolve -->
+        <div class="export-actions">
+            <a href={`${resolve('/digaipe/estadisticas/csv')}?${data.exportQuery}`} class="btn-export btn-csv">
+                📊 Exportar CSV
+            </a>
+            <a href={`${resolve('/digaipe/estadisticas/pdf')}?${data.exportQuery}`} class="btn-export btn-pdf">
+                📄 Exportar PDF
+            </a>
+        </div>
+        <!-- eslint-enable svelte/no-navigation-without-resolve -->
+    </section>
+
 
 	{#if data.spec?.reportMode === 'general'}
+	<div class='table_container'>
 		<table>
 			<caption>Datos principales de admisiones</caption>
 			<thead
@@ -325,6 +383,8 @@
 					>{/each}</tbody
 			>
 		</table>
+		</div>
+		<div class='table_container'>
 		<table>
 			<caption>Datos complementarios de admisiones</caption>
 			<thead
@@ -344,43 +404,47 @@
 					>{/each}</tbody
 			>
 		</table>
+	</div>
 	{:else if data.spec?.reportMode === 'consolidado'}
 		<section>
 			<h2>Consolidado de revisión</h2>
-			<table>
-				<caption>Fecha válida, estado, carrera y estudiante</caption>
-				<thead
-					><tr
-						><th>Fecha válida</th><th>Estado</th><th>Carrera</th
-						>{#if data.spec.includeStudentData}<th>Estudiante</th>{/if}<th>Cuenta</th></tr
-					></thead
-				>
-				<tbody
-					>{#each data.report.pivot as date (date.date)}{#each date.statuses as status (status.label)}{#each status.careers as career (career.label)}<tr
-									><td>{date.date}</td><td>{status.label}</td><th scope="row">{career.label}</th
-									>{#if data.spec.includeStudentData}<td></td>{/if}<td>{career.count}</td></tr
-								>{#if data.spec.includeStudentData}{#each career.students as student (student.label)}<tr
-											><td></td><td></td><td></td><td>{student.label}</td><td>{student.count}</td
-											></tr
-										>{/each}{/if}{/each}<tr
-								><td></td><th scope="row">Total {status.label}</th><td
-								></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{status.count}</td></tr
+			<div class='table_container'>
+				<table>
+					<caption>Fecha válida, estado, carrera y estudiante</caption>
+					<thead
+						><tr
+							><th>Fecha válida</th><th>Estado</th><th>Carrera</th
+							>{#if data.spec.includeStudentData}<th>Estudiante</th>{/if}<th>Cuenta</th></tr
+						></thead
+					>
+					<tbody
+						>{#each data.report.pivot as date (date.date)}{#each date.statuses as status (status.label)}{#each status.careers as career (career.label)}<tr
+										><td>{date.date}</td><td>{status.label}</td><th scope="row">{career.label}</th
+										>{#if data.spec.includeStudentData}<td></td>{/if}<td>{career.count}</td></tr
+									>{#if data.spec.includeStudentData}{#each career.students as student (student.label)}<tr
+												><td></td><td></td><td></td><td>{student.label}</td><td>{student.count}</td
+												></tr
+											>{/each}{/if}{/each}<tr
+									><td></td><th scope="row">Total {status.label}</th><td
+									></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{status.count}</td></tr
+								>{/each}<tr
+								><th scope="row">Total fecha {date.date}</th><td></td><td
+								></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{date.count}</td></tr
 							>{/each}<tr
-							><th scope="row">Total fecha {date.date}</th><td></td><td
-							></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{date.count}</td></tr
-						>{/each}<tr
-						><th scope="row">Total general</th><td></td><td
-						></td>{#if data.spec.includeStudentData}<td></td>{/if}<td
-							>{data.report.totalAdmissions}</td
-						></tr
-					></tbody
-				>
-			</table>
+							><th scope="row">Total general</th><td></td><td
+							></td>{#if data.spec.includeStudentData}<td></td>{/if}<td
+								>{data.report.totalAdmissions}</td
+							></tr
+						></tbody
+					>
+				</table>
+		</div>
 		</section>
 	{:else if data.spec?.reportMode === 'reconciliacion' && data.report.reconciliation}
 		{@const r = data.report.reconciliation}
 		<section>
 			<h2>Reconciliación — embudo</h2>
+			<div class='table_container'>
 			<table>
 				<caption>Etapas del embudo de admisión</caption>
 				<thead><tr><th>Etapa</th><th>Cantidad</th></tr></thead>
@@ -393,6 +457,8 @@
 					<tr><th scope="row">Devuelto</th><td>{r.byStatus.devuelto}</td></tr>
 				</tbody>
 			</table>
+			</div>
+			<div class='table_container'>
 			<table>
 				<caption>Devoluciones</caption>
 				<thead><tr><th>Concepto</th><th>Cantidad</th></tr></thead>
@@ -402,22 +468,27 @@
 					<tr><th scope="row">Reingresadas</th><td>{r.devoluciones.reingresadas}</td></tr>
 				</tbody>
 			</table>
+			</div>
 		</section>
 	{:else if data.spec?.reportMode === 'estadisticas'}
 		<section>
 			<h2>Estadísticas</h2>
+			<div class='table_container'>
+				<table>
+					<caption>Indicadores principales</caption>
+					<thead><tr><th>Indicador</th><th>Cuenta</th></tr></thead>
+					<tbody
+						><tr><th scope="row">Admisiones procesadas</th><td>{data.report.totalAdmissions}</td></tr
+						><tr><th scope="row">Estudiantes únicos</th><td>{data.report.totalUniqueStudents}</td></tr
+						>{#each data.report.breakdowns['Estado'] ?? [] as row (row.label)}<tr
+								><th scope="row">{row.label}</th><td>{row.count}</td></tr
+							>{/each}</tbody
+					>
+				</table>
+			</div>
+			{#each Object.entries(data.report.breakdowns) as [title, rows] (title)}
+			<div class='table_container'>
 			<table>
-				<caption>Indicadores principales</caption>
-				<thead><tr><th>Indicador</th><th>Cuenta</th></tr></thead>
-				<tbody
-					><tr><th scope="row">Admisiones procesadas</th><td>{data.report.totalAdmissions}</td></tr
-					><tr><th scope="row">Estudiantes únicos</th><td>{data.report.totalUniqueStudents}</td></tr
-					>{#each data.report.breakdowns['Estado'] ?? [] as row (row.label)}<tr
-							><th scope="row">{row.label}</th><td>{row.count}</td></tr
-						>{/each}</tbody
-				>
-			</table>
-			{#each Object.entries(data.report.breakdowns) as [title, rows] (title)}<table>
 					<caption>{title}</caption>
 					<thead><tr><th>Etiqueta</th><th>Admisiones</th><th>Estudiantes únicos</th></tr></thead>
 					<tbody
@@ -425,7 +496,7 @@
 								><td>{row.label}</td><td>{row.count}</td><td>{row.students}</td></tr
 							>{/each}</tbody
 					>
-				</table>{/each}
+				</table></div>{/each}
 		</section>
 	{/if}
 {/if}

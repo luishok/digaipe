@@ -215,121 +215,147 @@
 {/if}
 
 {#if form?.files}
-	<h2>Archivos cargados</h2>
-	<ul>
-		<li>Admisiones: {form.files.sourceFileName}</li>
-		<li>Estadistica: {form.files.estadisticaFileName}</li>
-		<li>Manifest: {form.files.manifestFileName}</li>
-	</ul>
-	{#if form?.batchId}
-		<p>
-			<a href={resolve(`/digaipe/admisiones/cargar/${form.batchId}`)}>
-				Abrir vista previa permanente del lote #{form.batchId}
-			</a>
-		</p>
-	{/if}
+	<div class="div-card">
+    <h2>Archivos cargados</h2>
+    <ul>
+        <li>Admisiones: {form.files.sourceFileName}</li>
+        <li>Estadistica: {form.files.estadisticaFileName}</li>
+        <li>Manifest: {form.files.manifestFileName}</li>
+    </ul>
+
+    {#if form?.batchId}
+        <p>
+            <a href={resolve(`/digaipe/admisiones/cargar/${form.batchId}`)}>
+                Abrir vista previa permanente del lote #{form.batchId}
+            </a>
+        </p>
+    {/if}
+
+    {#if previewRows.length > 0}
+        <p>
+            {previewRows.length} filas, {warnings.length} advertencias, {errors.length} errores.
+        </p>
+    {/if}
+</div>
 {/if}
 
-{#if warnings.length > 0}
-	<h2>Advertencias</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>Fila</th>
-				<th>Campo</th>
-				<th>Mensaje</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each warnings as warning (`${warning.row}-${warning.field}-${warning.message}`)}
-				<tr>
-					<td>{warning.row}</td>
-					<td>{warning.field}</td>
-					<td>{warning.message}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+{#if canSave}
+    <form method="POST" action="?/save">
+        <input type="hidden" name="batchId" value={form?.batchId} />
+        <button type="submit" class="button-sticky">Guardar admisiones</button>
+    </form>
+{:else if errors.length > 0}
+    <p style="color: red;">*Corrija los errores y vuelva a cargar los archivos para poder guardar.</p>
 {/if}
 
-{#if errors.length > 0}
-	<h2>Errores</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>Fila</th>
-				<th>Campo</th>
-				<th>Mensaje</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each errors as error (`${error.row}-${error.field}-${error.message}`)}
-				<tr>
-					<td>{error.row}</td>
-					<td>{error.field}</td>
-					<td>{error.message}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-{/if}
+<div class="container-advertencias-errores">
+    {#if warnings.length > 0}
+        <div class="advertencias_container div-card">
+            <img src="/src/lib/assets/alert.png" alt="Advertencias" width="24" height="24" />
+            <h2>Advertencias: {warnings.length}</h2>
+            <div class="contenedor_tabla">
+                <table class="table_container">
+                    <thead>
+                        <tr>
+                            <th>Fila</th>
+                            <th>Campo</th>
+                            <th>Mensaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each warnings as warning (`${warning.row}-${warning.field}-${warning.message}`)}
+                            <tr>
+                                <td>{warning.row}</td>
+                                <td>{warning.field}</td>
+                                <td>{warning.message}</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {/if}
+
+    {#if errors.length > 0}
+        <div class="errores_container div-card">
+            <img src="/src/lib/assets/error.png" alt="Errores" width="24" height="24" />
+            <h2>Errores: {errors.length}</h2>
+            <div class="contenedor_tabla">
+                <table class="table_container">
+                    <thead>
+                        <tr>
+                            <th>Fila</th>
+                            <th>Campo</th>
+                            <th>Mensaje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each errors as error (`${error.row}-${error.field}-${error.message}`)}
+                            <tr>
+                                <td>{error.row}</td>
+                                <td>{error.field}</td>
+                                <td>{error.message}</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {/if}
+</div>
+
 
 {#if previewRows.length > 0}
-	<h2>Vista previa</h2>
-	<p>
-		{previewRows.length} filas, {warnings.length} advertencias, {errors.length} errores.
-	</p>
-
-	{#if canSave}
-		<form method="POST" action="?/save">
-			<input type="hidden" name="batchId" value={form?.batchId} />
-			<button type="submit">Guardar admisiones</button>
-		</form>
-	{:else if errors.length > 0}
-		<p>Corrija los errores y vuelva a cargar los archivos para poder guardar.</p>
-	{/if}
-
-	<table>
-		<thead>
-			<tr>
-				<th>Fila</th>
-				<th>Proceso</th>
-				<th>Cedula</th>
-				<th>Estudiante</th>
-				<th>Telefono</th>
-				<th>Correo</th>
-				<th>Opcion</th>
-				<th>Carrera</th>
-				<th>Modalidad</th>
-				<th>OCRE</th>
-				<th>Periodo</th>
-				<th>Fecha</th>
-				<th>Ano</th>
-				<th>Proceso num.</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each previewRows as row (row.row)}
-				<tr>
-					<td>{row.row}</td>
-					<td>{row.numAsignacion}</td>
-					<td>{row.cedula}</td>
-					<td>{row.apellidosNombres}</td>
-					<td>{row.telefono ?? ''}</td>
-					<td>{row.correo ?? ''}</td>
-					<td>{row.opcion}</td>
-					<td>{row.careerName ?? ''}</td>
-					<td>{row.modaIngreso} {row.modalityName ?? ''}</td>
-					<td>{row.codOcre} {row.ocreName ?? ''}</td>
-					<td>{row.periodoIngreso}</td>
-					<td>{row.fechaAsignacion}</td>
-					<td>{row.ano ?? ''}</td>
-					<td>{row.proceso ?? ''}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+    <div class="div-card">
+        <h2>Vista previa</h2>
+        <p style="width:100%">
+            <strong>Nota:</strong> Las advertencias no impiden guardar el lote, pero los errores sí.
+        </p>
+        <div class="contenedor_tabla" style="max-height: 500px;">
+            <table class="table_container">
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Proceso</th>
+                        <th>Cedula</th>
+                        <th>Estudiante</th>
+                        <th>Telefono</th>
+                        <th>Correo</th>
+                        <th>Opcion</th>
+                        <th>Carrera</th>
+                        <th>Modalidad</th>
+                        <th>OCRE</th>
+                        <th>Periodo</th>
+                        <th>Fecha</th>
+                        <th>Ano</th>
+                        <th>Proceso num.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each previewRows as row (row.row)}
+                        <tr>
+                            <td>{row.row}</td>
+                            <td>{row.numAsignacion}</td>
+                            <td>{row.cedula}</td>
+                            <td>{row.apellidosNombres}</td>
+                            <td>{row.telefono ?? ''}</td>
+                            <td>{row.correo ?? ''}</td>
+                            <td>{row.opcion}</td>
+                            <td>{row.careerName ?? ''}</td>
+                            <td>{row.modaIngreso} {row.modalityName ?? ''}</td>
+                            <td>{row.codOcre} {row.ocreName ?? ''}</td>
+                            <td>{row.periodoIngreso}</td>
+                            <td>{row.fechaAsignacion}</td>
+                            <td>{row.ano ?? ''}</td>
+                            <td>{row.proceso ?? ''}</td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {/if}
+
 
 <h2>Lotes recientes</h2>
 {#if data.recentBatches.length === 0}

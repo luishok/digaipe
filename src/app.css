@@ -542,3 +542,619 @@ input[type='tel'] {
 	flex: 1;
 	min-width: 250px;
 }
+
+
+
+/* ==========================================================================
+	 DISEÑO Filter 
+	 ========================================================================== */
+	 /* Card y Fieldset */
+.filter-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.filter-card legend {
+    font-weight: 600;
+    padding: 0 0.5rem;
+    color: #1e293b;
+}
+
+/* Filas Flex */
+.filter-card .filter-row-flex {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1.25rem;
+	justify-content: center;
+}
+
+/* Manejo de Labels e Inputs */
+.filter-card .label-input label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Estilos de controles (inputs y selects) */
+.filter-card input[type='date'], 
+.filter-card select, .filter-card input[type='search'] {
+    min-width: 220px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background-color: #fff;
+    font-size: 0.875rem;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-card input[type='date'] {
+    min-width: 150px;
+}
+
+.filter-card input[type='date']:focus, 
+.filter-card select:focus {
+    border-color: var(--ula-blue, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Estilos para Rangos Rápidos */
+.filter-card .quick-range-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-card .label-rangos {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0;
+}
+
+.filter-card .quick-buttons {
+    display: inline-flex;
+    background-color: var(--ula-blue);
+    padding: 3px;
+    border-radius: 6px;
+	color: white;
+    gap: 6px;
+}
+
+.filter-card .quick-buttons button {
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.filter-card .quick-buttons button:hover {
+    background-color: #b7c7dc;
+    color: #0f172a;
+}
+
+.filter-card .quick-buttons button:active {
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Checkbox estilizado tipo Badge/Pill */
+.filter-card .filter-row-checkbox {
+    padding-top: 4px;
+    display: flex;
+	align-self: center;
+}
+
+.filter-card .checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid var(--ula-blue, #2563eb);
+    border-radius: 6px;
+    padding: 8px 14px;
+    background: var(--ula-blue, #2563eb);
+    color: white;
+    font-weight: 600;
+}
+
+.filter-card .checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+
+
+
+
+
+
+.filter-actions{
+	  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+.filter-card .text-search{
+	text-align: -webkit-center;
+
+}
+.filter-card .text-search input {
+	padding: 1em;
+	border-radius: 8px;
+    border: 1px solid #cbd5e1;
+}
+
+/* Utilidades de separación */
+.mt-4 { margin-top: 1rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.full-width { width: 100%; }
+
+/* Estilos para Selects Múltiples */
+.filter-card select.multi-select {
+    height: 90px;
+    min-width: 180px;
+    padding: 6px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background-color: #fff;
+}
+
+.filter-card select.multi-select option {
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+}
+
+.filter-card select.multi-select option:checked {
+    background-color: var(--ula-blue, #2563eb);
+    color: white;
+}
+
+/* Sub-fieldset para listas complejas */
+.filter-card .sub-fieldset {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1rem;
+    background-color: #f8fafc;
+}
+
+.filter-card .sub-fieldset legend {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* Grilla de Checkboxes (Chips/Badges compactos) */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+/* Caja scrollable para carreras con muchas opciones */
+.checkbox-scroll-box {
+    max-height: 180px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* Chip / Card de Checkbox individual */
+.checkbox-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.825rem;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.checkbox-chip:hover {
+    border-color: var(--ula-blue, #2563eb);
+    background-color: #f1f5f9;
+}
+
+.checkbox-chip input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--ula-blue, #2563eb);
+    cursor: pointer;
+}
+
+/* Estado activo del Chip al marcar el checkbox */
+.checkbox-chip:has(input[type="checkbox"]:checked) {
+    border-color: var(--ula-blue, #2563eb);
+    background-color: #eff6ff;
+    color: var(--ula-blue, #2563eb);
+    font-weight: 600;
+}
+
+
+
+
+
+
+
+/* Card Contenedora de Resultados */
+.report-card {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.report-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+}
+
+/* Grilla de KPIs / Métricas */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.kpi-card {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ula-blue, #2563eb);
+}
+
+/* Alertas genéricas (Error y Warning) */
+.report-alert {
+    border-radius: 6px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.alert-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alert-header h2 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.alert-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.alert-list {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.alert-list li {
+    margin-bottom: 0.25rem;
+}
+
+/* Estado Alerta: Error */
+.alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.alert-error .alert-icon {
+    color: #dc2626;
+}
+
+/* Estado Alerta: Advertencia */
+.alert-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    flex-direction: row;
+    align-items: center;
+}
+
+.alert-warning .alert-icon {
+    color: #d97706;
+}
+
+/* Botones de Exportación */
+.export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.btn-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-csv {
+    background-color: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+}
+
+.btn-csv:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.btn-pdf {
+    background-color: var(--ula-blue, #2563eb);
+    color: white;
+    border: 1px solid var(--ula-blue, #2563eb);
+}
+
+.btn-pdf:hover {
+    opacity: 0.9;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Layout Principal */
+.data-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.section-header h2 {
+    display: inline-block;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    margin-right: 8px;
+}
+
+.count-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background-color: #f1f5f9;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    border: 1px solid #cbd5e1;
+}
+
+/* Tabla Estilizada */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.85rem;
+    color: #334155;
+}
+
+.custom-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-bottom: 1px solid #cbd5e1;
+    white-space: nowrap;
+}
+
+.custom-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.custom-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Alineaciones y Checks */
+.th-checkbox, .td-checkbox {
+    width: 40px;
+    text-align: center;
+}
+
+.row-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--ula-blue, #2563eb);
+    cursor: pointer;
+}
+.motivo-devolucion-text{
+	min-width: 500px;
+}
+/* Badges y Tags en Celdas */
+.status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: capitalize;
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.status-badge.status-matriculado {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.status-devuelto {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge.status-pendiente {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.code-tag {
+    font-family: monospace;
+    background-color: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #0f172a;
+}
+
+/* Acciones en la celda de Admin */
+.admin-cell-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 260px;
+}
+
+.table-input {
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    min-width: 160px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+}
+
+.btn-unlock {
+    height: 32px;
+    padding: 0 10px;
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 0.775rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.btn-unlock:hover {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+/* Clases de Utilidad */
+.flex-1 { flex: 1; }
+.align-end { align-items: flex-end; }
+.whitespace-nowrap { white-space: nowrap; }
+.font-mono { font-family: monospace; }
+.font-medium { font-weight: 500; }
+.text-muted { color: #94a3b8; }
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+
+.table_container caption{
+	font-weight:600;
+	padding: 1em;
+
+}

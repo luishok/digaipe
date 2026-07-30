@@ -15,7 +15,7 @@
 				/>
 				<h2 class="card-title">Admisiones</h2>
 			</div>
-			<a href="/admisiones" class="card-btn">Continuar</a>
+			<a href="/digaipe/admisiones" class="card-btn">Continuar</a>
 		</div>
 
 		<div class="card">
@@ -23,7 +23,7 @@
 				<img src="/src/lib/assets/icons/digaipe-doc.svg" alt="Planillas" class="card-icon" />
 				<h2 class="card-title">Generación de Planillas</h2>
 			</div>
-			<a href="/planillas" class="card-btn">Continuar</a>
+			<a href="/digaipe/generacion-planilla" class="card-btn">Continuar</a>
 		</div>
 
 		<div class="card">
@@ -31,7 +31,7 @@
 				<img src="/src/lib/assets/icons/digaipe-list.svg" alt="Listas" class="card-icon" />
 				<h2 class="card-title">Listas</h2>
 			</div>
-			<a href="/listas" class="card-btn">Continuar</a>
+			<a href="/digaipe/carreras" class="card-btn">Continuar</a>
 		</div>
 
 		<div class="card">
@@ -39,7 +39,7 @@
 				<img src="/src/lib/assets/icons/digaipe-graph.svg" alt="Estadísticas" class="card-icon" />
 				<h2 class="card-title">Estadísticas</h2>
 			</div>
-			<a href="/estadisticas" class="card-btn">Continuar</a>
+			<a href="/digaipe/estadisticas" class="card-btn">Continuar</a>
 		</div>
 	</div>
 </div>
