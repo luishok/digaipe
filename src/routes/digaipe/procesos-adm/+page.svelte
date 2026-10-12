@@ -93,7 +93,7 @@
 					/>
 				</div>
 				<div class="container-button-create">
-					<button type="submit">Create</button>
+					<button type="submit">Crear</button>
 				</div>
 			</form>
 
@@ -148,7 +148,7 @@
 					>
 						<input type="hidden" name="processId" value={form.processId} />
 						<input type="hidden" name="dates" value={JSON.stringify(dates)} />
-						<button type="submit">Save Dates</button>
+						<button type="submit">Guardar Fechas</button>
 					</form>
 				{/if}
 			</div>
@@ -232,7 +232,7 @@
 											name="dates"
 											value={JSON.stringify(processPendingDates(process.id))}
 										/>
-										<button type="submit">Save Dates</button>
+										<button type="submit">Guardar Fechas</button>
 									</form>
 								{/if}
 							</td>

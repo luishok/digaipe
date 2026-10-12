@@ -46,7 +46,12 @@
 		{@render children()}
 	</main>
 
-	<footer class="site-footer">
-		<p>&copy; 2026. Todos los derechos reservados.</p>
-	</footer>
+
+	<footer class="footer">
+        <div class="footer-content">
+            <p>Universidad de Los Andes (ULA) - Venezuela</p>
+            <p>Sistema Interno DIGAIPE</p>
+            <p class="footer-copy">&copy; 2026 Todos los derechos reservados.</p>
+        </div>
+    </footer>
 </div>
