@@ -8,6 +8,13 @@
 	<div class="cards-grid">
 		<div class="card">
 			<div class="card-body">
+				<img src="/src/lib/assets/icons/digaipe-graph.svg" alt="Estadísticas" class="card-icon" />
+				<h2 class="card-title">Estadísticas</h2>
+			</div>
+			<a href="/digaipe/estadisticas" class="card-btn">Continuar</a>
+		</div>
+		<div class="card">
+			<div class="card-body">
 				<img
 					src="/src/lib/assets/icons/digaipe-person-plus.svg"
 					alt="Admisiones"
@@ -34,19 +41,10 @@
 			<a href="/digaipe/carreras" class="card-btn">Continuar</a>
 		</div>
 
-		<div class="card">
-			<div class="card-body">
-				<img src="/src/lib/assets/icons/digaipe-graph.svg" alt="Estadísticas" class="card-icon" />
-				<h2 class="card-title">Estadísticas</h2>
-			</div>
-			<a href="/digaipe/estadisticas" class="card-btn">Continuar</a>
-		</div>
+		
 	</div>
 </div>
 
-<a href="/digaipe"> go to digaipe</a>
-
-<a href="/signup"> go to signup</a>
 
 <style>
 	* {

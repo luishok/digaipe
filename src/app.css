@@ -64,6 +64,43 @@ main.main-content {
 	flex-grow: 1;
 	min-height: 90vh;
 }
+
+.main-content {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+/* Estilo para el Footer institucional acorde a la paleta ULA (Azules institucionales) */
+.footer {
+    background-color: #000c6b ; /* Azul institucional oscuro ULA */
+    color: #ffffff;
+    padding: 24px 20px;
+    text-align: center;
+    border-top: 4px solid #0056b3; /* Un toque de azul más vivo */
+    font-size: 0.9rem;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.footer-content p {
+    margin: 0;
+}
+
+.footer-copy {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
 /* --- Títulos --- */
 h1,
 h2,
