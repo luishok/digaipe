@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 	//PARA TODA LA PAGINA.. THEME
@@ -19,25 +21,28 @@
 
 		<nav id="navigation-bar" class="nav-bar">
 			<ul class="main-menu">
-				<li><a href="/">Inicio</a></li>
-				<li><a href="/digaipe/estadisticas">Estadísticas</a></li>
+				<li><a href={resolve('/')}>Inicio</a></li>
+				<li><a href={resolve('/digaipe/estadisticas')}>Estadísticas</a></li>
 				<li class="menu-dropdown">
 					<a href="#" class="active">Admisiones</a>
 					<ul>
-						<li><a href="/digaipe/admisiones">Admisiones</a></li>
-						<li><a href="/digaipe/procesos-adm">Procesos de Admision</a></li>
+						<li><a href={resolve('/digaipe/admisiones')}>Admisiones</a></li>
+						<li><a href={resolve('/digaipe/procesos-adm')}>Procesos de Admision</a></li>
 					</ul>
 				</li>
-				<li><a href="/digaipe/generacion-planilla"> Generacion de planilla </a></li>
-				<li><a href="/digaipe/revision-documentos">Revisión de documentos</a></li>
+				<li><a href={resolve('/digaipe/generacion-planilla')}> Generacion de planilla </a></li>
+				<li><a href={resolve('/digaipe/revision-documentos')}>Revisión de documentos</a></li>
 				<li class="menu-dropdown">
 					<a href="#"> Listas </a>
 					<ul>
-						<li><a href="/digaipe/carreras">Carreras</a></li>
-						<li><a href="/digaipe/modalidades-adm">Modalidades Adm</a></li>
+						<li><a href={resolve('/digaipe/carreras')}>Carreras</a></li>
+						<li><a href={resolve('/digaipe/modalidades-adm')}>Modalidades Adm</a></li>
 					</ul>
 				</li>
-				<li><a href="/ayuda">Ayuda</a></li>
+				<li><a href={resolve('/ayuda')}>Ayuda</a></li>
+				{#if page.data.user?.role === 'admin'}
+					<li><a href={resolve('/digaipe/admin')}>Administración</a></li>
+				{/if}
 			</ul>
 		</nav>
 	</header>

@@ -27,6 +27,8 @@ export type AuditEntry = {
 };
 
 export type AuditAction =
+	| 'user.created'
+	| 'user.deleted'
 	| 'user_role.changed'
 	| 'career.imported'
 	| 'admission_process.created'
@@ -52,6 +54,8 @@ type AuditPolicy = {
 };
 
 const auditPolicies: Record<AuditAction, AuditPolicy> = {
+	'user.created': {},
+	'user.deleted': {},
 	'user_role.changed': {},
 	'career.imported': {},
 	'admission_process.created': {},

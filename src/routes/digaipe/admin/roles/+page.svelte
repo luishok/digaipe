@@ -1,309 +1,221 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	let pending = $state<string | null>(null);
+	let pending = $state(false);
+	const submit: SubmitFunction = () => {
+		pending = true;
+		return async ({ update }) => {
+			try {
+				await update();
+			} finally {
+				pending = false;
+			}
+		};
+	};
+	function pageQuery(page: number) {
+		return new URLSearchParams({ search: data.search, role: data.role, page: String(page) });
+	}
 </script>
 
-<div class="page">
-	<header>
-		<div class="header-inner">
-			<div>
-				<p class="label">Admin</p>
-				<h1>User roles</h1>
+<svelte:head><title>Usuarios y roles | DIGAIPE</title></svelte:head>
+
+<h1>Usuarios y roles</h1>
+<p class="subtitle">Administre las cuentas y los permisos de acceso a DIGAIPE.</p>
+<a href={resolve('/digaipe/admin')}>Volver a administración</a>
+
+{#if form?.message}
+	<div class="report-alert alert-error mt-4" role="alert">{form.message}</div>
+{/if}
+{#if form?.success}
+	<div class="report-card" role="status">{form.success}</div>
+{/if}
+
+<section class="report-card" aria-labelledby="create-user">
+	<h2 id="create-user" class="report-title">Agregar usuario</h2>
+	<form method="POST" action="?/create" use:enhance={submit}>
+		<div class="kpi-grid">
+			<div class="input-group">
+				<label for="name">Nombre completo</label>
+				<input
+					id="name"
+					name="name"
+					type="text"
+					required
+					maxlength="255"
+					autocomplete="name"
+					value={form?.values?.name ?? ''}
+				/>
 			</div>
-			<span class="count">{data.users.length} users</span>
+			<div class="input-group">
+				<label for="email">Correo electrónico</label>
+				<input
+					id="email"
+					name="email"
+					type="email"
+					required
+					maxlength="255"
+					autocomplete="email"
+					value={form?.values?.email ?? ''}
+				/>
+			</div>
+			<div class="input-group">
+				<label for="password">Contraseña (8 a 128 caracteres)</label>
+				<input
+					id="password"
+					name="password"
+					type="password"
+					required
+					minlength="8"
+					maxlength="128"
+					autocomplete="new-password"
+				/>
+			</div>
+			<div class="input-group">
+				<label for="role">Rol</label>
+				<select id="role" name="role" class="full-width" required>
+					<option value="user" selected={form?.values?.role !== 'admin'}>Usuario</option>
+					<option value="admin" selected={form?.values?.role === 'admin'}>Administrador</option>
+				</select>
+			</div>
 		</div>
-	</header>
+		<p><small>Los administradores pueden gestionar usuarios y consultar la auditoría.</small></p>
+		<div class="filter-actions">
+			<button type="submit" disabled={pending}>Agregar usuario</button>
+		</div>
+	</form>
+</section>
 
-	{#if form?.message}
-		<div class="banner error">{form.message}</div>
-	{/if}
-	{#if form?.success}
-		<div class="banner success">Role updated.</div>
-	{/if}
-
-	<div class="table-wrap">
-		<table>
-			<thead>
-				<tr>
-					<th>User</th>
-					<th>Joined</th>
-					<th>Role</th>
-					<th></th>
-				</tr>
-			</thead>
+<section class="data-section" aria-labelledby="users-title">
+	<div class="section-header">
+		<h2 id="users-title">Usuarios registrados <span class="count-badge">{data.total}</span></h2>
+	</div>
+	<form method="GET" class="filter-card">
+		<div class="filter-row-flex">
+			<div class="label-input">
+				<label
+					>Correo electrónico <input
+						type="search"
+						name="search"
+						maxlength="255"
+						value={data.search}
+						placeholder="Buscar por correo"
+					/></label
+				>
+			</div>
+			<div class="label-input">
+				<label
+					>Rol <select name="role" value={data.role}
+						><option value="">Todos</option><option value="user">Usuario</option><option
+							value="admin">Administrador</option
+						></select
+					></label
+				>
+			</div>
+			<button type="submit" disabled={pending}>Buscar</button>
+			<a href={resolve('/digaipe/admin/roles')}>Limpiar filtros</a>
+		</div>
+	</form>
+	<p>
+		<small
+			>Su propia cuenta está protegida. Los cambios de rol cierran las sesiones del usuario
+			afectado.</small
+		>
+	</p>
+	<div class="table-container">
+		<table class="custom-table">
+			<thead
+				><tr
+					><th scope="col">Usuario</th><th scope="col">Correo electrónico</th><th scope="col"
+						>Fecha de creación</th
+					><th scope="col">Rol</th><th scope="col">Eliminar</th></tr
+				></thead
+			>
 			<tbody>
 				{#each data.users as user (user.id)}
 					{@const isSelf = user.id === data.currentUserId}
-					<tr class:self={isSelf}>
+					<tr>
+						<td class="font-medium"
+							>{user.name}
+							{#if isSelf}<span class="count-badge">Su cuenta</span>{/if}</td
+						>
+						<td>{user.email}</td>
+						<td class="whitespace-nowrap"
+							>{new Date(user.createdAt).toLocaleDateString('es-VE', { timeZone: 'UTC' })}</td
+						>
 						<td>
-							<div class="user-cell">
-								<div class="avatar">{user.name?.[0]?.toUpperCase() ?? '?'}</div>
-								<div>
-									<span class="name">{user.name ?? '—'}</span>
-									<span class="email">{user.email}</span>
-								</div>
-							</div>
-						</td>
-						<td class="date">
-							{new Date(user.createdAt).toLocaleDateString('en-US', {
-								month: 'short',
-								day: 'numeric',
-								year: 'numeric'
-							})}
-						</td>
-						<td>
-							<span class="badge {user.role}">{user.role}</span>
-						</td>
-						<td class="action-cell">
-							{#if isSelf}
-								<span class="self-label">you</span>
+							{#if isSelf}<span class="status-badge">Administrador</span>
 							{:else}
 								<form
+									class="admin-cell-action"
 									method="POST"
 									action="?/setRole"
-									use:enhance={() => {
-										pending = user.id;
-										return async ({ update }) => {
-											await update();
-											pending = null;
-										};
-									}}
+									use:enhance={submit}
 								>
 									<input type="hidden" name="userId" value={user.id} />
-									<input
-										type="hidden"
+									<select
+										class="table-input"
 										name="role"
-										value={user.role === 'admin' ? 'user' : 'admin'}
-									/>
+										aria-label={`Rol de ${user.name}`}
+										disabled={pending}
+									>
+										<option value="user" selected={user.role !== 'admin'}>Usuario</option><option
+											value="admin"
+											selected={user.role === 'admin'}>Administrador</option
+										>
+									</select>
 									<button
 										type="submit"
-										class="toggle-btn {user.role}"
-										disabled={pending === user.id}
+										disabled={pending}
+										aria-label={`Guardar rol de ${user.name}`}>Guardar</button
 									>
-										{pending === user.id
-											? '...'
-											: user.role === 'admin'
-												? 'Remove admin'
-												: 'Make admin'}
-									</button>
 								</form>
 							{/if}
 						</td>
+						<td>
+							{#if isSelf}<small>Cuenta protegida</small>
+							{:else}
+								<details>
+									<summary>Eliminar usuario</summary>
+									<form method="POST" action="?/delete" use:enhance={submit}>
+										<input type="hidden" name="userId" value={user.id} />
+										<p>Esta acción elimina la cuenta y sus sesiones.</p>
+										<label class="checkbox-chip"
+											><input
+												type="checkbox"
+												name="confirm"
+												value={user.id}
+												required
+												disabled={pending}
+											/>
+											Confirmo eliminar a {user.name} ({user.email})</label
+										>
+										<button class="btn-unlock mt-4" type="submit" disabled={pending}
+											>Eliminar definitivamente</button
+										>
+									</form>
+								</details>
+							{/if}
+						</td>
 					</tr>
-				{/each}
+				{:else}<tr
+						><td colspan="5">No se encontraron usuarios con los filtros seleccionados.</td></tr
+					>{/each}
 			</tbody>
 		</table>
 	</div>
-</div>
-
-<style>
-	*,
-	*::before,
-	*::after {
-		box-sizing: border-box;
-	}
-
-	.page {
-		max-width: 760px;
-		margin: 0 auto;
-		padding: 48px 24px;
-		font-family: 'DM Sans', sans-serif;
-		color: #0f0f0f;
-	}
-
-	header {
-		margin-bottom: 32px;
-	}
-
-	.header-inner {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-	}
-
-	.label {
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: #888;
-		margin: 0 0 4px;
-	}
-
-	h1 {
-		font-size: 28px;
-		font-weight: 700;
-		margin: 0;
-		letter-spacing: -0.02em;
-	}
-
-	.count {
-		font-size: 13px;
-		color: #888;
-		padding-bottom: 4px;
-	}
-
-	.banner {
-		padding: 10px 16px;
-		border-radius: 8px;
-		font-size: 13px;
-		font-weight: 500;
-		margin-bottom: 20px;
-	}
-	.banner.error {
-		background: #fff0f0;
-		color: #c0392b;
-		border: 1px solid #fcc;
-	}
-	.banner.success {
-		background: #f0faf4;
-		color: #1a7a45;
-		border: 1px solid #b6e8c8;
-	}
-
-	.table-wrap {
-		border: 1px solid #e8e8e8;
-		border-radius: 12px;
-		overflow: hidden;
-	}
-
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 14px;
-	}
-
-	thead tr {
-		background: #fafafa;
-		border-bottom: 1px solid #e8e8e8;
-	}
-
-	th {
-		padding: 11px 16px;
-		text-align: left;
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-		color: #999;
-	}
-
-	tbody tr {
-		border-bottom: 1px solid #f0f0f0;
-		transition: background 0.1s;
-	}
-	tbody tr:last-child {
-		border-bottom: none;
-	}
-	tbody tr:hover {
-		background: #fafafa;
-	}
-	tbody tr.self {
-		opacity: 0.55;
-	}
-
-	td {
-		padding: 14px 16px;
-		vertical-align: middle;
-	}
-
-	.user-cell {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.avatar {
-		width: 34px;
-		height: 34px;
-		border-radius: 50%;
-		background: #0f0f0f;
-		color: #fff;
-		font-size: 13px;
-		font-weight: 700;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.name {
-		display: block;
-		font-weight: 500;
-		color: #0f0f0f;
-	}
-
-	.email {
-		display: block;
-		font-size: 12px;
-		color: #999;
-		margin-top: 1px;
-	}
-
-	.date {
-		color: #888;
-		font-size: 13px;
-	}
-
-	.badge {
-		display: inline-block;
-		padding: 3px 10px;
-		border-radius: 99px;
-		font-size: 12px;
-		font-weight: 600;
-	}
-	.badge.admin {
-		background: #0f0f0f;
-		color: #fff;
-	}
-	.badge.user {
-		background: #f0f0f0;
-		color: #555;
-	}
-
-	.action-cell {
-		text-align: right;
-	}
-
-	.self-label {
-		font-size: 12px;
-		color: #bbb;
-		font-style: italic;
-	}
-
-	.toggle-btn {
-		padding: 6px 14px;
-		border-radius: 7px;
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
-		border: 1px solid transparent;
-		transition: all 0.15s;
-	}
-	.toggle-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.toggle-btn.user {
-		background: #0f0f0f;
-		color: #fff;
-		border-color: #0f0f0f;
-	}
-	.toggle-btn.user:hover:not(:disabled) {
-		background: #333;
-	}
-
-	.toggle-btn.admin {
-		background: #fff;
-		color: #c0392b;
-		border-color: #fcc;
-	}
-	.toggle-btn.admin:hover:not(:disabled) {
-		background: #fff0f0;
-	}
-</style>
+	<nav class="filter-actions" aria-label="Paginación de usuarios">
+		{#if data.page > 1}<a
+				class="btn"
+				href={resolve(`/digaipe/admin/roles?${pageQuery(data.page - 1)}`)}>Anterior</a
+			>{/if}
+		<span>Página {data.page} de {data.totalPages}</span>
+		{#if data.page < data.totalPages}<a
+				class="btn"
+				href={resolve(`/digaipe/admin/roles?${pageQuery(data.page + 1)}`)}>Siguiente</a
+			>{/if}
+	</nav>
+</section>
