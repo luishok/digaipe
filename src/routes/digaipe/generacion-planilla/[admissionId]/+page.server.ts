@@ -6,6 +6,7 @@ import {
 	cleanNullableFormValue,
 	getActiveAdmissionForPlanilla
 } from '$lib/server/admisiones/planilla';
+import { getAdmissionProcessing } from '$lib/server/admisiones/processing';
 import { db } from '$lib/server/db';
 import { students } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -34,7 +35,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const admission = await getActiveAdmissionForPlanilla(admissionId);
 	if (!admission) error(404, 'Admision no disponible para generar planilla hoy.');
 
-	return { admission, planillaFields: buildLegacyPlanillaFields(admission) };
+	const processing = await getAdmissionProcessing(admissionId);
+
+	return { admission, planillaFields: buildLegacyPlanillaFields(admission), processing };
 };
 
 export const actions: Actions = {

@@ -1,6 +1,11 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { admissionProcessings, APActiveDates, proceso_admission } from '$lib/server/db/schema';
+import {
+	admissionProcessings,
+	APActiveDates,
+	proceso_admission,
+	user
+} from '$lib/server/db/schema';
 import type { AuditContext } from '$lib/server/audit';
 import { setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
 
@@ -36,6 +41,25 @@ export async function processIsActiveOnDate(processId: number, dateKey: string) 
 		)
 		.limit(1);
 	return Boolean(row);
+}
+
+export async function getAdmissionProcessing(admissionId: number) {
+	const [row] = await db
+		.select({
+			status: admissionProcessings.status,
+			processingDate: admissionProcessings.processingDate,
+			planillaGeneratedAt: admissionProcessings.planillaGeneratedAt,
+			reviewedAt: admissionProcessings.reviewedAt,
+			reviewedBy: user.name,
+			returnReason: admissionProcessings.returnReason,
+			unlockedAt: admissionProcessings.unlockedAt,
+			unlockReason: admissionProcessings.unlockReason
+		})
+		.from(admissionProcessings)
+		.leftJoin(user, eq(admissionProcessings.reviewedByUserId, user.id))
+		.where(eq(admissionProcessings.admissionId, admissionId))
+		.limit(1);
+	return row ?? null;
 }
 
 export async function ensureAdmissionProcessing(

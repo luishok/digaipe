@@ -5,4 +5,4 @@ export const authClient = createAuthClient({
 	baseURL: 'http://localhost:5173',
 	plugins: [adminClient()]
 });
-export const { signIn, signUp, signOut, useSession } = authClient;
+export const { signIn, signOut, useSession } = authClient;

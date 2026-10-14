@@ -12,7 +12,7 @@ import { db } from '$lib/server/db';
 
 export const load: PageServerLoad = async (event) => {
 	if (event.locals.user) {
-		return redirect(302, '/demo/better-auth');
+		return redirect(302, '/digaipe');
 	}
 	return {};
 };

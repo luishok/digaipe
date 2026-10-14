@@ -1,11 +1,33 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+
 	let { data, form } = $props();
+
+	// Keep the active filters on action URLs so they survive the POST (with or without JS).
+	const filterQuery = $derived(
+		[...page.url.searchParams]
+			.filter(([key]) => !key.startsWith('/'))
+			.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+			.join('&')
+	);
+	const actionUrl = (name: string) => `?${filterQuery ? `${filterQuery}&` : ''}/${name}`;
+
+	// SvelteKit skips load when a GET submit lands on the current URL; refetch explicitly.
+	function filter(event: SubmitEvent) {
+		const formData = new FormData(event.currentTarget as HTMLFormElement);
+		const query = new URLSearchParams(formData as unknown as Record<string, string>).toString();
+		if (`?${query}` !== page.url.search) return;
+		event.preventDefault();
+		invalidateAll();
+	}
 </script>
 
 <h1>Revisión de documentos</h1>
 {#if form?.message}<p aria-live="polite">{form.message}</p>{/if}
 
-<form method="GET">
+<form method="GET" onsubmit={filter}>
     <fieldset class="filter-card">
         <legend>Filtros</legend>
 
@@ -70,7 +92,7 @@
     </fieldset>
 </form>
 
-<form method="POST" action="?/review" class="data-section">
+<form method="POST" action={actionUrl('review')} class="data-section" use:enhance>
     <!-- Header de la Sección -->
     <div class="section-header">
         <div>
@@ -129,7 +151,7 @@
                                     <button
                                         type="submit"
                                         formmethod="POST"
-                                        formaction="?/unlock"
+                                        formaction={actionUrl('unlock')}
                                         name="unlockProcessingId"
                                         value={row.id}
                                         class="btn-unlock"

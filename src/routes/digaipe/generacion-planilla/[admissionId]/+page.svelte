@@ -5,6 +5,7 @@
 	let { data, form } = $props();
 	const admission = $derived(data.admission);
 	const planillaFields = $derived(data.planillaFields);
+	const processing = $derived(data.processing);
 </script>
 
 <p><a href={resolve('/digaipe/generacion-planilla')}>Volver a busqueda</a></p>
@@ -17,7 +18,13 @@
 <div class="div-card">
 	<h2>Estudiante</h2>
 
-	<form method="POST" action="?/updateStudent" use:enhance>
+	<form
+		method="POST"
+		action="?/updateStudent"
+		use:enhance={() =>
+			async ({ update }) =>
+				update({ reset: false })}
+	>
 		<div class="container-update-student">
 			<div class="label-input">
 				<label for="apellidosNombres"> Nombre </label>
@@ -73,6 +80,42 @@
 <div class="main-container-generacion-planilla">
 	<div class="div-card div-white" style="    align-content: baseline;">
 		<h2 style="width: 100%">Admisión</h2>
+
+		{#if processing}
+			<section
+				class="report-alert {processing.status === 'devuelto'
+					? 'alert-error'
+					: processing.status === 'matriculado'
+						? 'alert-success'
+						: 'alert-warning'}"
+				role={processing.status === 'devuelto' ? 'alert' : 'status'}
+				style="width: 100%"
+			>
+				<div>
+					<span class="status-badge status-{processing.status}">{processing.status}</span>
+					<ul class="alert-list">
+						<li>
+							Planilla generada el {String(processing.processingDate).slice(0, 10)}
+						</li>
+						{#if processing.reviewedAt}
+							<li>
+								Revisada el {new Date(processing.reviewedAt).toLocaleString('es-VE')}
+								{#if processing.reviewedBy}por {processing.reviewedBy}{/if}
+							</li>
+						{/if}
+						{#if processing.status === 'devuelto'}
+							<li><strong>Motivo de devolución:</strong> {processing.returnReason ?? 'No indicado'}</li>
+						{/if}
+						{#if processing.unlockedAt}
+							<li>
+								Desbloqueada el {new Date(processing.unlockedAt).toLocaleString('es-VE')}{#if processing.unlockReason}:
+									{processing.unlockReason}{/if}
+							</li>
+						{/if}
+					</ul>
+				</div>
+			</section>
+		{/if}
 
 		<div class="admision-details-flex">
 			<div class="label-input">

@@ -73,7 +73,7 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 		.where(and(...conditions))
 		.orderBy(desc(admissions.fechaAsignacion), desc(admissions.id))
-		.limit(100);
+		.limit(20);
 }
 
 export async function getActiveAdmissionForPlanilla(

@@ -118,7 +118,7 @@
 						<button type="submit">Procesar y Guardar</button>
 					</form>
 
-					{#if form?.success}
+					{#if form && !form.error}
 						<p style="color: green;">{form.message}</p>
 					{:else if form?.error}
 						<p style="color: red;">{form.message}</p>
