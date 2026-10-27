@@ -1,4 +1,9 @@
-
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import { enhance } from '$app/forms';
+	import type { PageServerData } from './$types';
+	let { data }: { data: PageServerData } = $props();
+</script>
 
 
 
@@ -51,17 +56,6 @@
 
 
 <style>
-	* {
-		box-sizing: border-box;
-		margin: 0;
-		padding: 0;
-		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	}
-
-	body {
-		background-color: #f4f6f9;
-		padding: 40px 20px;
-	}
 
 	.container {
 		max-width: 1200px;
@@ -84,10 +78,6 @@
 		margin-bottom: 4px;
 	}
 
-	.welcome-banner p {
-		font-size: 14px;
-		color: #333;
-	}
 
 	.instruction-text {
 		color: #444;

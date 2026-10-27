@@ -21,7 +21,7 @@
 
 		<nav id="navigation-bar" class="nav-bar">
 			<ul class="main-menu">
-				<li><a href={resolve('/')}>Inicio</a></li>
+				<li><a href={resolve('/digaipe')}>Inicio</a></li>
 				<li><a href={resolve('/digaipe/estadisticas')}>Estadísticas</a></li>
 				<li class="menu-dropdown">
 					<a href="#" class="active">Admisiones</a>
