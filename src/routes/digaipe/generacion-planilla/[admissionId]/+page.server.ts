@@ -1,6 +1,11 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { auditContextFromEvent, setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
+import {
+	auditContextFromEvent,
+	auditedTransaction,
+	auditStudentDataView,
+	writeAuditLog
+} from '$lib/server/audit';
 import {
 	buildLegacyPlanillaFields,
 	cleanNullableFormValue,
@@ -28,7 +33,8 @@ function validEmail(value: string | null) {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async (event) => {
+	const { locals, params } = event;
 	if (!locals.user) redirect(302, '/login');
 
 	const admissionId = parseAdmissionId(params.admissionId);
@@ -36,6 +42,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!admission) error(404, 'Admision no disponible para generar planilla hoy.');
 
 	const processing = await getAdmissionProcessing(admissionId);
+	await auditStudentDataView(event, {
+		page: '/digaipe/generacion-planilla/[admissionId]',
+		recordType: 'admission',
+		recordIds: [admission.id]
+	});
 
 	return { admission, planillaFields: buildLegacyPlanillaFields(admission), processing };
 };
@@ -60,8 +71,7 @@ export const actions: Actions = {
 		if (!validEmail(correo)) return fail(400, { message: 'El correo no tiene un formato valido.' });
 		if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
 
-		await db.transaction(async (tx) => {
-			await setAuditDatabaseContext(tx, auditContext);
+		await auditedTransaction(auditContext, async (tx) => {
 			await tx
 				.update(students)
 				.set({

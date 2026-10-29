@@ -22,3 +22,8 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# DIGAIPE deployment data: backups hold student data; anchors belong off this machine
+/deploy/.env
+/deploy/backups
+/deploy/anchors

@@ -1,4 +1,4 @@
-import { auditContextFromEvent, setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
+import { auditContextFromEvent, auditedTransaction, writeAuditLog } from '$lib/server/audit';
 import { db } from '$lib/server/db';
 import { APActiveDates, proceso_admission } from '$lib/server/db/schema';
 import { fail, type Actions } from '@sveltejs/kit';
@@ -18,8 +18,8 @@ export const actions: Actions = {
 		const code = (data.get('code') as string)?.replace(/\s+/g, '').toUpperCase();
 		const auditContext = auditContextFromEvent(event);
 
-		if (!code) return fail(400, { error: 'Code is required' });
-		if (code.length > 100) return fail(400, { error: 'Code is too long' });
+		if (!code) return fail(400, { error: 'El código es obligatorio.' });
+		if (code.length > 100) return fail(400, { error: 'El código es demasiado largo.' });
 		if (!auditContext) return fail(401, { error: 'Debe iniciar sesion.' });
 
 		const existing = await db
@@ -28,10 +28,9 @@ export const actions: Actions = {
 			.where(eq(proceso_admission.code, code))
 			.limit(1);
 
-		if (existing.length > 0) return fail(409, { error: `Code "${code}" already exists` });
+		if (existing.length > 0) return fail(409, { error: `El código "${code}" ya existe.` });
 
-		const result = await db.transaction(async (tx) => {
-			await setAuditDatabaseContext(tx, auditContext);
+		const result = await auditedTransaction(auditContext, async (tx) => {
 			const [insertResult] = await tx.insert(proceso_admission).values({ code, isEnabled: false });
 
 			await writeAuditLog(tx, auditContext, {
@@ -56,8 +55,8 @@ export const actions: Actions = {
 		const rawDates = data.get('dates') as string;
 		const auditContext = auditContextFromEvent(event);
 
-		if (!processId || Number.isNaN(processId)) return fail(400, { error: 'Invalid process ID' });
-		if (!rawDates) return fail(400, { error: 'No dates provided' });
+		if (!processId || Number.isNaN(processId)) return fail(400, { error: 'ID de proceso inválido.' });
+		if (!rawDates) return fail(400, { error: 'No se indicaron fechas.' });
 		if (!auditContext) return fail(401, { error: 'Debe iniciar sesion.' });
 
 		let dates: string[];
@@ -71,14 +70,12 @@ export const actions: Actions = {
 				.filter((date) => !Number.isNaN(new Date(`${date}T00:00:00`).getTime()))
 				.slice(0, 365);
 		} catch {
-			return fail(400, { error: 'Invalid dates format' });
+			return fail(400, { error: 'Formato de fechas inválido.' });
 		}
 
-		if (!dates.length) return fail(400, { error: 'No valid dates provided' });
+		if (!dates.length) return fail(400, { error: 'No se indicaron fechas válidas.' });
 
-		const addedDates = await db
-			.transaction(async (tx) => {
-				await setAuditDatabaseContext(tx, auditContext);
+		const addedDates = await auditedTransaction(auditContext, async (tx) => {
 				const [process] = await tx
 					.select({
 						id: proceso_admission.id,
@@ -142,7 +139,7 @@ export const actions: Actions = {
 				throw error;
 			});
 
-		if (addedDates === null) return fail(404, { error: 'Process not found' });
+		if (addedDates === null) return fail(404, { error: 'Proceso no encontrado.' });
 		return { processId, saved: true, added: addedDates.length };
 	}
 };

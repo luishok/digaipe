@@ -1,0 +1,162 @@
+# Instalación local de DIGAIPE. Ver deploy/README.md.
+name: digaipe
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD en deploy/.env}
+      MYSQL_DATABASE: digaipe
+      TZ: America/Caracas
+    volumes:
+      - db-data:/var/lib/mysql
+    # No port is published: only the app and setup containers reach the database.
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  setup:
+    # Named images so they can be built on a connected PC and moved with docker save/load.
+    image: digaipe/setup:${DIGAIPE_VERSION:-local}
+    build:
+      context: ..
+      target: setup
+    restart: 'no'
+    environment:
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/digaipe
+      APP_DB_USER: ${APP_DB_USER:-digaipe_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Defina APP_DB_PASSWORD en deploy/.env}
+      BACKUP_DB_USER: ${BACKUP_DB_USER:-digaipe_respaldo}
+      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD:?Defina BACKUP_DB_PASSWORD en deploy/.env}
+      # Optional read-only account for auditors; created only when the password is set.
+      READONLY_DB_USER: ${READONLY_DB_USER:-digaipe_lectura}
+      READONLY_DB_PASSWORD: ${READONLY_DB_PASSWORD:-}
+      ORIGIN: ${ORIGIN:?Defina ORIGIN en deploy/.env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Defina BETTER_AUTH_SECRET en deploy/.env}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:?Defina BOOTSTRAP_ADMIN_EMAIL en deploy/.env}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Defina BOOTSTRAP_ADMIN_PASSWORD en deploy/.env}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Administrador}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    image: digaipe/app:${DIGAIPE_VERSION:-local}
+    build:
+      context: ..
+      target: app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://${APP_DB_USER:-digaipe_app}:${APP_DB_PASSWORD}@db:3306/digaipe
+      # https:// makes better-auth mark session cookies Secure (__Secure- prefix).
+      ORIGIN: ${ORIGIN}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      # Only caddy reaches the app, so its X-Forwarded-For entry is the real client address
+      # (used by the audit log and the login throttle). Depth 1 = the entry caddy appended.
+      ADDRESS_HEADER: X-Forwarded-For
+      XFF_DEPTH: '1'
+      # Admission uploads (spreadsheet + manifest PDF) exceed adapter-node's 512K default.
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-50M}
+      TZ: America/Caracas
+    # No published port: browsers reach the app only through caddy over HTTPS.
+    volumes:
+      - uploads:/app/var/uploads
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    environment:
+      DIGAIPE_HOST: ${DIGAIPE_HOST:?Defina DIGAIPE_HOST en deploy/.env}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Holds the local CA (root certificate to install on clients) and issued certificates.
+      # Losing it means a new CA, and every client would have to trust the new root again.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+  # Weekly backups with retention (deploy/backup/worker.sh). Results go to the audit ledger.
+  backup-worker:
+    image: mysql:8.4
+    restart: unless-stopped
+    entrypoint: ['bash']
+    command: ['/scripts/worker.sh']
+    environment: &backup-env
+      # Dedicated backup account: dump and audit-ledger append only. No root password here.
+      BACKUP_DB_USER: ${BACKUP_DB_USER:-digaipe_respaldo}
+      BACKUP_DB_PASSWORD: ${BACKUP_DB_PASSWORD}
+      BACKUP_INTERVAL_DAYS: ${BACKUP_INTERVAL_DAYS:-7}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-6}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-70}
+      BACKUP_KEEP_MIN: ${BACKUP_KEEP_MIN:-10}
+      BACKUP_MIN_FREE_MB: ${BACKUP_MIN_FREE_MB:-512}
+    volumes: &backup-volumes
+      - ./backup:/scripts:ro
+      - uploads:/uploads:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # --- Operations (profile "ops"): run on demand or from a scheduler; never start with `up`. ---
+
+  # Backup and restore. Same image as db, so mysqldump matches the server. See deploy/README.md.
+  backup:
+    image: mysql:8.4
+    profiles: ['ops']
+    entrypoint: ['bash']
+    command: ['/scripts/backup.sh']
+    environment: *backup-env
+    volumes: *backup-volumes
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Restore (docs/respaldos.md) and other database-owner work: the only backup-related service
+  # with the root password. Started by hand, never by `up`.
+  restore:
+    image: mysql:8.4
+    profiles: ['ops']
+    entrypoint: ['bash']
+    command: ['-c', 'echo "Uso: docker compose --profile ops run --rm -e RESTORE_CONFIRM=<respaldo> restore /scripts/restore.sh <respaldo>"; exit 1']
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./backup:/scripts:ro
+      # Read-write: restore.sh puts the uploaded files back.
+      - uploads:/uploads
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Audit ledger verification and anchoring (scripts/audit-ledger.ts).
+  audit:
+    image: digaipe/setup:${DIGAIPE_VERSION:-local}
+    profiles: ['ops']
+    entrypoint: ['npx', 'tsx', 'scripts/audit-ledger.ts']
+    command: ['verify', '--anchors', '/anchors/digaipe-anchors.jsonl']
+    environment:
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/digaipe
+    volumes:
+      - ${ANCHOR_DIR:-./anchors}:/anchors
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  uploads:
+  caddy-data:
+  caddy-config:

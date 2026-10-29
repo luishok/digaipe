@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+
+	let { data } = $props();
 </script>
 
 <svelte:head>
@@ -12,14 +14,18 @@
 <section class="report-card" aria-labelledby="admin-tools">
 	<h2 id="admin-tools" class="report-title">Herramientas de administración</h2>
 	<div class="kpi-grid">
-		<a class="kpi-card" href={resolve('/digaipe/admin/roles')}>
-			<span class="kpi-value">Usuarios y roles</span>
-			<span>Agregar y eliminar usuarios, y asignar permisos de acceso.</span>
-		</a>
-		<a class="kpi-card" href={resolve('/digaipe/admin/audit')}>
-			<span class="kpi-value">Auditoría</span>
-			<span>Consultar y exportar el registro de actividad del sistema.</span>
-		</a>
+		{#if data.canManageUsers}
+			<a class="kpi-card" href={resolve('/digaipe/admin/roles')}>
+				<span class="kpi-value">Usuarios y roles</span>
+				<span>Agregar y eliminar usuarios, y asignar permisos de acceso.</span>
+			</a>
+		{/if}
+		{#if data.canViewAudit}
+			<a class="kpi-card" href={resolve('/digaipe/admin/audit')}>
+				<span class="kpi-value">Auditoría</span>
+				<span>Consultar y exportar el registro de actividad del sistema.</span>
+			</a>
+		{/if}
 	</div>
 </section>
 

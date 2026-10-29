@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { can } from '$lib/permissions';
 
 	let { form, data } = $props();
+	const canManage = $derived(can(data.user, 'processes.manage'));
 
 	let dateInput = $state('');
 	let dates = $state<string[]>([]);
@@ -70,6 +72,7 @@
 
 <!-- Step 1: Create the process -->
 <div class="process-container">
+	{#if canManage}
 	<div class="process-left">
 		<h2>Crear Proceso de Admisión</h2>
 		<div class="item-process-left">
@@ -172,6 +175,7 @@
 			{/if}
 		{/if}
 	</div>
+	{/if}
 
 	<div class="process-right">
 		<h2>Procesos Guardados</h2>
@@ -183,7 +187,7 @@
 						<th>Codigo</th>
 						<th>Estado</th>
 						<th>Fechas</th>
-						<th>Agregar fechas</th>
+						{#if canManage}<th>Agregar fechas</th>{/if}
 					</tr>
 				</thead>
 				<tbody>
@@ -193,6 +197,7 @@
 							<td>{process.code}</td>
 							<td>{process.isEnabled ? 'Activo' : 'Sin fechas'}</td>
 							<td>{process.dates.length > 0 ? process.dates.join(', ') : 'Sin fechas activas'}</td>
+							{#if canManage}
 							<td>
 								<input class="input-date" type="date" bind:value={dateInputs[process.id]} />
 								<button type="button" onclick={() => addProcessDate(process.id, process.dates)}
@@ -236,6 +241,7 @@
 									</form>
 								{/if}
 							</td>
+							{/if}
 						</tr>
 					{/each}
 				</tbody>

@@ -106,9 +106,11 @@
         <table class="custom-table">
             <thead>
                 <tr>
-                    <th class="th-checkbox">
-                        <span class="sr-only">Seleccionar</span>
-                    </th>
+                    {#if data.canReview}
+                        <th class="th-checkbox">
+                            <span class="sr-only">Seleccionar</span>
+                        </th>
+                    {/if}
                     <th>Fecha válida</th>
                     <th>Estado</th>
                     <th>Proceso</th>
@@ -116,7 +118,7 @@
                     <th>Cédula</th>
                     <th>Estudiante</th>
                     <th>Motivo</th>
-                    {#if data.isAdmin}
+                    {#if data.canUnlock}
                         <th>Administración</th>
                     {/if}
                 </tr>
@@ -124,9 +126,11 @@
             <tbody>
                 {#each data.rows as row}
                     <tr>
-                        <td class="td-checkbox">
-                            <input type="checkbox" name="processingId" value={row.id} class="row-checkbox" />
-                        </td>
+                        {#if data.canReview}
+                            <td class="td-checkbox">
+                                <input type="checkbox" name="processingId" value={row.id} class="row-checkbox" />
+                            </td>
+                        {/if}
                         <td class="whitespace-nowrap">{String(row.processingDate).slice(0, 10)}</td>
                         <td>
                             <span class="status-badge status-{row.status?.toLowerCase()}">
@@ -138,7 +142,7 @@
                         <td class="font-mono">{row.cedula}</td>
                         <td class="font-medium">{row.student}</td>
                         <td class="text-muted">{row.returnReason ?? '—'}</td>
-                        {#if data.isAdmin}
+                        {#if data.canUnlock}
                             <td>
                                 <div class="admin-cell-action">
                                     <input 
@@ -168,6 +172,7 @@
     </div>
 
     <!-- Panel de Decisión para Seleccionadas -->
+    {#if data.canReview}
     <fieldset class="filter-card mt-4">
         <legend>Decisión para las seleccionadas</legend>
         
@@ -201,4 +206,5 @@
             </div>
         </div>
     </fieldset>
+    {/if}
 </form>

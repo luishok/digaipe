@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ReportRow, StatisticsReport, StatisticsSpec } from './statistics';
+import { csvLine } from './csv';
 import {
 	formatCount,
 	formatDate,
@@ -21,11 +22,6 @@ export function makeFolio(date = new Date()) {
 	return `DGP-${ymd}-${rand}`;
 }
 
-const csvCell = (value: unknown) => {
-	const text = String(value ?? '');
-	return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-};
-const csvLine = (values: unknown[]) => values.map(csvCell).join(',');
 const criteria = (report: StatisticsReport) => [
 	['Desde', report.spec.dateFrom],
 	['Hasta', report.spec.dateTo],

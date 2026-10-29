@@ -2,8 +2,13 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { admissionImportBatches } from '$lib/server/db/schema';
-import { previewAdmissionFile, saveAdmissionBatch } from '$lib/server/admisiones/import';
-import { auditContextFromEvent } from '$lib/server/audit';
+import {
+	BatchIntegrityError,
+	previewAdmissionFile,
+	readVerifiedBatchSource,
+	saveAdmissionBatch
+} from '$lib/server/admisiones/import';
+import { auditContextFromEvent, auditedTransaction } from '$lib/server/audit';
 import { and, eq } from 'drizzle-orm';
 
 function parseBatchId(value: string) {
@@ -14,7 +19,8 @@ function parseBatchId(value: string) {
 	return batchId;
 }
 
-export const load: PageServerLoad = async ({ locals, params }) => {
+export const load: PageServerLoad = async (event) => {
+	const { locals, params } = event;
 	if (!locals.user) redirect(302, '/login');
 
 	const batchId = parseBatchId(params.batchId);
@@ -30,23 +36,41 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		.limit(1);
 
 	if (!batch) error(404, 'No existe el lote de admisiones.');
+	const auditContext = auditContextFromEvent(event);
+	if (!auditContext) redirect(302, '/login');
 
 	try {
-		const preview = await previewAdmissionFile(batch.sourceFilePath);
+		const preview = await previewAdmissionFile(await readVerifiedBatchSource(batch, auditContext));
 
-		if (batch.status === 'draft') {
-			await db
-				.update(admissionImportBatches)
-				.set({
-					rowCount: preview.rows.length,
-					warningCount: preview.warnings.length,
-					errorCount: preview.errors.length
-				})
-				.where(eq(admissionImportBatches.id, batch.id));
+		const countsChanged =
+			batch.rowCount !== preview.rows.length ||
+			batch.warningCount !== preview.warnings.length ||
+			batch.errorCount !== preview.errors.length;
+		// Only write when the counts moved: the table is trigger-audited, so an unconditional
+		// update would add a ledger row on every page view.
+		if (batch.status === 'draft' && countsChanged) {
+			await auditedTransaction(auditContext, (tx) =>
+				tx
+					.update(admissionImportBatches)
+					.set({
+						rowCount: preview.rows.length,
+						warningCount: preview.warnings.length,
+						errorCount: preview.errors.length
+					})
+					.where(eq(admissionImportBatches.id, batch.id))
+			);
 		}
 
-		return { batch, preview };
+		// Server-side file paths stay on the server.
+		const {
+			sourceFilePath: _source,
+			estadisticaFilePath: _estadistica,
+			manifestFilePath: _manifest,
+			...visibleBatch
+		} = batch;
+		return { batch: visibleBatch, preview };
 	} catch (loadError) {
+		if (loadError instanceof BatchIntegrityError) error(409, loadError.message);
 		error(
 			500,
 			loadError instanceof Error ? loadError.message : 'No se pudo previsualizar el lote.'

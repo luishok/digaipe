@@ -18,12 +18,12 @@
 
 	<div class="login-form-wrapper">
 		<div class="login-form-content">
-			<h1>Login</h1>
+			<h1>Iniciar sesión</h1>
 			<p>Por favor, introduce tus credenciales para acceder al portal.</p>
 			<form method="post" action="?/signInEmail" use:enhance>
 				<div class="input-group">
 					<label>
-						<p>Email</p>
+						<p>Correo electrónico</p>
 						<input type="email" name="email" />
 					</label>
 				</div>
@@ -33,7 +33,7 @@
 						<input type="password" name="password" />
 					</label>
 				</div>
-				<button class="btn-full">Login</button>
+				<button class="btn-full">Iniciar sesión</button>
 			</form>
 			<p style="color: red">{form?.message ?? ''}</p>
 		</div>

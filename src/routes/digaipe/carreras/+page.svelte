@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { authClient } from '$lib/auth-client';
-
-	const session = authClient.useSession();
+	import { can } from '$lib/permissions';
 
 	let { data, form } = $props();
 
@@ -56,8 +54,8 @@
 <h1 style="text-align: center;">Carreras</h1>
 
 <div class="header-carreras">
-	{#if $session.data}
-		{#if $session.data.user.role === 'admin'}
+	{#if data.user}
+		{#if can(data.user, 'catalogs.import')}
 			<div>
 				<!-- Cambiamos el id por un evento onclick -->
 				<button onclick={openModal} class="btn-primary">Subir Archivo</button>

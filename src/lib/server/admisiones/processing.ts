@@ -7,7 +7,7 @@ import {
 	user
 } from '$lib/server/db/schema';
 import type { AuditContext } from '$lib/server/audit';
-import { setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
+import { auditedTransaction, writeAuditLog } from '$lib/server/audit';
 
 export const processingStatuses = ['pendiente', 'matriculado', 'devuelto'] as const;
 export type ProcessingStatus = (typeof processingStatuses)[number];
@@ -68,8 +68,7 @@ export async function ensureAdmissionProcessing(
 	processingDate: string,
 	auditContext: AuditContext
 ) {
-	return db.transaction(async (tx) => {
-		await setAuditDatabaseContext(tx, auditContext);
+	return auditedTransaction(auditContext, async (tx) => {
 		const [existing] = await tx
 			.select()
 			.from(admissionProcessings)

@@ -36,6 +36,13 @@
       "when": 1785371365545,
       "tag": "0004_boring_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1793233933915,
+      "tag": "0005_backup_audit_events",
+      "breakpoints": true
     }
   ]
 }

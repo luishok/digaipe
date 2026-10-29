@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { batchStatusLabel } from '$lib';
+	import alertIcon from '$lib/assets/alert.png';
+	import errorIcon from '$lib/assets/error.png';
 
 	let { data, form } = $props();
 
@@ -153,7 +156,7 @@
 
 			<div class="label-input">
 				<label class="custom-file-upload {manifestFileName ? 'has-file' : ''}" for="manifest-pdf">
-					Manifest PDF
+					Manifiesto PDF
 
 					<input
 						id="manifest-pdf"
@@ -220,7 +223,7 @@
     <ul>
         <li>Admisiones: {form.files.sourceFileName}</li>
         <li>Estadistica: {form.files.estadisticaFileName}</li>
-        <li>Manifest: {form.files.manifestFileName}</li>
+        <li>Manifiesto: {form.files.manifestFileName}</li>
     </ul>
 
     {#if form?.batchId}
@@ -251,7 +254,7 @@
 <div class="container-advertencias-errores">
     {#if warnings.length > 0}
         <div class="advertencias_container div-card">
-            <img src="/src/lib/assets/alert.png" alt="Advertencias" width="24" height="24" />
+            <img src={alertIcon} alt="Advertencias" width="24" height="24" />
             <h2>Advertencias: {warnings.length}</h2>
             <div class="contenedor_tabla">
                 <table class="table_container">
@@ -278,7 +281,7 @@
 
     {#if errors.length > 0}
         <div class="errores_container div-card">
-            <img src="/src/lib/assets/error.png" alt="Errores" width="24" height="24" />
+            <img src={errorIcon} alt="Errores" width="24" height="24" />
             <h2>Errores: {errors.length}</h2>
             <div class="contenedor_tabla">
                 <table class="table_container">
@@ -378,7 +381,7 @@
 			{#each data.recentBatches as batch (batch.id)}
 				<tr>
 					<td>{batch.id}</td>
-					<td>{batch.status}</td>
+					<td>{batchStatusLabel(batch.status)}</td>
 					<td>
 						{#if batch.status === 'draft'}
 							<a href={resolve(`/digaipe/admisiones/cargar/${batch.id}`)}>{batch.sourceFileName}</a>

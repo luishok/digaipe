@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as XLSX from 'xlsx';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import type { AuditContext } from '$lib/server/audit';
-import { setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
+import { auditedTransaction, writeAuditLog } from '$lib/server/audit';
 import {
 	admissionImportBatches,
 	admissions,
@@ -56,6 +56,7 @@ type FileWriteResult = {
 	fileName: string;
 	filePath: string;
 	sha256: string;
+	bytes: Buffer;
 };
 
 type ResolvedCatalogs = {
@@ -146,55 +147,150 @@ function isUploadFile(value: FormDataEntryValue | null): value is File {
 	return value instanceof File && value.size > 0;
 }
 
-function validateFile(
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+// Leading bytes of each accepted type: .xlsx is a ZIP container, PDFs start with "%PDF-".
+const fileSignatures: Record<'.xlsx' | '.pdf', number[]> = {
+	'.xlsx': [0x50, 0x4b, 0x03, 0x04],
+	'.pdf': [0x25, 0x50, 0x44, 0x46, 0x2d]
+};
+
+async function validateFile(
 	file: FormDataEntryValue | null,
-	allowedExtensions: string[],
+	extension: '.xlsx' | '.pdf',
 	label: string
-): File {
+): Promise<File> {
 	if (!isUploadFile(file)) {
 		throw new Error(`Debe cargar el archivo ${label}.`);
 	}
-
-	const extension = path.extname(file.name).toLowerCase();
-	if (!allowedExtensions.includes(extension)) {
-		throw new Error(`El archivo ${label} debe ser ${allowedExtensions.join(' o ')}.`);
+	if (path.extname(file.name).toLowerCase() !== extension) {
+		throw new Error(`El archivo ${label} debe ser ${extension}.`);
+	}
+	if (file.size > MAX_UPLOAD_BYTES) {
+		throw new Error(`El archivo ${label} supera ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
+	}
+	const signature = fileSignatures[extension];
+	const head = new Uint8Array(await file.slice(0, signature.length).arrayBuffer());
+	if (!signature.every((byte, index) => head[index] === byte)) {
+		throw new Error(`El archivo ${label} no es un ${extension} válido.`);
 	}
 
 	return file;
 }
 
-async function writeUploadFile(file: File, directory: string): Promise<FileWriteResult> {
+// Each file is stored under a fixed per-role name, so two uploads with the same original name
+// (e.g. both PDFs called "reporte.pdf") can no longer overwrite each other. The original name
+// is kept only for display.
+async function writeUploadFile(
+	file: File,
+	directory: string,
+	storedName: string
+): Promise<FileWriteResult> {
 	await mkdir(directory, { recursive: true });
 
 	const bytes = Buffer.from(await file.arrayBuffer());
 	const sha256 = createHash('sha256').update(bytes).digest('hex');
-	const fileName = sanitizeFileName(file.name);
-	const filePath = path.join(directory, fileName);
+	const filePath = path.join(directory, storedName);
 
-	await writeFile(filePath, bytes);
+	await writeFile(filePath, bytes, { flag: 'wx' });
 
-	return { fileName, filePath, sha256 };
+	return { fileName: sanitizeFileName(file.name), filePath, sha256, bytes };
+}
+
+type StoredBatchFiles = {
+	id: number;
+	sourceFilePath: string;
+	sourceFileSha256: string;
+	estadisticaFilePath: string;
+	estadisticaFileSha256: string;
+	manifestFilePath: string;
+	manifestFileSha256: string;
+};
+
+export class BatchIntegrityError extends Error {
+	constructor() {
+		super(
+			'Los archivos de este lote cambiaron o faltan desde que se cargaron. No se puede usar; vuelva a cargar el lote.'
+		);
+	}
+}
+
+/**
+ * Reads a batch's three files and checks each against the SHA-256 recorded at upload. Refuses
+ * (and audits the refusal) when a file is missing, outside the upload root, or changed, so a
+ * batch is only ever previewed or saved from the exact bytes that were uploaded.
+ * Returns the admissions spreadsheet.
+ */
+export async function readVerifiedBatchSource(batch: StoredBatchFiles, auditContext: AuditContext) {
+	const files = [
+		{ role: 'source', filePath: batch.sourceFilePath, sha256: batch.sourceFileSha256 },
+		{ role: 'estadistica', filePath: batch.estadisticaFilePath, sha256: batch.estadisticaFileSha256 },
+		{ role: 'manifest', filePath: batch.manifestFilePath, sha256: batch.manifestFileSha256 }
+	];
+	const problems: { role: string; problem: string }[] = [];
+	let source: Buffer | null = null;
+	for (const file of files) {
+		const resolved = path.resolve(file.filePath);
+		if (!resolved.startsWith(ADMISSION_UPLOAD_ROOT + path.sep)) {
+			problems.push({ role: file.role, problem: 'outside_upload_root' });
+			continue;
+		}
+		const bytes = await readFile(resolved).catch(() => null);
+		if (!bytes) problems.push({ role: file.role, problem: 'missing' });
+		else if (createHash('sha256').update(bytes).digest('hex') !== file.sha256)
+			problems.push({ role: file.role, problem: 'hash_mismatch' });
+		else if (file.role === 'source') source = bytes;
+	}
+	if (problems.length || !source) {
+		await writeAuditLog(db, auditContext, {
+			action: 'admission_import_batch.integrity_failed',
+			entityType: 'admission_import_batch',
+			entityId: batch.id,
+			metadata: { problems },
+			outcome: 'failure'
+		});
+		throw new BatchIntegrityError();
+	}
+	return source;
 }
 
 export async function createDraftBatch(
 	formData: FormData,
 	uploadedByUserId: string,
-	auditContext?: AuditContext
+	auditContext: AuditContext
 ) {
-	const sourceFile = validateFile(formData.get('sourceFile'), ['.xlsx'], 'de admisiones');
-	const estadisticaFile = validateFile(formData.get('estadisticaFile'), ['.pdf'], 'estadistica');
-	const manifestFile = validateFile(formData.get('manifestFile'), ['.pdf'], 'manifest');
+	const sourceFile = await validateFile(formData.get('sourceFile'), '.xlsx', 'de admisiones');
+	const estadisticaFile = await validateFile(formData.get('estadisticaFile'), '.pdf', 'estadistica');
+	const manifestFile = await validateFile(formData.get('manifestFile'), '.pdf', 'manifiesto');
 
 	const uploadDirectory = path.join(ADMISSION_UPLOAD_ROOT, randomUUID());
-	const [source, estadistica, manifest] = await Promise.all([
-		writeUploadFile(sourceFile, uploadDirectory),
-		writeUploadFile(estadisticaFile, uploadDirectory),
-		writeUploadFile(manifestFile, uploadDirectory)
-	]);
-	const preview = await previewAdmissionFile(source.filePath);
+	try {
+		return await storeDraftBatch(uploadDirectory, uploadedByUserId, auditContext, {
+			sourceFile,
+			estadisticaFile,
+			manifestFile
+		});
+	} catch (error) {
+		// No batch row points at these files; don't leave them behind.
+		await rm(uploadDirectory, { recursive: true, force: true });
+		throw error;
+	}
+}
 
-	const [result] = await db.transaction(async (tx) => {
-		if (auditContext) await setAuditDatabaseContext(tx, auditContext);
+async function storeDraftBatch(
+	uploadDirectory: string,
+	uploadedByUserId: string,
+	auditContext: AuditContext,
+	files: { sourceFile: File; estadisticaFile: File; manifestFile: File }
+) {
+	const [source, estadistica, manifest] = await Promise.all([
+		writeUploadFile(files.sourceFile, uploadDirectory, 'admisiones.xlsx'),
+		writeUploadFile(files.estadisticaFile, uploadDirectory, 'estadistica.pdf'),
+		writeUploadFile(files.manifestFile, uploadDirectory, 'manifiesto.pdf')
+	]);
+	const preview = await previewAdmissionFile(source.bytes);
+
+	const [result] = await auditedTransaction(auditContext, async (tx) => {
 		const [insertResult] = await tx.insert(admissionImportBatches).values({
 			uploadedByUserId,
 			sourceFileName: source.fileName,
@@ -251,8 +347,7 @@ export async function createDraftBatch(
 	};
 }
 
-export async function previewAdmissionFile(filePath: string): Promise<AdmissionPreview> {
-	const buffer = await readFile(filePath);
+export async function previewAdmissionFile(buffer: Buffer): Promise<AdmissionPreview> {
 	const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
 	const sheetName = workbook.SheetNames[0];
 	if (!sheetName) throw new Error('El archivo de admisiones no tiene hojas.');
@@ -423,7 +518,7 @@ function buildPreviewRow(
 	};
 }
 
-export async function saveAdmissionBatch(batchId: number, auditContext?: AuditContext) {
+export async function saveAdmissionBatch(batchId: number, auditContext: AuditContext) {
 	const [batch] = await db
 		.select()
 		.from(admissionImportBatches)
@@ -433,24 +528,34 @@ export async function saveAdmissionBatch(batchId: number, auditContext?: AuditCo
 	if (!batch) throw new Error('No existe el lote de admisiones.');
 	if (batch.status !== 'draft') throw new Error('Este lote ya fue guardado.');
 
-	const preview = await previewAdmissionFile(batch.sourceFilePath);
+	const preview = await previewAdmissionFile(await readVerifiedBatchSource(batch, auditContext));
 	if (preview.errors.length > 0) {
-		await db
-			.update(admissionImportBatches)
-			.set({
-				rowCount: preview.rows.length,
-				warningCount: preview.warnings.length,
-				errorCount: preview.errors.length
-			})
-			.where(eq(admissionImportBatches.id, batchId));
+		await auditedTransaction(auditContext, (tx) =>
+			tx
+				.update(admissionImportBatches)
+				.set({
+					rowCount: preview.rows.length,
+					warningCount: preview.warnings.length,
+					errorCount: preview.errors.length
+				})
+				.where(eq(admissionImportBatches.id, batchId))
+		);
 		throw new Error('No se puede guardar un lote con errores.');
 	}
 
 	const catalogs = await loadCatalogs();
 	await assertNoExistingAdmissions(preview.rows, catalogs);
 
-	await db.transaction(async (tx) => {
-		if (auditContext) await setAuditDatabaseContext(tx, auditContext);
+	await auditedTransaction(auditContext, async (tx) => {
+		// Re-check under a row lock: two concurrent saves of the same draft both pass the check
+		// above, but only the first to lock the row may insert.
+		const [locked] = await tx
+			.select({ status: admissionImportBatches.status })
+			.from(admissionImportBatches)
+			.where(eq(admissionImportBatches.id, batchId))
+			.for('update');
+		if (locked?.status !== 'draft') throw new Error('Este lote ya fue guardado.');
+
 		for (const row of preview.rows) {
 			const process = catalogs.processesByCode.get(row.numAsignacion);
 			const career = catalogs.careersByOfae.get(row.opcion);

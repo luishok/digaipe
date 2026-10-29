@@ -1,0 +1,24 @@
+# HTTPS for DIGAIPE on an air-gapped network.
+#
+# No internet means no Let's Encrypt. Caddy runs its own local certificate authority instead
+# (`local_certs`): it issues and renews the site certificate offline. Each client PC must trust
+# that CA's root certificate once; see deploy/README.md ("Certificado HTTPS").
+#
+# To use a certificate from the institution's own CA instead, mount the files into the caddy
+# service and replace `tls internal` with:  tls /certs/digaipe.crt /certs/digaipe.key
+{
+	local_certs
+	# The CA root lives in the caddy-data volume; Caddy must not try to install it in the
+	# container's own trust store.
+	skip_install_trust
+}
+
+# DIGAIPE_HOST is the name or IP clients type, e.g. digaipe.ula.local or 192.168.1.50.
+# It must match ORIGIN in deploy/.env.
+{$DIGAIPE_HOST} {
+	tls internal
+
+	reverse_proxy app:3000
+
+	header -Server
+}

@@ -1,26 +1,40 @@
+<script lang="ts">
+	import docIcon from '$lib/assets/icons/digaipe-doc.svg';
+	import graphIcon from '$lib/assets/icons/digaipe-graph.svg';
+	import listIcon from '$lib/assets/icons/digaipe-list.svg';
+	import personPlusIcon from '$lib/assets/icons/digaipe-person-plus.svg';
+	import { can, parseRoles } from '$lib/permissions';
 
-
-
-
+	let { data } = $props();
+</script>
 <div class="container">
 	<div class="welcome-banner">
 		<h1>¡Bienvenido!</h1>
 	</div>
 
-	<p class="instruction-text">Por favor, seleccione una opción para continuar:</p>
+	{#if parseRoles(data.user.role).length === 0}
+		<p class="instruction-text">
+			Su cuenta no tiene roles asignados. Solicite acceso a un administrador.
+		</p>
+	{:else}
+		<p class="instruction-text">Por favor, seleccione una opción para continuar:</p>
+	{/if}
 
 	<div class="cards-grid">
+		{#if can(data.user, 'statistics.view')}
 		<div class="card">
 			<div class="card-body">
-				<img src="/src/lib/assets/icons/digaipe-graph.svg" alt="Estadísticas" class="card-icon" />
+				<img src={graphIcon} alt="Estadísticas" class="card-icon" />
 				<h2 class="card-title">Estadísticas</h2>
 			</div>
 			<a href="/digaipe/estadisticas" class="card-btn">Continuar</a>
 		</div>
+		{/if}
+		{#if can(data.user, 'admissions.view')}
 		<div class="card">
 			<div class="card-body">
 				<img
-					src="/src/lib/assets/icons/digaipe-person-plus.svg"
+					src={personPlusIcon}
 					alt="Admisiones"
 					class="card-icon"
 				/>
@@ -28,22 +42,27 @@
 			</div>
 			<a href="/digaipe/admisiones" class="card-btn">Continuar</a>
 		</div>
+		{/if}
 
+		{#if can(data.user, 'planillas.view')}
 		<div class="card">
 			<div class="card-body">
-				<img src="/src/lib/assets/icons/digaipe-doc.svg" alt="Planillas" class="card-icon" />
+				<img src={docIcon} alt="Planillas" class="card-icon" />
 				<h2 class="card-title">Generación de Planillas</h2>
 			</div>
 			<a href="/digaipe/generacion-planilla" class="card-btn">Continuar</a>
 		</div>
+		{/if}
 
+		{#if can(data.user, 'catalogs.view')}
 		<div class="card">
 			<div class="card-body">
-				<img src="/src/lib/assets/icons/digaipe-list.svg" alt="Listas" class="card-icon" />
+				<img src={listIcon} alt="Listas" class="card-icon" />
 				<h2 class="card-title">Listas</h2>
 			</div>
 			<a href="/digaipe/carreras" class="card-btn">Continuar</a>
 		</div>
+		{/if}
 
 		
 	</div>

@@ -1,4 +1,5 @@
 import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
+import { can } from '$lib/permissions';
 import { db } from '$lib/server/db';
 import { auditEvents } from '$lib/server/db/schema';
 import { error } from '@sveltejs/kit';
@@ -8,20 +9,20 @@ import type { RequestHandler } from './$types';
 const EXPORT_LIMIT = 10_000;
 
 function requiredDate(value: string | null, label: string) {
-	if (!value) error(400, `${label} is required for an audit export.`);
+	if (!value) error(400, `La fecha ${label} es obligatoria para exportar la auditoría.`);
 	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) error(400, `${label} is invalid.`);
+	if (Number.isNaN(date.getTime())) error(400, `La fecha ${label} no es válida.`);
 	return date;
 }
 
 export const GET: RequestHandler = async (event) => {
-	if (!event.locals.user) error(401, 'Authentication required.');
-	if (event.locals.user.role !== 'admin') error(403, 'Administrator access required.');
+	if (!event.locals.user) error(401, 'Debe iniciar sesión.');
+	if (!can(event.locals.user, 'audit.view')) error(403, 'No tiene permiso para exportar la auditoría.');
 
 	const { url } = event;
-	const from = requiredDate(url.searchParams.get('from'), 'from');
-	const to = requiredDate(url.searchParams.get('to'), 'to');
-	if (from > to) error(400, 'from must be before to.');
+	const from = requiredDate(url.searchParams.get('from'), 'Desde');
+	const to = requiredDate(url.searchParams.get('to'), 'Hasta');
+	if (from > to) error(400, 'La fecha Desde debe ser anterior a Hasta.');
 
 	const conditions: SQL[] = [gte(auditEvents.occurredAt, from), lte(auditEvents.occurredAt, to)];
 	const action = url.searchParams.get('action')?.trim();
@@ -41,11 +42,11 @@ export const GET: RequestHandler = async (event) => {
 		.where(and(...conditions))
 		.limit(EXPORT_LIMIT + 1);
 	if (logs.length > EXPORT_LIMIT) {
-		error(400, `Export exceeds ${EXPORT_LIMIT} events. Use a narrower date range or filter.`);
+		error(400, `La exportación supera ${EXPORT_LIMIT} eventos. Use un rango de fechas o filtros más acotados.`);
 	}
 
 	const auditContext = auditContextFromEvent(event);
-	if (!auditContext) error(401, 'Authentication required.');
+	if (!auditContext) error(401, 'Debe iniciar sesión.');
 	await writeAuditLog(db, auditContext, {
 		action: 'audit.exported',
 		entityType: 'audit_ledger',

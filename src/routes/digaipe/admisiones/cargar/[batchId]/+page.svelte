@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { batchStatusLabel } from '$lib';
+	import alertIcon from '$lib/assets/alert.png';
+	import errorIcon from '$lib/assets/error.png';
 
 	let { data, form } = $props();
 
@@ -17,11 +20,11 @@
 {/if}
 <div class="div-card">
 	<h2>Archivos</h2>
-	<p>Estado: {data.batch.status}</p>
+	<p>Estado: {batchStatusLabel(data.batch.status)}</p>
 	<ul>
 		<li>Admisiones: {data.batch.sourceFileName}</li>
 		<li>Estadistica: {data.batch.estadisticaFileName}</li>
-		<li>Manifest: {data.batch.manifestFileName}</li>
+		<li>Manifiesto: {data.batch.manifestFileName}</li>
 	</ul>
 
 	<p>
@@ -42,7 +45,7 @@
 <div class="container-advertencias-errores">
 	{#if warnings.length > 0}
 		<div class="advertencias_container div-card">
-			<img src="/src/lib/assets/alert.png" alt="Advertencias" width="24" height="24" />
+			<img src={alertIcon} alt="Advertencias" width="24" height="24" />
 			<h2>Advertencias: {warnings.length}</h2>
 			<div class="contenedor_tabla">
 				<table class="table_container">
@@ -69,7 +72,7 @@
 
 	{#if errors.length > 0}
 		<div class="errores_container div-card">
-			<img src="/src/lib/assets/error.png" alt="Advertencias" width="24" height="24" />
+			<img src={errorIcon} alt="Advertencias" width="24" height="24" />
 			<h2>Errores: {errors.length}</h2>
 			<div class="contenedor_tabla">
 				<table class="table_container">

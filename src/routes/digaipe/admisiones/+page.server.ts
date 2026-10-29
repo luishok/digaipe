@@ -1,4 +1,5 @@
 import type { PageServerLoad } from './$types';
+import { auditStudentDataView } from '$lib/server/audit';
 import { db } from '$lib/server/db';
 import {
 	admissionImportBatches,
@@ -19,7 +20,8 @@ function dateFilterValue(value: string) {
 	return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : null;
 }
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async (event) => {
+	const { url } = event;
 	const filters = {
 		search: getFilter(url, 'search'),
 		process: getFilter(url, 'process'),
@@ -106,6 +108,15 @@ export const load: PageServerLoad = async ({ url }) => {
 			.groupBy(admissions.opcion)
 			.orderBy(sql`${admissions.opcion}`)
 	]);
+
+	const { search, ...otherFilters } = filters;
+	await auditStudentDataView(event, {
+		page: '/digaipe/admisiones',
+		recordType: 'admission',
+		recordIds: rows.map((row) => row.id),
+		filters: otherFilters,
+		search
+	});
 
 	return {
 		admissions: rows,

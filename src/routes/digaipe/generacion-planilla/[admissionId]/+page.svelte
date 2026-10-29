@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
+	import { can } from '$lib/permissions';
 
 	let { data, form } = $props();
 	const admission = $derived(data.admission);
@@ -72,7 +73,9 @@
 				<!-- <input name="genero" value={admission.genero ?? ''} maxlength="20" /> -->
 			</div>
 
-			<button type="submit">Guardar datos</button>
+			{#if can(data.user, 'students.edit')}
+				<button type="submit">Guardar datos</button>
+			{/if}
 		</div>
 	</form>
 </div>
@@ -241,13 +244,15 @@
 			</div>
 
 			<div class="card-actions">
-				<form
-					method="POST"
-					action={resolve(`/digaipe/generacion-planilla/${admission.id}/pdf`)}
-					target="_blank"
-				>
-					<button type="submit">Generar planilla PDF</button>
-				</form>
+				{#if can(data.user, 'planillas.generate')}
+					<form
+						method="POST"
+						action={resolve(`/digaipe/generacion-planilla/${admission.id}/pdf`)}
+						target="_blank"
+					>
+						<button type="submit">Generar planilla PDF</button>
+					</form>
+				{/if}
 				<a
 					href={resolve(`/digaipe/generacion-planilla/${admission.id}/pdf`)}
 					target="_blank"

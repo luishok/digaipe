@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db/index';
 import { careers } from '$lib/server/db/schema';
-import { auditContextFromEvent, setAuditDatabaseContext, writeAuditLog } from '$lib/server/audit';
+import { auditContextFromEvent, auditedTransaction, writeAuditLog } from '$lib/server/audit';
 import { parse } from 'csv-parse/sync';
+import { can } from '$lib/permissions';
 
 type NewCareer = typeof careers.$inferInsert;
 type CsvRow = {
@@ -44,6 +45,9 @@ export const load: PageServerLoad = async () => {
 
 export const actions = {
 	default: async (event) => {
+		if (!can(event.locals.user, 'catalogs.import')) {
+			return { error: true, message: 'No tiene permiso para importar carreras.' };
+		}
 		if (!event.locals.user) {
 			return { error: true, message: 'Debe iniciar sesion.' };
 		}
@@ -95,8 +99,7 @@ export const actions = {
 			let skippedExisting = 0;
 			let skippedNoClave = 0;
 
-			await db.transaction(async (tx) => {
-				await setAuditDatabaseContext(tx, auditContext);
+			await auditedTransaction(auditContext, async (tx) => {
 				const existing = await tx
 					.select({ nucleo: careers.nucleo, ofae: careers.ofae })
 					.from(careers);

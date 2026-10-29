@@ -4,7 +4,8 @@ import {
 	getActiveAdmissionForPlanilla
 } from '$lib/server/admisiones/planilla';
 import { fillDigaipePDF } from '$lib/server/planillas/admision-digaipe';
-import { auditContextFromEvent } from '$lib/server/audit';
+import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
+import { db } from '$lib/server/db';
 import { ensureAdmissionProcessing } from '$lib/server/admisiones/processing';
 
 function parseAdmissionId(value: string) {
@@ -24,12 +25,22 @@ async function pdfResponse(event: Parameters<RequestHandler>[0], registerProcess
 	const admissionId = parseAdmissionId(params.admissionId ?? '');
 	const admission = await getActiveAdmissionForPlanilla(admissionId);
 	if (!admission) error(404, 'Admision no disponible para generar planilla hoy.');
+	const auditContext = auditContextFromEvent(event);
+	if (!auditContext) error(401, 'Debe iniciar sesión.');
+	let createdProcessing = false;
 	if (registerProcessing) {
-		const auditContext = auditContextFromEvent(event);
-		if (!auditContext) error(401, 'Debe iniciar sesión.');
 		const processingDate = admission.activeDate.toISOString().slice(0, 10);
-		await ensureAdmissionProcessing(admission.id, locals.user.id, processingDate, auditContext);
+		const result = await ensureAdmissionProcessing(admission.id, locals.user.id, processingDate, auditContext);
+		createdProcessing = result.created;
 	}
+	// Generating creates the processing (audited there); every PDF served, first print or
+	// reprint, is recorded here.
+	await writeAuditLog(db, auditContext, {
+		action: 'admission_planilla.printed',
+		entityType: 'admission',
+		entityId: admission.id,
+		metadata: { method: event.request.method, firstPrint: createdProcessing }
+	});
 	const planillaFields = buildLegacyPlanillaFields(admission);
 
 	const pdfBytes = await fillDigaipePDF({

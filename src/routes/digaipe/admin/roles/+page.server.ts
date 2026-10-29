@@ -2,24 +2,26 @@
 import { auth } from '$lib/server/auth';
 import {
 	auditContextFromEvent,
-	setAuditDatabaseContext,
-	writeAuditLog,
-	type AuditContext
+	auditedTransaction,
+	writeAuditLog
 } from '$lib/server/audit';
 import { db } from '$lib/server/db';
 import { account, session, user } from '$lib/server/db/schema';
 import { fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import { and, count, desc, eq, like, sql } from 'drizzle-orm';
+import { can, formatRoles, parseRoles, ROLES, type Role } from '$lib/permissions';
 import type { Actions, PageServerLoad } from './$types';
 
 const pageSize = 25;
 type UserActionData = {
 	message?: string;
 	success?: string;
-	values?: { name: string; email: string; role: string };
+	values?: { name: string; email: string; roles: Role[] };
 };
 type UserActionResult = Promise<UserActionData | ActionFailure<UserActionData>>;
-const isRole = (value: string): value is 'user' | 'admin' => value === 'user' || value === 'admin';
+const isRole = (value: string): value is Role => (ROLES as readonly string[]).includes(value);
+// Checked boxes named "roles"; unknown values are dropped. Stored comma-separated.
+const submittedRoles = (data: FormData) => parseRoles(formatRoles(data.getAll('roles').map(String)));
 const field = (data: FormData, key: string) => {
 	const value = data.get(key);
 	return typeof value === 'string' ? value : '';
@@ -31,33 +33,14 @@ function databaseErrorCode(error: unknown): string | undefined {
 	if ('cause' in error) return databaseErrorCode(error.cause);
 }
 
-type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-async function userTransaction<T>(
-	context: AuditContext,
-	operation: (tx: Transaction) => Promise<T>
-) {
-	return db.transaction(async (tx) => {
-		await setAuditDatabaseContext(tx, context);
-		try {
-			return await operation(tx);
-		} finally {
-			// MySQL session variables survive rollback and pooled connection reuse.
-			await tx.execute(sql`SET @digaipe_audit_actor_user_id = NULL,
-				@digaipe_audit_actor_name = NULL, @digaipe_audit_actor_email = NULL,
-				@digaipe_audit_correlation_id = NULL`);
-		}
-	});
-}
-
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) redirect(302, '/login');
-	if (locals.user.role !== 'admin') redirect(302, '/digaipe');
+	if (!can(locals.user, 'users.manage')) redirect(302, '/digaipe');
 	const search = (url.searchParams.get('search') ?? '').trim().slice(0, 255);
 	const role = url.searchParams.get('role') ?? '';
 	const where = and(
 		search ? like(user.email, `%${search}%`) : undefined,
-		isRole(role) ? eq(user.role, role) : undefined
+		isRole(role) ? sql`FIND_IN_SET(${role}, ${user.role}) > 0` : undefined
 	);
 	const [result] = await db.select({ total: count() }).from(user).where(where);
 	const totalPages = Math.max(1, Math.ceil(result.total / pageSize));
@@ -91,7 +74,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	create: async (event): UserActionResult => {
-		if (!event.locals.user || event.locals.user.role !== 'admin')
+		if (!can(event.locals.user, 'users.manage'))
 			return fail(403, { message: 'No tiene permisos para administrar usuarios.' });
 		const context = auditContextFromEvent(event);
 		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
@@ -99,16 +82,20 @@ export const actions: Actions = {
 		const name = field(data, 'name').trim();
 		const email = field(data, 'email').trim().toLowerCase();
 		const password = field(data, 'password');
-		const role = field(data, 'role');
-		const values = { name, email, role };
+		const roles = submittedRoles(data);
+		const role = formatRoles(roles);
+		const values = { name, email, roles };
 		if (
 			!name ||
 			name.length > 255 ||
 			email.length > 255 ||
 			!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-			!isRole(role)
+			!roles.length
 		) {
-			return fail(400, { message: 'Ingrese un nombre, correo electrónico y rol válidos.', values });
+			return fail(400, {
+				message: 'Ingrese un nombre, un correo electrónico válido y al menos un rol.',
+				values
+			});
 		}
 		const authContext = await auth.$context;
 		const { minPasswordLength, maxPasswordLength } = authContext.password.config;
@@ -122,7 +109,7 @@ export const actions: Actions = {
 		const hashedPassword = await authContext.password.hash(password);
 		const userId = randomUUID();
 		try {
-			await userTransaction(context, async (tx) => {
+			await auditedTransaction(context, async (tx) => {
 				await tx.insert(user).values({ id: userId, name, email, role });
 				await tx.insert(account).values({
 					id: randomUUID(),
@@ -150,19 +137,19 @@ export const actions: Actions = {
 		return { success: 'Usuario creado correctamente.' };
 	},
 	setRole: async (event): UserActionResult => {
-		if (!event.locals.user || event.locals.user.role !== 'admin')
+		if (!event.locals.user || !can(event.locals.user, 'users.manage'))
 			return fail(403, { message: 'No tiene permisos para administrar usuarios.' });
 		const context = auditContextFromEvent(event);
 		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
 		const data = await event.request.formData();
 		const userId = field(data, 'userId');
-		const role = field(data, 'role');
-		if (!userId || !isRole(role))
-			return fail(400, { message: 'Seleccione un usuario y un rol válidos.' });
+		const role = formatRoles(submittedRoles(data));
+		if (!userId || !role)
+			return fail(400, { message: 'Seleccione un usuario y al menos un rol.' });
 		if (userId === event.locals.user.id)
-			return fail(400, { message: 'No puede cambiar su propio rol.' });
+			return fail(400, { message: 'No puede cambiar sus propios roles.' });
 		try {
-			return await userTransaction(context, async (tx) => {
+			return await auditedTransaction(context, async (tx) => {
 				const [target] = await tx
 					.select({ role: user.role })
 					.from(user)
@@ -175,17 +162,17 @@ export const actions: Actions = {
 					action: 'user_role.changed',
 					entityType: 'user',
 					entityId: userId,
-					before: { role: target.role ?? 'user' },
+					before: { role: target.role ?? null },
 					after: { role }
 				});
-				return { success: 'Rol actualizado. El usuario deberá iniciar sesión nuevamente.' };
+				return { success: 'Roles actualizados. El usuario deberá iniciar sesión nuevamente.' };
 			});
 		} catch {
 			return fail(500, { message: 'No se pudo actualizar el rol. Intente nuevamente.' });
 		}
 	},
 	delete: async (event): UserActionResult => {
-		if (!event.locals.user || event.locals.user.role !== 'admin')
+		if (!event.locals.user || !can(event.locals.user, 'users.manage'))
 			return fail(403, { message: 'No tiene permisos para administrar usuarios.' });
 		const context = auditContextFromEvent(event);
 		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
@@ -196,7 +183,7 @@ export const actions: Actions = {
 		if (userId === event.locals.user.id)
 			return fail(400, { message: 'No puede eliminar su propia cuenta.' });
 		try {
-			return await userTransaction(context, async (tx) => {
+			return await auditedTransaction(context, async (tx) => {
 				const [target] = await tx
 					.select({ name: user.name, email: user.email, role: user.role })
 					.from(user)

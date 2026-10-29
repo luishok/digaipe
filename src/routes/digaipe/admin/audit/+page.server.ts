@@ -1,4 +1,5 @@
 import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
+import { can } from '$lib/permissions';
 import { db } from '$lib/server/db';
 import { auditEvents } from '$lib/server/db/schema';
 import { redirect } from '@sveltejs/kit';
@@ -21,7 +22,7 @@ function parseDate(value: string | null) {
 export const load: PageServerLoad = async (event) => {
 	const { locals, url } = event;
 	if (!locals.user) redirect(302, '/login');
-	if (locals.user.role !== 'admin') {
+	if (!can(locals.user, 'audit.view')) {
 		const auditContext = auditContextFromEvent(event);
 		if (auditContext) {
 			await writeAuditLog(db, auditContext, {

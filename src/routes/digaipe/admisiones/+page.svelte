@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { can } from '$lib/permissions';
 
 	let { data } = $props();
 
@@ -24,7 +25,9 @@
 
 <h1>Admisiones</h1>
 <div class="container-header-admisiones">
-	<button class="button" onclick={cargar_admisiones}>Cargar admisiones</button>
+	{#if can(data.user, 'admissions.upload')}
+		<button class="button" onclick={cargar_admisiones}>Cargar admisiones</button>
+	{/if}
 
 	<form method="GET">
 		<div class="container-inputs-admisiones">

@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageData, ActionData } from './$types';
+	import { parseRoles, ROLE_LABELS, ROLES } from '$lib/permissions';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let pending = $state(false);
@@ -74,15 +75,27 @@
 					autocomplete="new-password"
 				/>
 			</div>
-			<div class="input-group">
-				<label for="role">Rol</label>
-				<select id="role" name="role" class="full-width" required>
-					<option value="user" selected={form?.values?.role !== 'admin'}>Usuario</option>
-					<option value="admin" selected={form?.values?.role === 'admin'}>Administrador</option>
-				</select>
-			</div>
+			<fieldset class="input-group">
+				<legend>Roles (uno o más)</legend>
+				{#each ROLES as role (role)}
+					<label
+						><input
+							type="checkbox"
+							name="roles"
+							value={role}
+							checked={form?.values?.roles?.includes(role) ?? false}
+						/>
+						{ROLE_LABELS[role]}</label
+					>
+				{/each}
+			</fieldset>
 		</div>
-		<p><small>Los administradores pueden gestionar usuarios y consultar la auditoría.</small></p>
+		<p>
+			<small
+				>Administrador: todo, incluidos usuarios y auditoría. Auditor: puede ver todo, sin
+				modificar nada.</small
+			>
+		</p>
 		<div class="filter-actions">
 			<button type="submit" disabled={pending}>Agregar usuario</button>
 		</div>
@@ -109,9 +122,8 @@
 			<div class="label-input">
 				<label
 					>Rol <select name="role" value={data.role}
-						><option value="">Todos</option><option value="user">Usuario</option><option
-							value="admin">Administrador</option
-						></select
+						><option value="">Todos</option>
+						{#each ROLES as role (role)}<option value={role}>{ROLE_LABELS[role]}</option>{/each}</select
 					></label
 				>
 			</div>
@@ -147,7 +159,9 @@
 							>{new Date(user.createdAt).toLocaleDateString('es-VE', { timeZone: 'UTC' })}</td
 						>
 						<td>
-							{#if isSelf}<span class="status-badge">Administrador</span>
+							{#if isSelf}<span class="status-badge"
+									>{parseRoles(user.role).map((role) => ROLE_LABELS[role]).join(', ')}</span
+								>
 							{:else}
 								<form
 									class="admin-cell-action"
@@ -156,21 +170,24 @@
 									use:enhance={submit}
 								>
 									<input type="hidden" name="userId" value={user.id} />
-									<select
-										class="table-input"
-										name="role"
-										aria-label={`Rol de ${user.name}`}
-										disabled={pending}
-									>
-										<option value="user" selected={user.role !== 'admin'}>Usuario</option><option
-											value="admin"
-											selected={user.role === 'admin'}>Administrador</option
-										>
-									</select>
+									<fieldset aria-label={`Roles de ${user.name}`} disabled={pending}>
+										{#each ROLES as role (role)}
+											<label
+												><input
+													type="checkbox"
+													name="roles"
+													value={role}
+													checked={parseRoles(user.role).includes(role)}
+												/>
+												{ROLE_LABELS[role]}</label
+											>
+										{/each}
+										{#if parseRoles(user.role).length === 0}<small>Sin roles asignados</small>{/if}
+									</fieldset>
 									<button
 										type="submit"
 										disabled={pending}
-										aria-label={`Guardar rol de ${user.name}`}>Guardar</button
+										aria-label={`Guardar roles de ${user.name}`}>Guardar</button
 									>
 								</form>
 							{/if}

@@ -25,51 +25,51 @@
 	}
 </script>
 
-<h1>Audit ledger</h1>
+<h1>Registro de auditoría</h1>
 
 <form method="get">
-	<label>Action <input name="action" value={data.filters.action} /></label>
-	<label>Source <input name="source" value={data.filters.source} /></label>
-	<label>Actor ID <input name="actor" value={data.filters.actorUserId} /></label>
-	<label>Entity type <input name="entityType" value={data.filters.entityType} /></label>
-	<label>Entity ID <input name="entityId" value={data.filters.entityId} /></label>
-	<label>From <input name="from" type="datetime-local" value={data.filters.from} /></label>
-	<label>To <input name="to" type="datetime-local" value={data.filters.to} /></label>
-	<button>Search</button>
+	<label>Acción <input name="action" value={data.filters.action} /></label>
+	<label>Origen <input name="source" value={data.filters.source} /></label>
+	<label>ID del usuario <input name="actor" value={data.filters.actorUserId} /></label>
+	<label>Tipo de entidad <input name="entityType" value={data.filters.entityType} /></label>
+	<label>ID de entidad <input name="entityId" value={data.filters.entityId} /></label>
+	<label>Desde <input name="from" type="datetime-local" value={data.filters.from} /></label>
+	<label>Hasta <input name="to" type="datetime-local" value={data.filters.to} /></label>
+	<button>Buscar</button>
 </form>
 
-<p>Showing page {data.page} of {data.totalPages} ({data.total} events).</p>
+<p>Página {data.page} de {data.totalPages} ({data.total} eventos).</p>
 
 {#if data.filters.from && data.filters.to}
-	<a href={exportUrl()}>Export matching events (maximum 10,000)</a>
+	<a href={exportUrl()}>Exportar los eventos filtrados (máximo 10.000)</a>
 {:else}
-	<p>Set both From and To to enable a bounded audit export.</p>
+	<p>Indique las fechas Desde y Hasta para habilitar la exportación.</p>
 {/if}
 
 {#if data.page > 1}
-	<a href={pageUrl(data.page - 1)}>Previous page</a>
+	<a href={pageUrl(data.page - 1)}>Página anterior</a>
 {/if}
 
 {#if data.page < data.totalPages}
-	<a href={pageUrl(data.page + 1)}>Next page</a>
+	<a href={pageUrl(data.page + 1)}>Página siguiente</a>
 {/if}
 
 {#if data.logs.length === 0}
-	<p>No audit events match the selected filters.</p>
+	<p>No hay eventos de auditoría que coincidan con los filtros.</p>
 {:else}
 	<table>
 		<thead>
 			<tr>
-				<th scope="col">Sequence</th>
-				<th scope="col">Occurred at</th>
-				<th scope="col">Source / action / outcome</th>
-				<th scope="col">Actor</th>
-				<th scope="col">Correlation</th>
-				<th scope="col">Target</th>
-				<th scope="col">Before</th>
-				<th scope="col">After</th>
-				<th scope="col">Metadata</th>
-				<th scope="col">Integrity</th>
+				<th scope="col">Secuencia</th>
+				<th scope="col">Fecha y hora</th>
+				<th scope="col">Origen / acción / resultado</th>
+				<th scope="col">Usuario</th>
+				<th scope="col">Correlación</th>
+				<th scope="col">Entidad</th>
+				<th scope="col">Antes</th>
+				<th scope="col">Después</th>
+				<th scope="col">Metadatos</th>
+				<th scope="col">Integridad</th>
 			</tr>
 		</thead>
 		<tbody>

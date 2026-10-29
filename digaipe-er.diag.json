@@ -1,0 +1,254 @@
+{
+  "schema": "diag/1",
+  "notation": "er",
+  "meta": {
+    "client": "DIGAIPE",
+    "site": "digaipe2",
+    "title": "DIGAIPE database model (MySQL)",
+    "drawingNo": "DG-ER-001",
+    "rev": "A",
+    "date": "2026-10-07",
+    "author": "Francisco Lobaton",
+    "notes": "From src/lib/server/db/schema.ts + auth.schema.ts and drizzle/0000-0004. serial = bigint unsigned. audit_events.actor_user_id is a logical link to USER (no FK).",
+    "sheet": { "size": "A2", "orientation": "landscape" }
+  },
+  "nodes": [
+    {
+      "id": "students", "type": "table", "name": "STUDENTS", "x": 60, "y": 80,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "cedula", "type": "varchar(12)", "unique": true },
+        { "id": "apellidos_nombres", "type": "varchar(255)" },
+        { "id": "telefono", "type": "varchar(60)", "nullable": true },
+        { "id": "correo", "type": "varchar(255)", "nullable": true },
+        { "id": "genero", "type": "varchar(20)", "nullable": true }
+      ]
+    },
+    {
+      "id": "careers", "type": "table", "name": "CAREERS", "x": 60, "y": 320,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "programa_academico", "type": "text" },
+        { "id": "codigo", "type": "int", "nullable": true },
+        { "id": "ofae", "type": "varchar(4)" },
+        { "id": "ocre", "type": "int", "nullable": true },
+        { "id": "facultad", "type": "text" },
+        { "id": "nucleo", "type": "char(1)" },
+        { "id": "todo", "type": "text (virtual)", "nullable": true },
+        { "id": "clave", "type": "varchar(5) (virtual)" }
+      ]
+    },
+    {
+      "id": "modalities", "type": "table", "name": "ADMISSION_MODALITIES", "x": 60, "y": 600,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "codigo_admission", "type": "varchar(4)", "unique": true },
+        { "id": "nombre", "type": "varchar(128)", "unique": true }
+      ]
+    },
+    {
+      "id": "ocre_types", "type": "table", "name": "OCRE_TYPES", "x": 60, "y": 780,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "code", "type": "varchar(10)", "unique": true },
+        { "id": "name", "type": "varchar(128)" }
+      ]
+    },
+    {
+      "id": "admissions", "type": "table", "name": "ADMISSIONS", "x": 560, "y": 80,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "import_batch_id", "type": "bigint unsigned", "nullable": true },
+        { "id": "student_id", "type": "bigint unsigned" },
+        { "id": "career_id", "type": "bigint unsigned" },
+        { "id": "proceso_id", "type": "bigint unsigned" },
+        { "id": "modality_id", "type": "bigint unsigned" },
+        { "id": "ocre_type_id", "type": "bigint unsigned", "nullable": true },
+        { "id": "opcion", "type": "varchar(5)" },
+        { "id": "periodo_ingreso", "type": "varchar(10)" },
+        { "id": "fecha_asignacion", "type": "date" },
+        { "id": "ano", "type": "int" },
+        { "id": "proceso", "type": "int" }
+      ]
+    },
+    {
+      "id": "processes", "type": "table", "name": "ADMISSION_PROCESSES", "x": 560, "y": 520,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "num_asignacion", "type": "varchar(100)", "unique": true },
+        { "id": "is_enabled", "type": "bool" }
+      ]
+    },
+    {
+      "id": "ap_dates", "type": "table", "name": "AP_ACTIVE_DATES", "x": 560, "y": 760,
+      "rows": [
+        { "id": "code_id", "type": "bigint unsigned", "pk": true },
+        { "id": "active_date", "type": "date", "pk": true }
+      ]
+    },
+    {
+      "id": "processings", "type": "table", "name": "ADMISSION_PROCESSINGS", "x": 1120, "y": 80,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "admission_id", "type": "bigint unsigned", "unique": true },
+        { "id": "generated_by_user_id", "type": "varchar(36)" },
+        { "id": "reviewed_by_user_id", "type": "varchar(36)", "nullable": true },
+        { "id": "unlocked_by_user_id", "type": "varchar(36)", "nullable": true },
+        { "id": "processing_date", "type": "date" },
+        { "id": "planilla_generated_at", "type": "timestamp(3)" },
+        { "id": "status", "type": "varchar(16)" },
+        { "id": "reviewed_at", "type": "timestamp(3)", "nullable": true },
+        { "id": "return_reason", "type": "varchar(500)", "nullable": true },
+        { "id": "unlocked_at", "type": "timestamp(3)", "nullable": true },
+        { "id": "unlock_reason", "type": "varchar(500)", "nullable": true }
+      ]
+    },
+    {
+      "id": "batches", "type": "table", "name": "ADMISSION_IMPORT_BATCHES", "x": 1120, "y": 520,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "uploaded_by_user_id", "type": "varchar(36)" },
+        { "id": "status", "type": "varchar(16)" },
+        { "id": "source_file_name", "type": "varchar(255)" },
+        { "id": "source_file_path", "type": "varchar(500)" },
+        { "id": "source_file_sha256", "type": "varchar(64)" },
+        { "id": "estadistica_file_name", "type": "varchar(255)" },
+        { "id": "estadistica_file_path", "type": "varchar(500)" },
+        { "id": "estadistica_file_sha256", "type": "varchar(64)" },
+        { "id": "manifest_file_name", "type": "varchar(255)" },
+        { "id": "manifest_file_path", "type": "varchar(500)" },
+        { "id": "manifest_file_sha256", "type": "varchar(64)" },
+        { "id": "row_count", "type": "int" },
+        { "id": "warning_count", "type": "int" },
+        { "id": "error_count", "type": "int" },
+        { "id": "created_at", "type": "timestamp(3)" },
+        { "id": "saved_at", "type": "timestamp(3)", "nullable": true }
+      ]
+    },
+    {
+      "id": "user", "type": "table", "name": "USER", "x": 1720, "y": 520,
+      "rows": [
+        { "id": "id", "type": "varchar(36)", "pk": true },
+        { "id": "name", "type": "varchar(255)" },
+        { "id": "email", "type": "varchar(255)", "unique": true },
+        { "id": "email_verified", "type": "bool" },
+        { "id": "image", "type": "text", "nullable": true },
+        { "id": "role", "type": "text", "nullable": true },
+        { "id": "banned", "type": "bool", "nullable": true },
+        { "id": "ban_reason", "type": "text", "nullable": true },
+        { "id": "ban_expires", "type": "timestamp(3)", "nullable": true },
+        { "id": "created_at", "type": "timestamp(3)" },
+        { "id": "updated_at", "type": "timestamp(3)" }
+      ]
+    },
+    {
+      "id": "session", "type": "table", "name": "SESSION", "x": 1720, "y": 80,
+      "rows": [
+        { "id": "id", "type": "varchar(36)", "pk": true },
+        { "id": "user_id", "type": "varchar(36)" },
+        { "id": "token", "type": "varchar(255)", "unique": true },
+        { "id": "expires_at", "type": "timestamp(3)" },
+        { "id": "ip_address", "type": "text", "nullable": true },
+        { "id": "user_agent", "type": "text", "nullable": true },
+        { "id": "impersonated_by", "type": "text", "nullable": true },
+        { "id": "created_at", "type": "timestamp(3)" },
+        { "id": "updated_at", "type": "timestamp(3)" }
+      ]
+    },
+    {
+      "id": "account", "type": "table", "name": "ACCOUNT", "x": 1720, "y": 900,
+      "rows": [
+        { "id": "id", "type": "varchar(36)", "pk": true },
+        { "id": "user_id", "type": "varchar(36)" },
+        { "id": "account_id", "type": "text" },
+        { "id": "provider_id", "type": "text" },
+        { "id": "access_token", "type": "text", "nullable": true },
+        { "id": "refresh_token", "type": "text", "nullable": true },
+        { "id": "id_token", "type": "text", "nullable": true },
+        { "id": "access_token_expires_at", "type": "timestamp(3)", "nullable": true },
+        { "id": "refresh_token_expires_at", "type": "timestamp(3)", "nullable": true },
+        { "id": "scope", "type": "text", "nullable": true },
+        { "id": "password", "type": "text", "nullable": true },
+        { "id": "created_at", "type": "timestamp(3)" },
+        { "id": "updated_at", "type": "timestamp(3)" }
+      ]
+    },
+    {
+      "id": "verification", "type": "table", "name": "VERIFICATION", "x": 2100, "y": 80,
+      "rows": [
+        { "id": "id", "type": "varchar(36)", "pk": true },
+        { "id": "identifier", "type": "varchar(255)" },
+        { "id": "value", "type": "text" },
+        { "id": "expires_at", "type": "timestamp(3)" },
+        { "id": "created_at", "type": "timestamp(3)" },
+        { "id": "updated_at", "type": "timestamp(3)" }
+      ]
+    },
+    {
+      "id": "audit_logs", "type": "table", "name": "AUDIT_LOGS", "x": 1120, "y": 1120,
+      "rows": [
+        { "id": "id", "type": "bigint unsigned", "pk": true },
+        { "id": "actor_user_id", "type": "varchar(36)" },
+        { "id": "action", "type": "varchar(128)" },
+        { "id": "entity_type", "type": "varchar(128)" },
+        { "id": "entity_id", "type": "varchar(128)" },
+        { "id": "before", "type": "json", "nullable": true },
+        { "id": "after", "type": "json", "nullable": true },
+        { "id": "metadata", "type": "json", "nullable": true },
+        { "id": "ip_address", "type": "text", "nullable": true },
+        { "id": "user_agent", "type": "text", "nullable": true },
+        { "id": "created_at", "type": "timestamp(3)" }
+      ]
+    },
+    {
+      "id": "audit_events", "type": "table", "name": "AUDIT_EVENTS", "x": 60, "y": 1040,
+      "rows": [
+        { "id": "sequence", "type": "bigint unsigned", "pk": true },
+        { "id": "event_id", "type": "varchar(36)", "unique": true },
+        { "id": "occurred_at", "type": "timestamp(3)" },
+        { "id": "source", "type": "varchar(24)" },
+        { "id": "action", "type": "varchar(128)" },
+        { "id": "outcome", "type": "varchar(24)" },
+        { "id": "actor_user_id", "type": "varchar(36)", "nullable": true },
+        { "id": "actor_name", "type": "varchar(255)", "nullable": true },
+        { "id": "actor_email", "type": "varchar(255)", "nullable": true },
+        { "id": "correlation_id", "type": "varchar(36)", "nullable": true },
+        { "id": "ip_address", "type": "text", "nullable": true },
+        { "id": "user_agent", "type": "text", "nullable": true },
+        { "id": "entity_type", "type": "varchar(128)" },
+        { "id": "entity_id", "type": "varchar(128)" },
+        { "id": "before_value", "type": "json", "nullable": true },
+        { "id": "after_value", "type": "json", "nullable": true },
+        { "id": "metadata", "type": "json", "nullable": true },
+        { "id": "previous_hash", "type": "char(64)" },
+        { "id": "event_hash", "type": "char(64)" }
+      ]
+    },
+    {
+      "id": "chain_state", "type": "table", "name": "AUDIT_CHAIN_STATE", "x": 560, "y": 1040,
+      "rows": [
+        { "id": "id", "type": "int", "pk": true },
+        { "id": "last_sequence", "type": "bigint unsigned" },
+        { "id": "last_hash", "type": "char(64)" },
+        { "id": "updated_at", "type": "timestamp(3)" }
+      ]
+    }
+  ],
+  "edges": [
+    { "id": "r1", "from": "admissions.student_id", "to": "students.id", "fromCard": "0..*", "toCard": "1" },
+    { "id": "r2", "from": "admissions.career_id", "to": "careers.id", "fromCard": "0..*", "toCard": "1" },
+    { "id": "r3", "from": "admissions.modality_id", "to": "modalities.id", "fromCard": "0..*", "toCard": "1" },
+    { "id": "r4", "from": "admissions.ocre_type_id", "to": "ocre_types.id", "fromCard": "0..*", "toCard": "0..1" },
+    { "id": "r5", "from": "admissions.proceso_id", "to": "processes.id", "fromCard": "0..*", "toCard": "1" },
+    { "id": "r6", "from": "ap_dates.code_id", "to": "processes.id", "fromCard": "0..*", "toCard": "1", "label": "on delete cascade" },
+    { "id": "r7", "from": "admissions.import_batch_id", "to": "batches.id", "fromCard": "0..*", "toCard": "0..1" },
+    { "id": "r8", "from": "processings.admission_id", "to": "admissions.id", "fromCard": "0..1", "toCard": "1" },
+    { "id": "r9", "from": "processings.generated_by_user_id", "to": "user.id", "fromCard": "0..*", "toCard": "1", "label": "generated by" },
+    { "id": "r10", "from": "processings.reviewed_by_user_id", "to": "user.id", "fromCard": "0..*", "toCard": "0..1", "label": "reviewed by" },
+    { "id": "r11", "from": "processings.unlocked_by_user_id", "to": "user.id", "fromCard": "0..*", "toCard": "0..1", "label": "unlocked by" },
+    { "id": "r12", "from": "batches.uploaded_by_user_id", "to": "user.id", "fromCard": "0..*", "toCard": "1", "label": "uploaded by" },
+    { "id": "r13", "from": "session.user_id", "to": "user.id", "fromCard": "0..*", "toCard": "1", "label": "cascade" },
+    { "id": "r14", "from": "account.user_id", "to": "user.id", "fromCard": "0..*", "toCard": "1", "label": "cascade" },
+    { "id": "r15", "from": "audit_logs.actor_user_id", "to": "user.id", "fromCard": "0..*", "toCard": "1", "label": "actor" }
+  ]
+}
