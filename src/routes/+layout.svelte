@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.png';
 	import logo from '$lib/assets/ULA_Logo_big.png';
 	import '../app.css';
 	import { can } from '$lib/permissions';
