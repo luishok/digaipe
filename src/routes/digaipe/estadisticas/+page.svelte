@@ -67,7 +67,7 @@
 	);
 </script>
 
-<h1>Reportes y estadísticas de admisiones</h1>
+<h1>Reportes y estadísticas</h1>
 
 <!-- Reports are server-rendered, so preview always reloads with the newly submitted query. -->
 <form
@@ -77,7 +77,7 @@
 	onsubmit={() => (busy = true)}
 >
 	<fieldset class='filter-card'>
-		<legend>Reporte y fechas</legend>
+		<legend>Tipo y fechas</legend>
 		<div class='filter-row-flex'>
 			<div class='label-input'>
 				<label
@@ -292,7 +292,7 @@
 		<button type="submit" formaction="/digaipe/estadisticas/pdf">Descargar PDF</button>
 		<button type="submit" formaction="/digaipe/estadisticas/csv">Descargar CSV</button>
 		<button type="button" onclick={copyLink}>{copied ? 'Enlace copiado' : 'Copiar enlace'}</button>
-		<a href={resolve('/digaipe/estadisticas')}>Limpiar</a>
+		<a class='btn-secondary' href={resolve('/digaipe/estadisticas')}>Limpiar</a>
 	</div>
 </form>
 

@@ -112,11 +112,6 @@
         font-size: 1rem;
     }
 
-    .btn-primary {
-        background-color: #2563eb;
-        color: white;
-        border: 2px solid #2563eb;
-    }
 
     .btn-primary:hover {
         background-color: #1d4ed8;

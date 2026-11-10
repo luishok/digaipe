@@ -86,7 +86,7 @@
             <!-- Botones de Acción -->
             <div class="filter-actions">
                 <button type="submit" class="btn-submit">Filtrar</button>
-                <a href="/digaipe/revision-documentos" class="btn-clear">Limpiar</a>
+                <a href="/digaipe/revision-documentos" class="btn-secondary">Limpiar</a>
             </div>
         </div>
     </fieldset>

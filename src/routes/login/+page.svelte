@@ -10,8 +10,7 @@
 		<div class="image-overlay">
 			<h2>Portal para uso Universitario</h2>
 			<p>
-				Lorem ipsum dolor sit amet, consectetur adipisicing elit. Neque, perferendis quas totam
-				impedit reiciendis recusandae voluptatem magni architecto voluptatibus repellat?
+				Sistema de gestión de documentos y procesos internos de la universidad. Accede a tus recursos y gestiona tus tareas de manera eficiente.
 			</p>
 		</div>
 	</div>

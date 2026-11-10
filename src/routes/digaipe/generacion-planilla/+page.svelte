@@ -110,9 +110,9 @@
 </style>
 
 
-<h1>Generacion de planilla DIGAIPE</h1>
+<h1>Generacion de planilla</h1>
 
-<p>Admisiones con proceso activo para {data.today}</p>
+<p>Admisiones con proceso activo para <b>{data.today}</b></p>
 
 <div class="search-card">
 	<form method="GET" class="search-form">

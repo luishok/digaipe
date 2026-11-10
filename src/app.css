@@ -1,10 +1,12 @@
 :root {
 	/* 1. PALETA DE COLORES */
 	--ula-blue: #0033a0; /* Azul Pantone 286 (Color principal) */
-	--ula-grey: #335CB3;
+	/* --ula-grey: #335CB3; */
+    --ula-dark: #002470;
 	--blue-second: #add8e6;
-	--blue-third: #b0c4de;
-	--blue-ford: #6685C6; /* Dorado institucional (Color de acento) */
+	--blue-third: #002b88;
+    --blue-ford: #4d70bd;
+	/* --blue-ford: #6685C6;  */
 
 	--color-bg-main: #ffffff; /* Fondo principal blanco */
 	--color-bg-alt: #f4f6f9; /* Fondo secundario gris muy claro */
@@ -127,6 +129,7 @@ h2 {
 }
 h3 {
 	font-size: var(--font-size-h3);
+    margin: 0;
 }
 h4 {
 	font-size: var(--font-size-h4);
@@ -158,7 +161,7 @@ a {
 }
 
 a:hover {
-	color: var(--ula-grey); /* Cambia al dorado de la ULA al pasar el mouse */
+	color: var(--ula-dark); /* Cambia al dorado de la ULA al pasar el mouse */
 	text-decoration: underline;
 }
 
@@ -179,9 +182,29 @@ button,
 
 button:hover,
 .btn:hover {
-	background-color: var(--ula-grey);
-	color: var(--ula-blue);
+	background-color: var(--ula-dark);
+	color: white;
 }
+
+.btn-secondary{
+    background-color: white;
+    color: var(--ula-blue);
+    border: 1px solid var(--ula-blue);
+    padding: 1em 1.5em;
+    height: 3.5em;
+    align-self: end;
+    border-radius: 8px;
+    text-decoration: unset;
+}
+.btn-secondary:hover{
+    background-color: rgba(0, 51, 160, 0.08); /* Fondo azul tenue translúcido */
+  color: #002270; /* Texto y borde ligeramente más oscuros para mayor nitidez */
+  border-color: #002270;
+}
+
+#back .cls-1 {        fill: var(--ula-blue);      }     
+#back .cls-1, #back .cls-2 {        stroke-width: 0px;      }      
+#back .cls-2 {        fill: #fff;      }
 
 .table_container {
 	width: 100%;
@@ -261,6 +284,7 @@ button:hover,
 	justify-content: center;
 }
 .nav-bar a {
+    display: inline-flex;
 	color: white;
 	padding: 1.5rem;
 	cursor: pointer;
@@ -269,8 +293,9 @@ button:hover,
 	border: 1px solid transparent;
 }
 .nav-bar a:hover {
-	border: 1px solid white;
-	border-radius: 8px;
+	/* border: 1px solid white; */
+    border-radius: 4px;
+    background: #002980;
 }
 .menu-dropdown {
 	position: relative;
@@ -317,6 +342,7 @@ button:hover,
 .menu-dropdown ul li a:hover {
 	background-color: var(--blue-third);
 	padding-left: 25px;
+    border-radius: unset;
 }
 
 .menu-icon {

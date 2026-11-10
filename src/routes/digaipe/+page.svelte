@@ -6,68 +6,130 @@
 	import { can, parseRoles } from '$lib/permissions';
 
 	let { data } = $props();
+
+	// Datos simulados o extraídos de data. Puedes pasarlos desde tu +page.server.ts
+	const ultimosAspirantes = data.ultimosAspirantes ?? [
+		{ id: 1, nombre: 'Ana Pérez', cedula: 'V-30.123.456', carrera: 'Ing. de Sistemas', fecha: 'Hace 10 mins' },
+		{ id: 2, nombre: 'Carlos Silva', cedula: 'V-29.876.543', carrera: 'Medicina', fecha: 'Hace 25 mins' },
+		{ id: 3, nombre: 'Mariana Gómez', cedula: 'V-31.456.789', carrera: 'Contaduría', fecha: 'Hace 1 hora' }
+	];
+
+	const documentosPendientesCount = data.documentosPendientesCount ?? 12;
 </script>
+
 <div class="container">
+	<!-- Banner de Bienvenida -->
 	<div class="welcome-banner">
-		<h1>¡Bienvenido!</h1>
+		<h1>¡Bienvenido al Panel DIGAIPE!</h1>
+		{#if parseRoles(data.user.role).length === 0}
+			<p>Su cuenta no tiene roles asignados. Solicite acceso a un administrador.</p>
+		{:else}
+			<p>Sistema centralizado de admisiones y control académico.</p>
+		{/if}
 	</div>
 
-	{#if parseRoles(data.user.role).length === 0}
-		<p class="instruction-text">
-			Su cuenta no tiene roles asignados. Solicite acceso a un administrador.
-		</p>
-	{:else}
-		<p class="instruction-text">Por favor, seleccione una opción para continuar:</p>
+	{#if parseRoles(data.user.role).length > 0}
+		<!-- Layout Dividido -->
+		<div class="dashboard-layout">
+			
+			<!-- COLUMNA IZQUIERDA: El Pulso del Sistema (Actividad reciente y Alertas) -->
+			<div class="pulse-column">
+				
+				<!-- Tarjeta de Actividad Reciente / Últimos Aspirantes -->
+				<div class="info-card">
+					<div class="info-card-header">
+						<h2>📋 Últimos Aspirantes Registrados</h2>
+						<span class="live-badge">En vivo</span>
+					</div>
+					<div class="aspirantes-list">
+						{#if ultimosAspirantes.length === 0}
+							<p class="empty-text">No hay registros recientes.</p>
+						{:else}
+							<ul>
+								{#each ultimosAspirantes as asp}
+									<li class="aspirante-item">
+										<div class="aspirante-info">
+											<strong>{asp.nombre}</strong>
+											<small>{asp.cedula} • {asp.carrera}</small>
+										</div>
+										<span class="aspirante-time">{asp.fecha}</span>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+					<div class="info-card-footer">
+						<a href="/digaipe/admisiones" class="text-link">Ver todos los aspirantes &rarr;</a>
+					</div>
+				</div>
+
+				<!-- Alerta o Aviso del Departamento -->
+				<div class="alert-box">
+					<h3>📢 Aviso Importante</h3>
+					<p>El proceso de validación de documentos para el periodo actual sigue abierto. Asegúrese de revisar la cola de pendientes.</p>
+				</div>
+
+			</div>
+
+			<!-- COLUMNA DERECHA: Accesos de Acción Directa (Módulos y Tareas Frecuentes) -->
+			<div class="actions-column">
+				<h2 class="section-heading">Accesos Rápidos</h2>
+				
+				<div class="cards-grid">
+
+					{#if can(data.user, 'planillas.view')}
+					<a href="/digaipe/generacion-planilla"><div class="card">
+						<div class="card-body">
+							<img src={docIcon} alt="Planillas" class="card-icon" />
+							<h3 class="card-title">Generación de Planillas</h3>
+						</div>
+						<span  class="card-btn">Continuar</span>
+					</div>
+					</a>
+					{/if}
+					{#if can(data.user, 'statistics.view')}
+					<a href="/digaipe/estadisticas">
+						<div class="card">
+							<div class="card-body">
+								<img src={graphIcon} alt="Estadísticas" class="card-icon" />
+								<h3 class="card-title">Estadísticas</h3>
+							</div>
+							<span class="card-btn">Continuar</span>
+						</div>
+					</a>
+					{/if}
+
+					{#if can(data.user, 'admissions.view')}
+					<a href="/digaipe/admisiones">
+						<div class="card">
+							<div class="card-body">
+								<img src={personPlusIcon} alt="Admisiones" class="card-icon" />
+								<h3 class="card-title">Admisiones</h3>
+							</div>
+							<span class="card-btn">Continuar</span>
+						</div>
+					</a>
+					{/if}
+
+					
+
+					<a href="/ayuda">
+						<div class="card">
+							<div class="card-body">
+								<img src={listIcon} alt="Ayuda" class="card-icon" />
+								<h3 class="card-title">Ayuda</h3>
+							</div>
+							<span  class="card-btn">Continuar</span>
+						</div>
+					</a>
+					
+				</div>
+
+			</div>
+
+		</div>
 	{/if}
-
-	<div class="cards-grid">
-		{#if can(data.user, 'statistics.view')}
-		<div class="card">
-			<div class="card-body">
-				<img src={graphIcon} alt="Estadísticas" class="card-icon" />
-				<h2 class="card-title">Estadísticas</h2>
-			</div>
-			<a href="/digaipe/estadisticas" class="card-btn">Continuar</a>
-		</div>
-		{/if}
-		{#if can(data.user, 'admissions.view')}
-		<div class="card">
-			<div class="card-body">
-				<img
-					src={personPlusIcon}
-					alt="Admisiones"
-					class="card-icon"
-				/>
-				<h2 class="card-title">Admisiones</h2>
-			</div>
-			<a href="/digaipe/admisiones" class="card-btn">Continuar</a>
-		</div>
-		{/if}
-
-		{#if can(data.user, 'planillas.view')}
-		<div class="card">
-			<div class="card-body">
-				<img src={docIcon} alt="Planillas" class="card-icon" />
-				<h2 class="card-title">Generación de Planillas</h2>
-			</div>
-			<a href="/digaipe/generacion-planilla" class="card-btn">Continuar</a>
-		</div>
-		{/if}
-
-		{#if can(data.user, 'catalogs.view')}
-		<div class="card">
-			<div class="card-body">
-				<img src={listIcon} alt="Listas" class="card-icon" />
-				<h2 class="card-title">Listas</h2>
-			</div>
-			<a href="/digaipe/carreras" class="card-btn">Continuar</a>
-		</div>
-		{/if}
-
-		
-	</div>
 </div>
-
 
 <style>
 	* {
@@ -77,15 +139,11 @@
 		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 	}
 
-	body {
-		background-color: #f4f6f9;
-		padding: 40px 20px;
-	}
-
 	.container {
-		max-width: 1200px;
+		max-width: 1250px;
 		margin: 0 auto;
-		text-align: center;
+		padding: 20px;
+		text-align: left;
 	}
 
 	.welcome-banner {
@@ -93,8 +151,9 @@
 		color: #000;
 		padding: 24px;
 		border-radius: 12px;
-		margin-bottom: 30px;
+		margin-bottom: 25px;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+		text-align: center;
 	}
 
 	.welcome-banner h1 {
@@ -108,17 +167,165 @@
 		color: #333;
 	}
 
-	.instruction-text {
-		color: #444;
-		font-size: 16px;
-		margin-bottom: 35px;
+	/* Layout de Panel Dividido */
+	.dashboard-layout {
+		display: grid;
+		grid-template-columns: 1fr 1.2fr; /* Columna izquierda un poco más compacta, derecha para las cards */
+		gap: 25px;
+		align-items: start;
 	}
 
-	/* Grid para las 4 tarjetas */
+	@media (max-width: 900px) {
+		.dashboard-layout {
+			grid-template-columns: 1fr; /* En pantallas pequeñas se apilan */
+		}
+	}
+
+	/* Columna Izquierda (Pulso) */
+	.pulse-column {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.info-card {
+		background: #ffffff;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		padding: 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.info-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		border-bottom: 1px solid #edf2f7;
+		padding-bottom: 10px;
+	}
+
+	.info-card-header h2 {
+		font-size: 16px;
+		color: #1e293b;
+		font-weight: 700;
+	}
+
+	.live-badge {
+		background-color: #e2f8f0;
+		color: #0d9488;
+		font-size: 11px;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 20px;
+	}
+
+	.aspirantes-list ul {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.aspirante-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 8px 10px;
+		background: #f8fafc;
+		border-radius: 8px;
+		transition: background 0.2s;
+	}
+
+	.aspirante-item:hover {
+		background: #f1f5f9;
+	}
+
+	.aspirante-info {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.aspirante-info strong {
+		font-size: 13px;
+		color: #334155;
+	}
+
+	.aspirante-info small {
+		font-size: 11px;
+		color: #64748b;
+	}
+
+	.aspirante-time {
+		font-size: 11px;
+		color: #94a3b8;
+		font-weight: 500;
+	}
+
+	.info-card-footer {
+		text-align: right;
+		border-top: 1px solid #edf2f7;
+		padding-top: 8px;
+	}
+
+	.text-link {
+		font-size: 13px;
+		color: var(--ula-blue);
+		text-decoration: none;
+		font-weight: 600;
+	}
+
+	.text-link:hover {
+		text-decoration: underline;
+	}
+
+	.alert-box {
+		background-color: #fffbeb;
+		border-left: 4px solid #f59e0b;
+		padding: 16px;
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+	}
+
+	.alert-box h3 {
+		font-size: 14px;
+		color: #b45309;
+		margin-bottom: 6px;
+		font-weight: 700;
+	}
+
+	.alert-box p {
+		font-size: 13px;
+		color: #78350f;
+		line-height: 1.4;
+	}
+
+	/* Columna Derecha (Accesos) */
+	.actions-column {
+		display: flex;
+		flex-direction: column;
+		gap: 15px;
+	}
+
+	.section-heading {
+		font-size: 16px;
+		color: #1e293b;
+		font-weight: 700;
+		margin-bottom: 2px;
+	}
+
+	/* Grid de Tarjetas (Ajustado a 2 columnas internas para que luzca ordenado) */
 	.cards-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 20px;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 15px;
+	}
+
+	@media (max-width: 500px) {
+		.cards-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	/* Estilo de la Tarjeta */
@@ -130,48 +337,44 @@
 		flex-direction: column;
 		justify-content: space-between;
 		overflow: hidden;
-		transition:
-			transform 0.2s ease,
-			box-shadow 0.2s ease;
-		min-height: 260px;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		min-height: 200px;
 	}
 
 	.card:hover {
-		transform: translateY(-5px);
+		transform: translateY(-4px);
 		box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 	}
 
-	/* Contenido interno (Icono y Título) */
 	.card-body {
-		padding: 30px 20px;
+		padding: 20px;
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start; /* Alineado a la izquierda como la imagen original */
+		align-items: flex-start;
 		text-align: left;
 		flex-grow: 1;
 	}
 
 	.card-icon {
-		width: 60px;
-		height: 60px;
-		margin-bottom: 20px;
+		width: 45px;
+		height: 45px;
+		margin-bottom: 15px;
 		object-fit: contain;
 	}
 
 	.card-title {
-		font-size: 18px;
+		font-size: 16px;
 		font-weight: 700;
 		color: #1e293b;
 		line-height: 1.3;
 	}
 
-	/* Botón Continuar inferior */
 	.card-btn {
-		background-color: #0038df; /* Azul del botón */
+		background-color: var(--ula-blue);
 		color: #ffffff;
 		text-decoration: none;
-		padding: 12px;
-		font-size: 14px;
+		padding: 10px;
+		font-size: 13px;
 		font-weight: 600;
 		display: flex;
 		justify-content: center;
@@ -186,7 +389,7 @@
 	}
 
 	.card-btn::after {
-		content: '➔'; /* Flecha simple, puedes cambiarla por un icono SVG o FontAwesome */
-		font-size: 12px;
+		content: '➔';
+		font-size: 11px;
 	}
 </style>
