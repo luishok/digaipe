@@ -1,0 +1,126 @@
+\chapter{Certificado HTTPS en las PCs cliente}
+\label{cap:certificado}
+
+Un servidor de la red interna no es accesible desde internet, así que Let's Encrypt no puede
+emitirle un certificado. Por eso, por defecto, Caddy actúa como \textbf{autoridad certificadora
+local}: emite y renueva el certificado del sitio por su cuenta. (Si el servidor sí es accesible
+desde internet con un nombre público, vea la sección~\ref{sec:letsencrypt}: no hace falta
+nada de este capítulo en las PCs.) Cada PC cliente debe confiar
+\textbf{una vez} en la raíz de esa autoridad; mientras no lo haga, el navegador mostrará
+\emph{La conexión no es privada}. La raíz es válida por 10 años.
+
+\section{Exportar la raíz}
+
+Abra una vez \texttt{https://<DIGAIPE\_HOST>} desde el propio servidor o desde una PC (aunque
+salga el aviso): así Caddy crea la autoridad si aún no existe. Luego copie la raíz:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Modo} & \textbf{Comando} \\
+	\midrule
+	\endhead
+	Docker & \cod{docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./digaipe-ca.crt}
+	(desde la carpeta \texttt{deploy}) \\
+	Linux & \cod{sudo cp /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt ./digaipe-ca.crt} \\
+	Windows & \texttt{Copy-Item C:\bs digaipe\bs caddy\bs data\bs pki\bs authorities\bs local\bs
+	root.crt .\bs digaipe-ca.crt} \\
+	\bottomrule
+\end{xltabular}
+
+\begin{aviso}[Solo \texttt{root.crt}]
+	Copie únicamente \texttt{root.crt}. El archivo \texttt{root.key} de la misma carpeta es la
+	clave privada de la autoridad: quien la tenga puede emitir certificados en los que confiarán
+	todas las PCs. Nunca salga del servidor.
+\end{aviso}
+
+Registre la suma SHA-256 del archivo en la hoja de datos
+(\texttt{sha256sum digaipe-ca.crt} o \texttt{Get-FileHash digaipe-ca.crt}) y compruébela en cada
+PC antes de instalarlo. Así se asegura de que nadie lo reemplazó en el camino.
+
+\section{Instalar la raíz en las PCs}
+
+\begin{description}
+	\item[Windows (Chrome, Edge)] En PowerShell como administrador:
+	      \texttt{certutil -addstore -f Root digaipe-ca.crt}. En un dominio de Active Directory,
+	      distribúyalo por directiva de grupo (\emph{Configuración del equipo → Directivas →
+		      Configuración de Windows → Configuración de seguridad → Directivas de clave pública →
+		      Entidades de certificación raíz de confianza}).
+	\item[Firefox] \emph{Configuración → Privacidad y seguridad → Certificados → Ver certificados →
+		      Autoridades → Importar}, y marque \emph{Confiar en esta CA para identificar sitios web}.
+	      En PCs gestionadas, puede activar en su lugar la directiva
+	      \texttt{security.enterprise\_roots.enabled}, que hace que Firefox use el almacén de
+	      Windows.
+	\item[Linux (Debian/Ubuntu)] \texttt{sudo cp digaipe-ca.crt /usr/local/share/ca-certificates/}
+	      y \texttt{sudo update-ca-certificates}. Firefox y Chrome en Linux pueden necesitar la
+	      importación manual como arriba.
+\end{description}
+
+\begin{comprobar}
+	Abra \texttt{https://<DIGAIPE\_HOST>}: debe cargar la página de inicio sin aviso, con el
+	candado cerrado.
+\end{comprobar}
+
+\section{Conservar la autoridad}
+
+La carpeta de la autoridad (volumen \texttt{digaipe\_caddy-data} en Docker; las rutas de la tabla
+anterior en servidor físico) debe estar en las copias de seguridad del servidor. \textbf{Los
+respaldos de DIGAIPE no la incluyen.} Si se pierde, Caddy crea una autoridad nueva y hay que
+volver a instalar la raíz en todas las PCs.
+
+\section{Certificado público (Let's Encrypt)}
+\label{sec:letsencrypt}
+
+Si \texttt{<DIGAIPE\_HOST>} es un \textbf{nombre} registrado en el DNS público (no una IP ni un
+nombre \texttt{.local}) y los puertos 80 y 443 del servidor son accesibles desde internet, Caddy
+puede obtener y renovar solo un certificado de Let's Encrypt, en el que todos los navegadores ya
+confían. En el \texttt{Caddyfile}:
+
+\begin{itemize}
+	\item borre la línea \texttt{local\_certs} del bloque global, y
+	\item borre la línea \texttt{tls internal} del bloque del sitio.
+\end{itemize}
+
+Reinicie Caddy (Docker: \texttt{docker compose restart caddy}) y abra el sitio: el primer acceso
+tarda unos segundos mientras se emite el certificado. Si falla, \texttt{docker compose logs caddy}
+o \texttt{journalctl -u caddy} indican el motivo (casi siempre, el puerto 80 no es accesible
+desde internet).
+
+\begin{aviso}[Exponer el servidor]
+	Esta opción hace que DIGAIPE sea accesible desde internet, no solo desde la red interna.
+	Decídalo con el responsable de seguridad de la institución: un sistema con datos personales
+	expuesto a internet recibe intentos de acceso constantes.
+\end{aviso}
+
+En Docker, \texttt{deploy/Caddyfile} es un archivo del repositorio: antes de cada
+\texttt{git pull}, guarde su cambio con \texttt{git stash} y recupérelo después con
+\texttt{git stash pop}.
+
+\section{Usar el certificado de la institución}
+
+Si la institución tiene su propia autoridad certificadora, puede usar un certificado emitido por
+ella y evitar instalar otra raíz en las PCs. Copie el certificado y la clave al servidor y
+reemplace la línea \texttt{tls internal} del \texttt{Caddyfile} por:
+
+\begin{codigo}
+tls /ruta/digaipe.crt /ruta/digaipe.key
+\end{codigo}
+
+En Docker, monte además los archivos en el servicio \texttt{caddy} de \texttt{compose.yaml}
+(por ejemplo, \texttt{./certs:/certs:ro}) y use \texttt{tls /certs/digaipe.crt
+/certs/digaipe.key}. El certificado debe incluir \texttt{<DIGAIPE\_HOST>} en su
+\emph{Subject Alternative Name}, y usted deberá renovarlo antes de que venza.
+
+\section{Cambiar el nombre del servidor}
+\label{sec:cambiar-host}
+
+Si cambia \texttt{<DIGAIPE\_HOST>}, cámbielo en todos los lugares a la vez y reinicie:
+
+\begin{itemize}
+	\item Docker: \texttt{DIGAIPE\_HOST} y \texttt{ORIGIN} en \texttt{deploy/.env}; luego
+	      \texttt{docker compose up -d}.
+	\item Servidor físico: \texttt{ORIGIN} en \texttt{setup.env} y \texttt{digaipe.env}, y el
+	      nombre del sitio en el \texttt{Caddyfile}; luego reinicie la aplicación y Caddy.
+\end{itemize}
+
+La raíz no cambia, así que las PCs no tienen que reinstalarla. Todas las sesiones abiertas se
+cierran.

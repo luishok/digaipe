@@ -1,0 +1,53 @@
+\chapter{Verificación posterior a la instalación}
+\label{cap:verificacion}
+
+Recorra esta lista al terminar cualquier instalación y anote el resultado en el registro.
+
+\begin{xltabular}{\linewidth}{@{}c L L@{}}
+	\toprule
+	\textbf{\#} & \textbf{Comprobación} & \textbf{Resultado esperado} \\
+	\midrule
+	\endhead
+	1 & Todos los servicios en marcha (Docker: \texttt{docker compose ps -a}; Linux:
+	\texttt{systemctl status}; Windows: \texttt{Get-Service}) & En marcha; \texttt{setup}
+	terminado con código 0 \\
+	2 & Desde una PC cliente, abrir \texttt{https://<DIGAIPE\_HOST>} & Página de inicio sin aviso
+	de certificado \\
+	3 & Desde una PC cliente, abrir \texttt{http://<DIGAIPE\_HOST>} & Redirige a
+	\texttt{https://} \\
+	4 & Desde una PC cliente, probar los puertos internos: \texttt{Test-NetConnection
+	<DIGAIPE\_HOST> -Port 3306} y \texttt{-Port 3000} & \texttt{TcpTestSucceeded : False} en
+	ambos \\
+	5 & Iniciar sesión con \texttt{BOOTSTRAP\_ADMIN\_EMAIL} & Entra a DIGAIPE \\
+	6 & Administración → Auditoría & Aparece el inicio de sesión del punto 5, con la IP de la PC
+	cliente (no \texttt{127.0.0.1} ni la IP del servidor) \\
+	7 & Crear un usuario de prueba con un rol, iniciar sesión con él y comprobar que solo ve lo
+	que permite su rol & Las páginas sin permiso responden \emph{acceso denegado} y quedan en la
+	auditoría como \texttt{route.access\_denied} \\
+	8 & Cargar un lote de admisiones de prueba y generar una planilla PDF & La carga y el PDF
+	funcionan \\
+	9 & Primer respaldo (registros de \texttt{backup-worker}, \texttt{digaipe-respaldo} o
+	\texttt{respaldo.log}) & \texttt{Backup finished.}; en Auditoría, un evento
+	\texttt{backup.completed} \\
+	10 & Verificar la cadena de auditoría (capítulo~\ref{cap:auditoria}) & Verificación correcta,
+	sin triggers faltantes \\
+	11 & Reiniciar el servidor y repetir 1, 2 y 5 & Todo arranca solo \\
+	12 & Borrar el usuario y los datos de prueba de los puntos 7 y 8, si no deben quedar & — \\
+	\bottomrule
+\end{xltabular}
+
+\begin{nota}[Punto 6]
+	Si la auditoría muestra siempre la misma IP (la del servidor o \texttt{127.0.0.1}), la
+	aplicación no está leyendo la cabecera \texttt{X-Forwarded-For}: revise
+	\texttt{ADDRESS\_HEADER} y \texttt{XFF\_DEPTH} (capítulo~\ref{cap:problemas}). Sin la IP real,
+	el límite de intentos de inicio de sesión bloquearía a todos los usuarios a la vez.
+\end{nota}
+
+\begin{aviso}[Después de verificar]
+	\begin{itemize}
+		\item Cambie o retire \texttt{BOOTSTRAP\_ADMIN\_PASSWORD} del archivo de configuración si su
+		      política lo exige: el administrador ya existe y no se vuelve a crear.
+		\item Haga la primera copia del respaldo a un medio externo y el primer anclaje de
+		      auditoría.
+	\end{itemize}
+\end{aviso}

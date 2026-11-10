@@ -1,0 +1,79 @@
+\chapter{Obtener el código}
+\label{cap:preparacion}
+
+Todos los modos parten de una copia del repositorio en el servidor, siempre en la misma carpeta:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Servidor} & \textbf{Carpeta del código} \\
+	\midrule
+	\endhead
+	Linux & \cod{/opt/digaipe/app} \\
+	Windows & \texttt{C:\bs digaipe\bs app} \\
+	\bottomrule
+\end{xltabular}
+
+En Docker, \texttt{docker compose} se ejecuta desde la subcarpeta \texttt{deploy} de esa copia;
+en servidor físico, la aplicación se ejecuta directamente desde ella.
+
+\section{Instalar Git}
+
+\so{Linux}
+\begin{codigo}
+sudo apt update
+sudo apt install -y git
+\end{codigo}
+
+\so{Windows} Descargue e instale Git for Windows desde \texttt{https://git-scm.com/download/win}
+con las opciones por defecto, o, si el servidor tiene \texttt{winget}:
+\begin{codigo}
+winget install --id Git.Git -e --source winget
+\end{codigo}
+Cierre y vuelva a abrir PowerShell para que se actualice la variable \texttt{PATH}.
+
+\section{Clonar el repositorio}
+
+\so{Linux}
+\begin{codigo}
+sudo mkdir -p /opt/digaipe
+sudo git clone https://github.com/luishok/digaipe.git /opt/digaipe/app
+cd /opt/digaipe/app
+sudo git checkout <RAMA_O_ETIQUETA_A_INSTALAR>
+sudo git log -1 --format="%h %cd"
+\end{codigo}
+
+La copia pertenece a \texttt{root}; por eso todos los comandos \texttt{git} sobre ella llevan
+\texttt{sudo} (sin él, Git se niega con \emph{detected dubious ownership}).
+
+\so{Windows}
+\begin{codigo}
+New-Item -ItemType Directory -Force C:\digaipe
+git clone -c core.autocrlf=false https://github.com/luishok/digaipe.git C:\digaipe\app
+Set-Location C:\digaipe\app
+git checkout <RAMA_O_ETIQUETA_A_INSTALAR>
+git log -1 --format="%h %cd"
+\end{codigo}
+
+Si el repositorio es privado, Git pedirá usuario y un \emph{token} de acceso de GitHub (no la
+contraseña de la cuenta). Use un token de solo lectura limitado a este repositorio.
+
+Anote en la hoja de datos el commit que muestra el último comando.
+
+\begin{aviso}[Finales de línea]
+	Los scripts \texttt{.sh} deben tener finales de línea LF; con CRLF fallan con
+	\texttt{\$'\textbackslash r': command not found}. En Windows, Git convierte por defecto a CRLF:
+	por eso se clona con \texttt{-c core.autocrlf=false}. Compruébelo en ambos sistemas:
+	\begin{codigo}
+git ls-files --eol deploy/backup/ scripts/docker/
+	\end{codigo}
+	(en Linux, con \texttt{sudo} delante)
+	La segunda columna debe decir \texttt{w/lf} en todos los archivos.
+\end{aviso}
+
+\begin{nota}
+	La copia del servidor es solo para instalar: no edite archivos dentro de ella. La
+	configuración (contraseñas) va en archivos que Git ignora (\texttt{deploy/.env}) o fuera de la
+	carpeta (servidor físico), y los archivos cargados están en \texttt{var/uploads}, que Git
+	también ignora. Así, actualizar es un \texttt{git pull} sin conflictos
+	(capítulo~\ref{cap:actualizacion}).
+\end{nota}

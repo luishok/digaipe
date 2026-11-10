@@ -1,0 +1,114 @@
+\chapter{Introducción}
+
+\section{Propósito}
+
+Este manual explica cómo instalar DIGAIPE en un servidor de la red institucional, de principio
+a fin, de dos maneras:
+
+\begin{itemize}
+	\item \textbf{Con Docker} (capítulo~\ref{cap:docker}): todos los componentes se ejecutan en
+	      contenedores definidos en \cod{deploy/compose.yaml}.
+	\item \textbf{En servidor físico} (sin Docker), en Linux (capítulo~\ref{cap:linux}) o en
+	      Windows (capítulo~\ref{cap:windows}): cada componente se instala como un servicio del
+	      sistema operativo.
+\end{itemize}
+
+Ambas instalaciones dan el mismo resultado: la misma base de datos, las mismas cuentas con
+permisos mínimos, HTTPS con una autoridad certificadora local, respaldos semanales y un registro
+de auditoría verificable. El servidor descarga lo que necesita (código, paquetes e imágenes)
+directamente de internet durante la instalación y las actualizaciones.
+
+\section{Componentes}
+
+\begin{xltabular}{\linewidth}{@{}l L L@{}}
+	\toprule
+	\textbf{Componente} & \textbf{Función} & \textbf{Implementación} \\
+	\midrule
+	\endhead
+	Base de datos & Datos de admisiones, usuarios, sesiones y registro de auditoría &
+	MySQL 8.4 LTS \\
+	Aplicación & Interfaz web y lógica de negocio & Node.js 24 (SvelteKit, \texttt{node build}),
+	escucha solo en el propio servidor, puerto 3000 \\
+	Proxy HTTPS & Única entrada desde la red. Emite y renueva el certificado solo &
+	Caddy 2 con autoridad certificadora local (\texttt{local\_certs}) o, si el servidor es
+	público, Let's Encrypt \\
+	Instalación (\emph{setup}) & Migraciones, triggers de auditoría, cuentas de MySQL,
+	administrador inicial y datos base. Se ejecuta y termina &
+	\texttt{scripts/docker/setup.sh} y los scripts de \texttt{scripts/} \\
+	Respaldos & Copia semanal de la base y de los archivos cargados, con suma SHA-256 &
+	\texttt{deploy/backup/*.sh} (bash, \texttt{mysqldump}) \\
+	Auditoría & Verificación y anclaje de la cadena de hashes &
+	\texttt{scripts/audit-ledger.ts} \\
+	\bottomrule
+\end{xltabular}
+
+\begin{codigo}[label={Flujo de red (igual en ambos modos)}]
+  PCs de la red
+       |  HTTPS 443  (80 solo redirige a HTTPS)
+       v
+  +---------+   HTTP 127.0.0.1:3000   +------------+   TCP 3306   +-----------+
+  |  Caddy  | ----------------------> | Aplicación | -----------> | MySQL 8.4 |
+  +---------+                         +------------+              +-----------+
+                                            |                          ^
+                                     var/uploads (archivos)            |
+                                            |                          |
+                                            v                          |
+                                     +-----------+  mysqldump          |
+                                     | Respaldos | --------------------+
+                                     +-----------+
+                                            |
+                                            v
+                                  carpeta de respaldos (otro disco)
+\end{codigo}
+
+Ni MySQL (3306) ni la aplicación (3000) aceptan conexiones desde la red: solo Caddy publica
+puertos. Esto no es opcional; la aplicación confía en la cabecera \cod{X-Forwarded-For} que
+añade Caddy para registrar la dirección IP real de cada usuario en la auditoría. Si la
+aplicación fuera accesible directamente, cualquiera podría falsificar esa dirección.
+
+\section{¿Docker o servidor físico?}
+
+\begin{xltabular}{\linewidth}{@{}l L L@{}}
+	\toprule
+	& \textbf{Docker} & \textbf{Servidor físico} \\
+	\midrule
+	\endhead
+	Ventaja principal & Es la instalación que mantiene el repositorio
+	(\cod{deploy/}); un solo archivo de configuración; instalar y actualizar son dos o tres
+	comandos &
+	No requiere Docker; funciona en Windows Server; cada pieza se ve y se administra con
+	las herramientas habituales del sistema \\
+	Desventaja & Requiere Docker. En Windows, Docker Desktop tiene limitaciones serias para
+	un servidor (sección~\ref{sec:docker-windows}) & Más pasos, más archivos de configuración;
+	las actualizaciones se hacen a mano \\
+	Respaldos & Servicio \cod{backup-worker} incluido & Servicio \texttt{systemd} (Linux) o
+	tarea programada (Windows) \\
+	Dificultad & Baja & Media \\
+	\bottomrule
+\end{xltabular}
+
+\begin{nota}[Recomendación]
+	\textbf{Use Docker sobre Linux} siempre que pueda: es la configuración probada por el equipo de
+	desarrollo y la que menos pasos manuales tiene. Use la instalación en servidor físico cuando la
+	política institucional no permita Docker o cuando el servidor disponible sea Windows Server.
+\end{nota}
+
+\section{Convenciones de este manual}
+
+\begin{itemize}
+	\item \so{Linux} Los comandos se ejecutan en una terminal con un usuario que puede usar
+	      \cod{sudo}.
+	\item \so{Windows} Los comandos se ejecutan en \textbf{PowerShell como administrador}
+	      (clic derecho → Ejecutar como administrador), salvo que se indique otra cosa.
+	\item Lo que va entre \texttt{<} y \texttt{>} se reemplaza por su valor, sin los signos.
+	      Por ejemplo, \texttt{<DIGAIPE\_HOST>} se reemplaza por \texttt{digaipe.ula.local}.
+	\item Las rutas son literales y las mismas en todo el manual. Si elige otras, cámbielas en
+	      \emph{todos} los archivos y comandos. El apéndice~\ref{ap:ubicaciones} las resume.
+\end{itemize}
+
+\begin{aviso}[Datos personales]
+	La base de datos, la carpeta de archivos cargados y los respaldos contienen datos de
+	estudiantes, hashes de contraseñas y sesiones. Los archivos de configuración contienen las
+	contraseñas de MySQL. Trátelos todos como información confidencial: no los envíe por correo,
+	no los suba a servicios externos y no los deje en carpetas compartidas sin control de acceso.
+\end{aviso}

@@ -1,0 +1,142 @@
+\chapter{Requisitos y planificación}
+\label{cap:requisitos}
+
+\section{Servidor}
+
+Los valores siguientes son una recomendación para una oficina con decenas de usuarios
+simultáneos, no una medición. Ajústelos si el volumen de admisiones es mucho mayor.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Recurso} & \textbf{Recomendación} \\
+	\midrule
+	\endhead
+	Procesador & 2 núcleos de 64 bits (x86-64) \\
+	Memoria & 4 GB (8 GB si usa Docker Desktop en Windows) \\
+	Disco del sistema & 40 GB libres para sistema, programas, base de datos y archivos
+	cargados \\
+	Disco de respaldos & Un \textbf{segundo disco}, con al menos 12 veces el tamaño de un
+	respaldo. Un respaldo en el mismo disco que la base de datos se pierde junto con ella \\
+	Red & Dirección IP fija o un nombre en el DNS interno \\
+	\bottomrule
+\end{xltabular}
+
+\section{Sistemas operativos}
+
+\begin{xltabular}{\linewidth}{@{}l L L@{}}
+	\toprule
+	\textbf{Modo} & \textbf{Linux} & \textbf{Windows} \\
+	\midrule
+	\endhead
+	Docker & Debian 12 o Ubuntu 24.04 LTS con Docker Engine y el complemento
+	\texttt{docker compose} & Windows 10/11 Pro o Enterprise con Docker Desktop (WSL 2). Vea las
+	limitaciones en la sección~\ref{sec:docker-windows} \\
+	Servidor físico & Debian 12 o Ubuntu 24.04 LTS & Windows Server 2022 o 2025 (también
+	Windows 10/11 Pro) \\
+	\bottomrule
+\end{xltabular}
+
+Para el servidor físico se necesita, además:
+
+\begin{itemize}
+	\item \textbf{MySQL 8.4 LTS}. Es la versión que usan las imágenes Docker. No se ha probado con
+	      MySQL 8.0, con MySQL 9 ni con MariaDB: no use otra versión sin probarla antes en un equipo
+	      aparte.
+	\item \textbf{Node.js 24} (la misma versión mayor que la imagen \texttt{node:24}).
+	\item \textbf{Caddy 2}.
+	\item Solo en Windows: \textbf{Git for Windows} (aporta \texttt{bash}, necesario para los
+	      scripts de respaldo) y \textbf{NSSM} (ejecuta la aplicación como servicio de Windows).
+\end{itemize}
+
+\section{Red}
+
+\begin{itemize}
+	\item Elija el \textbf{nombre o la IP} con que las PCs abrirán el sistema, por ejemplo
+	      \texttt{digaipe.ula.local} o \texttt{192.168.1.50}. En este manual se llama
+	      \texttt{<DIGAIPE\_HOST>}. El certificado HTTPS se emite para ese valor exacto: si cambia
+	      después, hay que volver a configurar (sección~\ref{sec:cambiar-host}).
+	\item Abra en el cortafuegos del servidor \textbf{solo} los puertos TCP 80 y 443.
+	\item \textbf{No} abra los puertos 3306 (MySQL) ni 3000 (aplicación).
+	\item Durante la instalación y las actualizaciones, el servidor necesita salida a internet
+	      por HTTPS hacia: \texttt{github.com} (código), \texttt{registry.npmjs.org} y
+	      \texttt{cdn.sheetjs.com} (paquetes de npm), los repositorios del sistema operativo y, según
+	      el modo, Docker Hub (\texttt{registry-1.docker.io}) o los sitios de descarga de Node.js,
+	      MySQL y Caddy. Si la red usa un proxy, configúrelo antes (variables
+	      \texttt{HTTPS\_PROXY} y \texttt{HTTP\_PROXY}, y \texttt{npm config set proxy}).
+\end{itemize}
+
+\section{Zona horaria}
+
+El sistema usa la hora de Caracas (\texttt{America/Caracas}, UTC$-$4 todo el año). Los
+contenedores la fijan solos; en servidor físico se configura en el sistema operativo
+(capítulos~\ref{cap:linux} y~\ref{cap:windows}). Los respaldos se programan en UTC:
+\texttt{BACKUP\_HOUR\_UTC=6} equivale a las 02:00 de Caracas.
+
+\section{Contraseñas y secretos}
+\label{sec:secretos}
+
+La instalación necesita los siguientes secretos. Genérelos antes de empezar y guárdelos en un
+gestor de contraseñas o en un sobre cerrado bajo custodia, según la política de la institución.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Secreto} & \textbf{Uso} \\
+	\midrule
+	\endhead
+	\texttt{MYSQL\_ROOT\_PASSWORD} & Dueño de la base de datos. Solo para instalar, actualizar,
+	restaurar y verificar la auditoría \\
+	\texttt{APP\_DB\_PASSWORD} & Cuenta de MySQL de la aplicación (permisos mínimos) \\
+	\texttt{BACKUP\_DB\_PASSWORD} & Cuenta de MySQL de los respaldos (solo lectura y anotar
+	eventos \texttt{backup.*}) \\
+	\texttt{READONLY\_DB\_PASSWORD} & Opcional. Cuenta de solo lectura para auditores \\
+	\texttt{BETTER\_AUTH\_SECRET} & Firma de las sesiones. 32 caracteres aleatorios o más \\
+	\texttt{BOOTSTRAP\_ADMIN\_PASSWORD} & Contraseña del primer administrador de la
+	aplicación \\
+	\bottomrule
+\end{xltabular}
+
+\begin{aviso}[Solo letras y números]
+	Las contraseñas de MySQL van dentro de una URL de conexión
+	(\texttt{mysql://usuario:contraseña@servidor/base}). Un carácter como \texttt{@}, \texttt{:},
+	\texttt{/}, \texttt{\#} o \texttt{\%} rompe la URL. Use \textbf{solo letras y números}. Los
+	comandos siguientes generan 48 caracteres hexadecimales, que cumplen esta regla y sirven para
+	todos los secretos.
+\end{aviso}
+
+\so{Linux}
+\begin{codigo}
+openssl rand -hex 24
+\end{codigo}
+
+\so{Windows}
+\begin{codigo}
+$b = New-Object byte[] 24
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+-join ($b | ForEach-Object { $_.ToString('x2') })
+\end{codigo}
+
+Ejecute el comando una vez por cada secreto. \textbf{No use} los valores de ejemplo de
+\cod{deploy/.env.example} (por ejemplo, \texttt{BOOTSTRAP\_ADMIN\_PASSWORD=123456}).
+
+\section{Hoja de datos de la instalación}
+
+Complete esta hoja antes de empezar y archívela con el registro de la instalación. No escriba
+aquí las contraseñas.
+
+\begin{xltabular}{\linewidth}{@{}l X@{}}
+	\toprule
+	\textbf{Dato} & \textbf{Valor} \\
+	\midrule
+	\endhead
+	Modo de instalación (Docker / físico Linux / físico Windows) & \\
+	Nombre del servidor y sistema operativo & \\
+	\texttt{DIGAIPE\_HOST} (nombre o IP para las PCs) & \\
+	Correo del primer administrador & \\
+	Carpeta de respaldos (disco) & \\
+	Medio externo para copias semanales de respaldos & \\
+	Medio del archivo de anclas de auditoría (no modificable por el DBA) & \\
+	Custodio de las contraseñas & \\
+	SHA-256 del certificado raíz HTTPS & \\
+	Fecha, responsable y versión (commit) instalada & \\
+	\bottomrule
+\end{xltabular}

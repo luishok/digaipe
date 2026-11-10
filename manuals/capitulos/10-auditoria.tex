@@ -1,0 +1,76 @@
+\chapter{Auditoría: verificar y anclar}
+\label{cap:auditoria}
+
+El registro de auditoría es una cadena de hashes: cualquier cambio en un evento rompe la cadena.
+Pero alguien con acceso de administrador a MySQL podría borrar los eventos más recientes o
+reescribir la cadena completa. Para detectarlo, se \textbf{ancla} periódicamente la cabeza de la
+cadena en un archivo guardado fuera de su alcance: el USB del auditor o una carpeta compartida
+de otra PC en la que el administrador de la base no pueda escribir.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Cuándo} & \textbf{Qué} \\
+	\midrule
+	\endhead
+	Diario & Verificar la cadena y las anclas \\
+	Semanal y al cerrar cada proceso de admisión & Anclar la cabeza actual \\
+	Tras cada restauración, actualización o uso de la cuenta \texttt{root} de MySQL & Verificar
+	y guardar la salida con el registro de la intervención \\
+	\bottomrule
+\end{xltabular}
+
+\section{Comandos}
+
+\so{Docker} (desde \texttt{deploy}; el archivo de anclas está en \texttt{ANCHOR\_DIR})
+\begin{codigo}
+docker compose --profile ops run --rm audit
+docker compose --profile ops run --rm audit anchor --anchors /anchors/digaipe-anchors.jsonl --note "cierre UA06426"
+\end{codigo}
+
+\so{Linux} (con el USB del auditor montado, por ejemplo, en \texttt{/media/auditor})
+\begin{codigo}
+sudo /usr/local/sbin/digaipe-audit verify --anchors /media/auditor/digaipe-anchors.jsonl
+sudo /usr/local/sbin/digaipe-audit anchor --anchors /media/auditor/digaipe-anchors.jsonl --note "cierre UA06426"
+\end{codigo}
+
+\so{Windows} (con el USB del auditor, por ejemplo, en \texttt{E:})
+\begin{codigo}
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-audit.ps1 verify --anchors E:\digaipe-anchors.jsonl
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-audit.ps1 anchor --anchors E:\digaipe-anchors.jsonl --note "cierre UA06426"
+\end{codigo}
+
+\texttt{anchor} verifica primero la cadena y se niega a anclar una cadena rota. Imprime la línea
+del ancla: cópiela también en un registro independiente (libro de actas, correo interno). Cada
+ancla queda además en la propia cadena como evento \texttt{audit.anchored}.
+
+\begin{aviso}[Si la verificación falla]
+	\textbf{No repare nada.} Conserve la base, los respaldos y el archivo de anclas tal como están
+	y registre el incidente. La salida indica qué eventos no coinciden. Si dice
+	\texttt{audit triggers missing}, ejecute la instalación (\texttt{setup}) y verifique de nuevo;
+	no deje la aplicación funcionando sin triggers.
+\end{aviso}
+
+Después de una restauración, la verificación con \texttt{--anchors} marcará como faltantes las
+anclas posteriores al respaldo restaurado. Es lo esperado: el evento \texttt{backup.restored} y el
+respaldo de seguridad lo documentan. Guarde esa salida con el registro del incidente.
+
+\section{Cuenta de solo lectura para auditores}
+
+Si los auditores necesitan consultar la base con herramientas SQL, defina
+\texttt{READONLY\_DB\_PASSWORD} (en \texttt{deploy/.env} o en \texttt{setup.env}) y vuelva a
+ejecutar la instalación. La cuenta \texttt{digaipe\_lectura} lee todas las tablas, incluida la
+auditoría, pero no ve contraseñas, tokens de sesión ni códigos de verificación, no puede
+modificar nada y exige conexión cifrada (TLS). Como MySQL no acepta conexiones desde la red, se
+usa desde el propio servidor:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Modo} & \textbf{Comando} \\
+	\midrule
+	\endhead
+	Docker & \texttt{docker compose exec db mysql -h 127.0.0.1 --ssl-mode=REQUIRED -u
+	digaipe\_lectura -p digaipe} \\
+	Linux / Windows & \texttt{mysql -h 127.0.0.1 --ssl-mode=REQUIRED -u digaipe\_lectura -p
+	digaipe} \\
+	\bottomrule
+\end{xltabular}

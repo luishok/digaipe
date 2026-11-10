@@ -1,0 +1,245 @@
+\chapter{Instalación completa con Docker}
+\label{cap:docker}
+
+En este modo, \cod{deploy/compose.yaml} define todos los servicios:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Servicio} & \textbf{Qué hace} \\
+	\midrule
+	\endhead
+	\texttt{db} & MySQL 8.4. No publica puertos \\
+	\texttt{setup} & Migraciones, triggers de auditoría, cuentas de MySQL, administrador
+	inicial y datos base. Se ejecuta en cada arranque y termina; todos sus pasos se pueden
+	repetir sin riesgo \\
+	\texttt{app} & La aplicación. Arranca solo si \texttt{setup} terminó bien. No publica
+	puertos \\
+	\texttt{caddy} & HTTPS en los puertos 80 y 443 \\
+	\texttt{backup-worker} & Respaldo semanal automático \\
+	\texttt{backup}, \texttt{restore}, \texttt{audit} & Perfil \texttt{ops}: se ejecutan a mano,
+	nunca con \texttt{up} \\
+	\bottomrule
+\end{xltabular}
+
+Las imágenes \texttt{app} y \texttt{setup} se construyen en el propio servidor a partir del
+código; \texttt{mysql} y \texttt{caddy} se descargan de Docker Hub.
+
+\section{Instalar Docker}
+\label{sec:instalar-docker}
+
+\subsection{Linux (recomendado)}
+
+Docker Engine con el complemento Compose, desde el repositorio oficial de Docker. En
+\textbf{Debian 12}:
+
+\begin{codigo}
+sudo apt update
+sudo apt install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+\end{codigo}
+
+En \textbf{Ubuntu 24.04}, los mismos comandos cambiando \texttt{linux/debian} por
+\texttt{linux/ubuntu} en las dos direcciones. No use el paquete \texttt{docker.io} de la
+distribución: suele traer una versión de Compose antigua.
+
+\begin{comprobar}
+	\begin{codigo}
+sudo docker version
+sudo docker compose version
+	\end{codigo}
+	Ambos deben responder sin error. En adelante, los comandos \texttt{docker} se muestran sin
+	\texttt{sudo}; antepóngalo si su usuario no pertenece al grupo \texttt{docker}.
+\end{comprobar}
+
+\begin{nota}
+	Pertenecer al grupo \texttt{docker} equivale a tener acceso de administrador al servidor.
+	Agregue solo a quienes administran el sistema.
+\end{nota}
+
+\subsection{Windows}
+\label{sec:docker-windows}
+
+En Windows, Docker funciona mediante \textbf{Docker Desktop} con WSL 2 (Windows 10/11 Pro o
+Enterprise). Antes de elegir esta opción, tenga en cuenta:
+
+\begin{itemize}
+	\item \textbf{Docker Desktop solo funciona con un usuario conectado.} Si nadie inicia sesión
+	      en el servidor después de un reinicio, DIGAIPE no arranca.
+	\item \textbf{Licencia.} Docker Desktop requiere una suscripción de pago en organizaciones
+	      grandes (más de 250 empleados o más de 10 millones de dólares de ingresos anuales).
+	      Consúltelo con la institución antes de instalarlo.
+	\item No es compatible con Windows Server.
+\end{itemize}
+
+\begin{nota}[Recomendación]
+	En un servidor Windows, use la instalación en servidor físico (capítulo~\ref{cap:windows}),
+	o una máquina virtual Linux con Docker Engine.
+\end{nota}
+
+Si de todos modos usa Docker Desktop: instálelo desde \texttt{https://www.docker.com}, habilite
+WSL 2 cuando lo pida, reinicie, y en \emph{Settings → General} active \emph{Start Docker Desktop
+when you sign in}. Compruebe en PowerShell con \texttt{docker version} y
+\texttt{docker compose version}.
+
+\section{Obtener el código}
+
+Clone el repositorio en \cod{/opt/digaipe/app} (Linux) o \texttt{C:\bs digaipe\bs app}
+(Windows) siguiendo el capítulo~\ref{cap:preparacion}. Todos los comandos
+\texttt{docker compose} de este manual se ejecutan \textbf{desde la carpeta \texttt{deploy}} de
+esa copia: \cod{/opt/digaipe/app/deploy} o \texttt{C:\bs digaipe\bs app\bs deploy}.
+
+\section{Configurar \texttt{.env}}
+
+\so{Linux}
+\begin{codigo}
+cd /opt/digaipe/app/deploy
+sudo cp .env.example .env
+sudo chmod 600 .env
+sudo nano .env
+\end{codigo}
+
+\so{Windows}
+\begin{codigo}
+Set-Location C:\digaipe\app\deploy
+Copy-Item .env.example .env
+icacls .env /inheritance:r /grant:r "*S-1-5-32-544:F" "*S-1-5-18:F"
+notepad .env
+\end{codigo}
+
+El comando \texttt{icacls} deja el archivo accesible solo para los administradores
+(\texttt{S-1-5-32-544}) y el sistema (\texttt{S-1-5-18}). Se usan los identificadores en lugar de
+los nombres porque los nombres cambian con el idioma de Windows.
+
+Complete los valores:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Variable} & \textbf{Valor} \\
+	\midrule
+	\endhead
+	\texttt{MYSQL\_ROOT\_PASSWORD} & Secreto generado (sección~\ref{sec:secretos}) \\
+	\texttt{APP\_DB\_USER} & Dejar \texttt{digaipe\_app} \\
+	\texttt{APP\_DB\_PASSWORD} & Secreto generado \\
+	\texttt{BACKUP\_DB\_USER} & Dejar \texttt{digaipe\_respaldo} \\
+	\texttt{BACKUP\_DB\_PASSWORD} & Secreto generado \\
+	\texttt{READONLY\_DB\_PASSWORD} & Vacío, salvo que los auditores necesiten acceso SQL \\
+	\texttt{DIGAIPE\_HOST} & Nombre o IP, sin \texttt{https://} ni puerto. Ej.:
+	\texttt{digaipe.ula.local} \\
+	\texttt{ORIGIN} & \texttt{https://} seguido exactamente de \texttt{DIGAIPE\_HOST}. Ej.:
+	\texttt{https://digaipe.ula.local} \\
+	\texttt{DIGAIPE\_VERSION} & Dejar \texttt{local} \\
+	\texttt{BETTER\_AUTH\_SECRET} & Secreto generado \\
+	\texttt{BOOTSTRAP\_ADMIN\_EMAIL} & Correo del primer administrador \\
+	\texttt{BOOTSTRAP\_ADMIN\_PASSWORD} & Secreto generado o contraseña fuerte. \textbf{No} deje
+	\texttt{123456} \\
+	\texttt{BACKUP\_DIR} & Carpeta de respaldos, idealmente en otro disco. Ej.:
+	\texttt{/srv/respaldos/digaipe} o \texttt{D:/digaipe-respaldos} \\
+	\texttt{ANCHOR\_DIR} & Carpeta del archivo de anclas, en un medio que el administrador de la
+	base no pueda modificar (capítulo~\ref{cap:auditoria}) \\
+	\bottomrule
+\end{xltabular}
+
+Las demás variables (frecuencia y conservación de respaldos) tienen valores por defecto
+adecuados; están descritas en el apéndice~\ref{ap:variables}.
+
+\section{Construir y arrancar}
+
+\begin{codigo}
+docker compose build
+docker compose up -d
+\end{codigo}
+
+\texttt{build} construye las imágenes \texttt{digaipe/app} y \texttt{digaipe/setup} (descarga
+los paquetes de npm; tarda unos minutos la primera vez). \texttt{up -d} descarga MySQL y Caddy y
+arranca todo: MySQL inicializa la base, \texttt{setup} hace la instalación y luego arranca
+\texttt{app}.
+
+\begin{comprobar}
+	\begin{codigo}
+docker compose ps -a
+docker compose logs setup
+	\end{codigo}
+	\begin{itemize}
+		\item \texttt{db}, \texttt{app}, \texttt{caddy} y \texttt{backup-worker} deben estar
+		      \texttt{running} (y \texttt{db}, \texttt{healthy}).
+		\item \texttt{setup} debe estar \texttt{exited (0)}.
+		\item El registro de \texttt{setup} debe mostrar, en orden, \texttt{==> Migraciones},
+		      \texttt{==> Triggers de auditoría}, \texttt{==> Usuarios de base de datos y permisos},
+		      \texttt{==> Administrador inicial} y \texttt{==> Datos base}, sin errores.
+	\end{itemize}
+\end{comprobar}
+
+Si \texttt{setup} terminó con error, \texttt{app} no arranca. Lea el mensaje en
+\texttt{docker compose logs setup}, corrija \texttt{.env} y vuelva a ejecutar
+\texttt{docker compose up -d}. Vea también el capítulo~\ref{cap:problemas}.
+
+\section{Cortafuegos}
+
+\so{Linux} Con \texttt{ufw}:
+\begin{codigo}
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+\end{codigo}
+Omita la regla 22 si no administra el servidor por SSH. Docker inserta sus propias reglas para
+los puertos publicados; por eso \texttt{compose.yaml} solo publica los de Caddy.
+
+\so{Windows}
+\begin{codigo}
+New-NetFirewallRule -DisplayName "DIGAIPE HTTP/HTTPS" -Direction Inbound -Protocol TCP -LocalPort 80,443 -Action Allow
+\end{codigo}
+
+\section{Arranque automático}
+
+Todos los servicios tienen \texttt{restart: unless-stopped}: vuelven a arrancar con Docker tras
+un reinicio del servidor. En Linux, basta con que el servicio \texttt{docker} esté habilitado
+(\texttt{systemctl enable docker}, hecho arriba). En Windows, vea las limitaciones de la
+sección~\ref{sec:docker-windows}.
+
+\section{Siguiente paso}
+
+Continúe con el certificado HTTPS (capítulo~\ref{cap:certificado}) y la verificación
+(capítulo~\ref{cap:verificacion}).
+
+\section{Operación diaria}
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Tarea} & \textbf{Comando (desde la carpeta \texttt{deploy})} \\
+	\midrule
+	\endhead
+	Ver estado & \texttt{docker compose ps -a} \\
+	Ver registros de la aplicación & \texttt{docker compose logs -f app} \\
+	Ver la instalación & \texttt{docker compose logs setup} \\
+	Reaplicar la instalación (tras cambiar \texttt{.env}) & \texttt{docker compose up -d} \\
+	Detener & \texttt{docker compose down} \\
+	Iniciar & \texttt{docker compose up -d} \\
+	\bottomrule
+\end{xltabular}
+
+\begin{aviso}[No use \texttt{down -v}]
+	\texttt{docker compose down} conserva los datos. \texttt{docker compose down -v}
+	\textbf{borra la base de datos, los archivos cargados y la autoridad certificadora}. No lo
+	use salvo que quiera empezar desde cero y tenga un respaldo verificado.
+\end{aviso}
+
+Los datos viven en estos volúmenes de Docker:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Volumen} & \textbf{Contenido} \\
+	\midrule
+	\endhead
+	\texttt{digaipe\_db-data} & Base de datos \\
+	\texttt{digaipe\_uploads} & Archivos de admisiones cargados \\
+	\texttt{digaipe\_caddy-data} & Autoridad certificadora local y certificados \\
+	\texttt{digaipe\_caddy-config} & Configuración interna de Caddy \\
+	\bottomrule
+\end{xltabular}

@@ -1,0 +1,65 @@
+\chapter{Solución de problemas}
+\label{cap:problemas}
+
+Primero mire los registros: \texttt{docker compose logs <servicio>} (Docker),
+\texttt{journalctl -u <servicio> -n 100} (Linux) o \texttt{C:\bs digaipe\bs logs} (Windows).
+
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth} L L@{}}
+	\toprule
+	\textbf{Síntoma} & \textbf{Causa probable} & \textbf{Qué hacer} \\
+	\midrule
+	\endhead
+	\texttt{Defina <VARIABLE> en deploy/.env} al arrancar & Falta un valor obligatorio en
+	\texttt{.env} & Complételo y repita \texttt{docker compose up -d} \\
+	\texttt{npm ci} o \texttt{docker compose build} falla con errores de red
+	(\texttt{ETIMEDOUT}, \texttt{ENOTFOUND}, \texttt{ECONNRESET}) & El servidor no llega a
+	\texttt{registry.npmjs.org} o \texttt{cdn.sheetjs.com}, o la red exige un proxy & Compruebe
+	la salida a internet (capítulo~\ref{cap:requisitos}); configure el proxy y repita \\
+	\texttt{git} responde \emph{detected dubious ownership} & La copia pertenece a otro usuario
+	(en Linux, a \texttt{root}) & En Linux, use \texttt{sudo git}. En Windows, ejecute Git desde
+	la misma cuenta de administrador que clonó \\
+	\texttt{setup} falla con \texttt{Access denied for user 'root'} & La contraseña de root no
+	coincide. En Docker, la base se inicializó con otra \texttt{MYSQL\_ROOT\_PASSWORD} (solo se
+	fija la primera vez) & Use la contraseña original. Cambiarla en \texttt{.env} no la cambia en
+	una base ya creada \\
+	La aplicación no arranca: \texttt{Access denied for user 'digaipe\_app'} &
+	\texttt{APP\_DB\_PASSWORD} distinta entre la instalación y la aplicación, o no se ejecutó la
+	instalación & Iguale las contraseñas y vuelva a ejecutar la instalación \\
+	\texttt{DATABASE\_URL is not set} & La aplicación arrancó sin su archivo de configuración &
+	Revise \texttt{EnvironmentFile} (Linux) o el argumento \texttt{--env-file} de NSSM
+	(Windows) \\
+	Error de URL o de conexión con una contraseña correcta & La contraseña tiene caracteres que
+	no son letras o números & Genere otra (sección~\ref{sec:secretos}) \\
+	\emph{La conexión no es privada} & La PC no confía en la raíz, o el nombre usado no es
+	\texttt{<DIGAIPE\_HOST>} & Instale la raíz (capítulo~\ref{cap:certificado}); abra el sistema
+	exactamente con el nombre configurado \\
+	Error 403 \emph{Cross-site POST form submissions are forbidden} al iniciar sesión o enviar un
+	formulario & \texttt{ORIGIN} no coincide con la dirección de la barra del navegador & Ponga
+	\texttt{ORIGIN=https://<DIGAIPE\_HOST>} exacto, sin barra final ni puerto, y reinicie \\
+	La carga de admisiones falla con error 413 & Archivos mayores que \texttt{BODY\_SIZE\_LIMIT}
+	& Aumente el valor (por defecto \texttt{50M}) y reinicie la aplicación \\
+	La auditoría muestra siempre la misma IP & Falta \texttt{ADDRESS\_HEADER=X-Forwarded-For} o
+	\texttt{XFF\_DEPTH=1} & Agréguelos y reinicie. No los use si la aplicación es accesible sin
+	pasar por Caddy \\
+	La planilla PDF falla: \texttt{ENOENT} en \cod{static/digaipe_form.pdf} & La aplicación no se
+	ejecuta desde su carpeta & Revise \texttt{WorkingDirectory} (Linux) o \texttt{AppDirectory}
+	(Windows) \\
+	Error al guardar cargas: \texttt{EACCES} o \texttt{EPERM} en \texttt{var/uploads} & La cuenta
+	del servicio no puede escribir allí (p. ej., después de una restauración en Linux) & Linux:
+	\texttt{sudo chown -R digaipe:digaipe} \cod{/opt/digaipe/app/var}. Windows: repita el
+	\texttt{icacls} de \texttt{var} \\
+	\texttt{\$'\textbackslash r': command not found} & Un script \texttt{.sh} tiene finales de
+	línea CRLF & Prepare el paquete de nuevo con \texttt{.gitattributes} (capítulo~\ref{cap:preparacion}),
+	o convierta el archivo a LF \\
+	\texttt{Backup FAILED at step: free space} & Poco espacio en la carpeta de respaldos & Libere
+	espacio o use un disco mayor. No borre respaldos a mano sin copiarlos antes \\
+	\texttt{Backup FAILED at step: mysqldump} & La cuenta de respaldos no tiene permisos o la
+	contraseña no coincide & Vuelva a ejecutar la instalación (recrea los permisos) y compare
+	\texttt{BACKUP\_DB\_PASSWORD} \\
+	\texttt{verify} informa \texttt{audit triggers missing} & No se ejecutó la instalación después
+	de restaurar, o alguien borró triggers & Ejecute la instalación. Si no hubo restauración,
+	trátelo como incidente \\
+	Docker Desktop: DIGAIPE no responde tras reiniciar el servidor & Nadie inició sesión en
+	Windows & Vea la sección~\ref{sec:docker-windows} \\
+	\bottomrule
+\end{xltabular}

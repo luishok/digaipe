@@ -1,0 +1,156 @@
+\chapter{Respaldos y restauración}
+\label{cap:respaldos}
+
+Este capítulo resume la operación en los tres modos. El procedimiento detallado, con la tabla de
+errores de restauración, está en \cod{docs/respaldos.md} del repositorio.
+
+\section{Cómo funcionan}
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Qué} & \textbf{Valor por defecto} \\
+	\midrule
+	\endhead
+	Frecuencia & Cada 7 días (\texttt{BACKUP\_INTERVAL\_DAYS}) \\
+	Hora & 06:00 UTC = 02:00 en Caracas (\texttt{BACKUP\_HOUR\_UTC}) \\
+	Conservación & Se borran los de más de 70 días (\texttt{BACKUP\_KEEP\_DAYS}), pero siempre
+	quedan los 10 más recientes (\texttt{BACKUP\_KEEP\_MIN}) \\
+	Espacio mínimo & No empieza con menos de 512 MB libres o el doble del último respaldo
+	(\texttt{BACKUP\_MIN\_FREE\_MB}) \\
+	Respaldo perdido & Si el servidor estaba apagado, se hace en cuanto vuelve (si el último tiene
+	más de 8 días). Al instalar, se hace uno de inmediato \\
+	Bloqueo & Ninguno: instantánea consistente de MySQL; la aplicación sigue funcionando \\
+	\bottomrule
+\end{xltabular}
+
+Cada respaldo es una carpeta \texttt{digaipe-<fecha UTC>} con \texttt{digaipe.sql.gz} (datos,
+auditoría y procedimientos, sin triggers), \texttt{uploads/} (archivos cargados),
+\texttt{MANIFEST} (fecha, versión de MySQL y cabeza de la cadena de auditoría) y
+\texttt{SHA256SUMS}. Cada respaldo, y cada fallo, queda en la auditoría como
+\texttt{backup.completed} o \texttt{backup.failed}.
+
+\begin{aviso}
+	No cambie el nombre de las carpetas de respaldo: la antigüedad se lee del nombre, y una carpeta
+	con otro nombre nunca se cuenta ni se borra. Los respaldos contienen datos personales y hashes
+	de contraseñas: guárdelos con el mismo cuidado que la base.
+\end{aviso}
+
+\section{Revisión semanal (5 minutos)}
+
+\begin{enumerate}
+	\item El último resultado debe ser \texttt{Backup finished.}:
+	      \begin{itemize}
+		      \item Docker: \texttt{docker compose logs --tail 20 backup-worker}
+		      \item Linux: \texttt{journalctl -u digaipe-respaldo -n 20}
+		      \item Windows: \texttt{Get-Content C:\bs digaipe\bs logs\bs respaldo.log -Tail 20}
+	      \end{itemize}
+	\item En Auditoría, filtrando por acción, debe haber un \texttt{backup.completed} de los
+	      últimos 7 días y ningún \texttt{backup.failed} sin atender.
+	\item Copie la carpeta del respaldo más reciente a un medio fuera del servidor.
+\end{enumerate}
+
+\section{Respaldo manual}
+
+Por ejemplo, antes de una actualización:
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Modo} & \textbf{Comando} \\
+	\midrule
+	\endhead
+	Docker & \texttt{docker compose --profile ops run --rm backup} \\
+	Linux & \texttt{sudo systemd-run --wait --pipe -p User=digaipe-respaldo
+	-p SupplementaryGroups=digaipe -p EnvironmentFile=/etc/digaipe/backup.env
+	/usr/bin/bash /opt/digaipe/app/deploy/backup/backup.sh} \\
+	Windows & \texttt{\& 'C:\bs Program Files\bs Git\bs bin\bs bash.exe' -c '. /c/digaipe/bin/entorno.sh
+	\&\& bash /c/digaipe/app/deploy/backup/backup.sh'} \\
+	\bottomrule
+\end{xltabular}
+
+\section{Antes de restaurar}
+
+\textbf{Restaurar devuelve el sistema al momento del respaldo. Todo lo posterior se pierde} de
+la base activa: admisiones, planillas, revisiones, usuarios y eventos de auditoría de ese
+periodo. Restaure solo si la base está dañada o se perdió, o por decisión documentada ante un
+incidente.
+
+\begin{enumerate}
+	\item Registre el incidente: qué pasó, quién autoriza, fecha y hora.
+	\item Elija el respaldo más reciente anterior al problema y lea su \texttt{MANIFEST}.
+	\item Avise a los usuarios: el sistema estará detenido unos minutos.
+\end{enumerate}
+
+\section{Restaurar}
+
+En todos los modos, el orden es el mismo: detener la aplicación y los respaldos, restaurar,
+\textbf{volver a ejecutar la instalación} (reconstruye los triggers de auditoría, que los
+respaldos no traen), verificar la auditoría y arrancar. Reemplace
+\texttt{digaipe-20261028T060000Z} por el respaldo elegido.
+
+\so{Docker} (desde \texttt{deploy})
+\begin{codigo}
+docker compose stop app backup-worker
+docker compose --profile ops run --rm -e RESTORE_CONFIRM=digaipe-20261028T060000Z restore /scripts/restore.sh digaipe-20261028T060000Z
+docker compose run --rm setup
+docker compose --profile ops run --rm audit verify
+docker compose start app backup-worker
+\end{codigo}
+
+\so{Linux}
+\begin{codigo}
+sudo systemctl stop digaipe digaipe-respaldo
+sudo /usr/local/sbin/digaipe-restaurar digaipe-20261028T060000Z digaipe-20261028T060000Z
+sudo /usr/local/sbin/digaipe-setup
+sudo /usr/local/sbin/digaipe-audit verify
+sudo systemctl start digaipe digaipe-respaldo
+\end{codigo}
+
+\so{Windows}
+\begin{codigo}
+Stop-Service digaipe
+Disable-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName Respaldo
+& 'C:\Program Files\Git\bin\bash.exe' C:/digaipe/bin/restaurar.sh digaipe-20261028T060000Z digaipe-20261028T060000Z
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-setup.ps1
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-audit.ps1 verify
+Start-Service digaipe
+Enable-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName Respaldo
+\end{codigo}
+
+La restauración comprueba \texttt{SHA256SUMS}, hace antes un \textbf{respaldo de seguridad} del
+estado actual (su nombre aparece en la salida: anótelo en el incidente y no lo borre), reemplaza
+la base y los archivos, y comprueba la cabeza de la cadena de auditoría.
+
+\begin{comprobar}
+	Inicie sesión como administrador. En Auditoría deben aparecer \texttt{backup.restored} y,
+	justo después, \texttt{schema.triggers\_repaired}. Fuera de una restauración, un
+	\texttt{schema.triggers\_repaired} significa que alguien borró o cambió un trigger de
+	auditoría: trátelo como incidente.
+\end{comprobar}
+
+\section{Recuperar en un servidor nuevo}
+
+\begin{enumerate}
+	\item Instale el servidor completo según su modo (capítulos~\ref{cap:docker}
+	      a~\ref{cap:windows}) con los \textbf{mismos} archivos de configuración si los conserva,
+	      pero \textbf{sin} ejecutar todavía la instalación ni arrancar la aplicación.
+	      En Docker: \texttt{docker compose up -d db} (solo la base) y espere a que esté
+	      \texttt{healthy}.
+	\item Copie la carpeta del respaldo a la carpeta de respaldos del servidor nuevo.
+	\item Siga la sección anterior desde el paso de restaurar, agregando
+	      \texttt{SKIP\_SAFETY\_BACKUP=1} (no hay nada que respaldar): en Docker con
+	      \texttt{-e SKIP\_SAFETY\_BACKUP=1}; en servidor físico, anteponiendo
+	      \texttt{SKIP\_SAFETY\_BACKUP=1} al comando en Linux
+	      (\texttt{sudo SKIP\_SAFETY\_BACKUP=1 /usr/local/sbin/digaipe-restaurar ...}) o agregando
+	      \texttt{export SKIP\_SAFETY\_BACKUP=1} a \texttt{restaurar.sh} en Windows (y quitándolo
+	      después).
+	\item Instale la raíz HTTPS nueva en las PCs (capítulo~\ref{cap:certificado}), salvo que haya
+	      conservado la carpeta de la autoridad.
+\end{enumerate}
+
+\section{Simulacro de restauración}
+\label{sec:simulacro}
+
+Un respaldo que nunca se restauró no está comprobado. Al menos una vez por periodo académico,
+haga la sección anterior completa en un equipo aparte (nunca en el servidor de producción) con
+el respaldo más reciente, y compruebe que puede iniciar sesión y ver las últimas admisiones.
+Registre la fecha, el respaldo usado y el resultado.

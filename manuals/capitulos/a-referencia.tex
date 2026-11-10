@@ -1,0 +1,117 @@
+\chapter{Referencia}
+
+\section{Variables de configuración}
+\label{ap:variables}
+
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth} l L@{}}
+	\toprule
+	\textbf{Variable} & \textbf{Usada por} & \textbf{Descripción} \\
+	\midrule
+	\endhead
+	\texttt{MYSQL\_ROOT\_PASSWORD} & instalación, restauración & Contraseña de root de MySQL \\
+	\texttt{DATABASE\_URL} & aplicación, instalación & URL de conexión. En Docker se compone sola;
+	en servidor físico se escribe en \texttt{setup.env} (root) y \texttt{digaipe.env}
+	(\texttt{digaipe\_app}) \\
+	\texttt{APP\_DB\_USER} / \texttt{APP\_DB\_PASSWORD} & instalación, aplicación & Cuenta de la
+	aplicación (\texttt{digaipe\_app}) \\
+	\texttt{BACKUP\_DB\_USER} / \texttt{BACKUP\_DB\_PASSWORD} & instalación, respaldos & Cuenta de
+	respaldos (\texttt{digaipe\_respaldo}) \\
+	\texttt{READONLY\_DB\_USER} / \texttt{READONLY\_DB\_PASSWORD} & instalación & Cuenta de solo
+	lectura (\texttt{digaipe\_lectura}); se crea solo si hay contraseña \\
+	\texttt{DIGAIPE\_HOST} & Caddy (Docker) & Nombre o IP del sitio. En servidor físico se escribe
+	directamente en el \texttt{Caddyfile} \\
+	\texttt{ORIGIN} & aplicación, instalación & \texttt{https://<DIGAIPE\_HOST>} \\
+	\texttt{BETTER\_AUTH\_SECRET} & aplicación, instalación & Secreto de sesiones (32+
+	caracteres). Cambiarlo cierra todas las sesiones \\
+	\texttt{BOOTSTRAP\_ADMIN\_EMAIL}, \texttt{\_PASSWORD}, \texttt{\_NAME} & instalación & Primer
+	administrador; se crea solo si no existe \\
+	\texttt{DIGAIPE\_VERSION} & Docker & Etiqueta de las imágenes (\texttt{local}) \\
+	\texttt{HOST} / \texttt{PORT} & aplicación (físico) & Dirección de escucha:
+	\texttt{127.0.0.1} / \texttt{3000} \\
+	\texttt{ADDRESS\_HEADER} / \texttt{XFF\_DEPTH} & aplicación & \texttt{X-Forwarded-For} /
+	\texttt{1}: IP real del cliente detrás de Caddy \\
+	\texttt{BODY\_SIZE\_LIMIT} & aplicación & Tamaño máximo de una carga (\texttt{50M}) \\
+	\texttt{TZ} & aplicación & \texttt{America/Caracas} \\
+	\texttt{BACKUP\_DIR} & Docker & Carpeta de respaldos en el servidor (\texttt{./backups}) \\
+	\texttt{BACKUP\_ROOT} & respaldos (físico) & Carpeta de respaldos \\
+	\texttt{UPLOADS\_DIR} & respaldos (físico) & Carpeta \texttt{var/uploads} de la aplicación \\
+	\texttt{DB\_HOST} / \texttt{DB\_NAME} & respaldos (físico) & \texttt{127.0.0.1} /
+	\texttt{digaipe} \\
+	\texttt{BACKUP\_INTERVAL\_DAYS} & respaldos & Días entre respaldos (7) \\
+	\texttt{BACKUP\_HOUR\_UTC} & respaldos & Hora UTC del respaldo (6 = 02:00 Caracas) \\
+	\texttt{BACKUP\_KEEP\_DAYS} / \texttt{BACKUP\_KEEP\_MIN} & respaldos & Conservación (70 días /
+	10 respaldos mínimo) \\
+	\texttt{BACKUP\_MIN\_FREE\_MB} & respaldos & Espacio libre mínimo (512) \\
+	\texttt{ANCHOR\_DIR} & Docker & Carpeta del archivo de anclas de auditoría \\
+	\bottomrule
+\end{xltabular}
+
+\section{Ubicaciones}
+\label{ap:ubicaciones}
+
+{\small
+\begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.15\linewidth} L L L@{}}
+	\toprule
+	\textbf{Qué} & \textbf{Docker} & \textbf{Linux} & \textbf{Windows} \\
+	\midrule
+	\endhead
+	Configuración & \cod{deploy/.env} & \cod{/etc/digaipe/*.env} &
+	\texttt{C:\bs digaipe\bs config\bs *.env} \\
+	Código & \cod{/opt/digaipe/app} o \texttt{C:\bs digaipe\bs app} (imagen \cod{digaipe/app}) &
+	\cod{/opt/digaipe/app} &
+	\texttt{C:\bs digaipe\bs app} \\
+	Base de datos & volumen \cod{digaipe_db-data} & \cod{/var/lib/mysql} &
+	\texttt{C:\bs ProgramData\bs MySQL\bs MySQL Server 8.4\bs Data} \\
+	Archivos cargados & volumen \cod{digaipe_uploads} & \cod{/opt/digaipe/app/var/uploads} &
+	\texttt{C:\bs digaipe\bs app\bs var\bs uploads} \\
+	Respaldos & \cod{BACKUP_DIR} & \cod{/var/backups/digaipe} &
+	\texttt{D:\bs digaipe-respaldos} \\
+	Autoridad HTTPS & volumen \cod{digaipe_caddy-data} &
+	\cod{/var/lib/caddy/.local/share/caddy} & \texttt{C:\bs digaipe\bs caddy\bs data} \\
+	Registros & \texttt{docker compose logs} & \texttt{journalctl} &
+	\texttt{C:\bs digaipe\bs logs} \\
+	\bottomrule
+\end{xltabular}
+}
+
+\section{Cuentas de MySQL}
+
+\begin{xltabular}{\linewidth}{@{}l L L@{}}
+	\toprule
+	\textbf{Cuenta} & \textbf{Para} & \textbf{Puede} \\
+	\midrule
+	\endhead
+	\texttt{root} & Instalación, restauración, verificación de auditoría & Todo \\
+	\texttt{digaipe\_app} & La aplicación & Leer y escribir datos de negocio; solo leer y anexar a la
+	auditoría \\
+	\texttt{digaipe\_respaldo} & Respaldos & Leer todo para respaldar; anotar eventos
+	\texttt{backup.*}. No modifica datos ni triggers \\
+	\texttt{digaipe\_lectura} & Auditores (opcional) & Leer todo salvo contraseñas, tokens y
+	códigos; exige TLS \\
+	\bottomrule
+\end{xltabular}
+
+La instalación crea y ajusta estas cuentas cada vez que se ejecuta
+(\texttt{scripts/grant-db-users.ts}). Cada uso de \texttt{root} fuera de la instalación debe
+quedar en el registro de operaciones, seguido de una verificación de auditoría.
+
+\section{Roles de la aplicación}
+
+Cada usuario tiene uno o más roles (Administración → Usuarios y roles). Un usuario sin roles
+solo ve la página de inicio.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Rol} & \textbf{Puede} \\
+	\midrule
+	\endhead
+	Administrador & Todo, incluidos usuarios y auditoría \\
+	Generación de planillas & Buscar admisiones, editar datos del estudiante, generar y reimprimir
+	planillas \\
+	Matrícula y devolución & Revisar documentos: matricular, devolver y desbloquear (con motivo) \\
+	Estadísticas & Ver estadísticas y exportar CSV/PDF \\
+	Carga de admisiones & Cargar lotes, gestionar procesos de admisión, importar carreras \\
+	Auditor (solo lectura) & Ver todas las páginas, exportaciones y la auditoría; no modifica
+	nada \\
+	\bottomrule
+\end{xltabular}

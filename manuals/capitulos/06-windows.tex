@@ -1,0 +1,427 @@
+\chapter{Instalación en servidor físico: Windows}
+\label{cap:windows}
+
+Instalación sin Docker en Windows Server 2022/2025 (o Windows 10/11 Pro). MySQL, la aplicación y
+Caddy quedan como servicios de Windows, y los respaldos, como una tarea programada. Los
+instaladores se descargan de los sitios oficiales en \texttt{C:\bs digaipe\bs descargas}.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Ruta} & \textbf{Contenido} \\
+	\midrule
+	\endhead
+	\texttt{C:\bs digaipe\bs app} & Aplicación \\
+	\texttt{C:\bs digaipe\bs app\bs var\bs uploads} & Archivos de admisiones cargados \\
+	\texttt{C:\bs digaipe\bs config} & Archivos de configuración con contraseñas (solo
+	administradores) \\
+	\texttt{C:\bs digaipe\bs bin} & Scripts de administración \\
+	\texttt{C:\bs digaipe\bs caddy} & Caddy, su configuración y su autoridad certificadora \\
+	\texttt{C:\bs digaipe\bs logs} & Registros de la aplicación y de los respaldos \\
+	\texttt{D:\bs digaipe-respaldos} & Respaldos (en un segundo disco) \\
+	\bottomrule
+\end{xltabular}
+
+Si no tiene un disco \texttt{D:}, use otra unidad y cambie la ruta en \texttt{backup.env}
+(sección~\ref{sec:win-config}).
+
+\begin{nota}[Identificadores de cuentas]
+	Los comandos \texttt{icacls} usan identificadores (SID) en vez de nombres, porque los nombres
+	cambian con el idioma de Windows: \texttt{*S-1-5-32-544} = Administradores,
+	\texttt{*S-1-5-18} = SYSTEM, \texttt{*S-1-5-19} = SERVICIO LOCAL (\emph{LocalService}).
+\end{nota}
+
+\section{Preparar el sistema}
+
+\begin{codigo}
+tzutil /s "Venezuela Standard Time"
+New-Item -ItemType Directory -Force C:\digaipe\descargas, C:\digaipe\config, C:\digaipe\bin, C:\digaipe\caddy, C:\digaipe\logs, D:\digaipe-respaldos
+icacls C:\digaipe /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-19:(OI)(CI)RX"
+icacls C:\digaipe\config /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F"
+icacls C:\digaipe\bin /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F"
+icacls C:\digaipe\caddy /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F"
+icacls C:\digaipe\logs /grant "*S-1-5-19:(OI)(CI)M"
+icacls D:\digaipe-respaldos /inheritance:r /grant:r "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F"
+\end{codigo}
+
+Por defecto, una carpeta nueva en \texttt{C:\bs} hereda permisos que dejan a cualquier usuario
+autenticado modificarla. El primer \texttt{icacls} los reemplaza: administradores y sistema con
+control total, y \emph{LocalService} (la cuenta de la aplicación) solo con lectura. Los
+siguientes cierran las carpetas con contraseñas y scripts, y dan escritura solo donde hace falta.
+
+\section{Instalar Node.js 24}
+
+Descargue el instalador \texttt{node-v24.<x>-x64.msi} de
+\texttt{https://nodejs.org/dist/latest-v24.x/} a \texttt{C:\bs digaipe\bs descargas} e
+instálelo:
+
+\begin{codigo}
+msiexec /i C:\digaipe\descargas\node-v24.<x>-x64.msi /qn
+\end{codigo}
+
+Use la serie 24 aunque la página principal de nodejs.org ofrezca una versión más nueva.
+
+Cierre y vuelva a abrir PowerShell para que se actualice la variable \texttt{PATH}.
+
+\begin{comprobar}
+	\texttt{node -v} debe mostrar \texttt{v24.<x>}, y \texttt{npx -v}, un número de versión.
+\end{comprobar}
+
+\section{Instalar MySQL 8.4}
+
+Descargue \emph{MySQL Community Server 8.4 LTS}, \emph{Windows (x86, 64-bit), MSI Installer}, de
+\texttt{https://dev.mysql.com/downloads/mysql/8.4.html} (no hace falta crear una cuenta: use
+\emph{No thanks, just start my download}). Ejecute \texttt{mysql-8.4.<x>-winx64.msi}
+(instalación típica). Al terminar se abre
+\textbf{MySQL Configurator}; elija:
+
+\begin{itemize}
+	\item \emph{Config Type}: \texttt{Server Computer}. Puerto TCP \texttt{3306}.
+	\item \textbf{Desmarque} \emph{Open Windows Firewall ports for network access}.
+	\item \emph{Root password}: \texttt{MYSQL\_ROOT\_PASSWORD}. No cree otros usuarios: los crea la
+	      instalación de DIGAIPE.
+	\item \emph{Windows Service}: nombre \texttt{MySQL84}, inicio automático, cuenta
+	      \emph{Standard System Account}.
+\end{itemize}
+
+Restrinja MySQL al propio servidor. Abra \texttt{C:\bs ProgramData\bs MySQL\bs MySQL Server
+8.4\bs my.ini} con el Bloc de notas como administrador y, en la sección \texttt{[mysqld]},
+agregue:
+
+\begin{codigo}[label={my.ini, sección [mysqld]}]
+bind-address=127.0.0.1
+mysqlx=OFF
+\end{codigo}
+
+Agregue el cliente de MySQL al \texttt{PATH} del sistema, reinicie el servicio y cree la base:
+
+\begin{codigo}
+[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path','Machine') + ';C:\Program Files\MySQL\MySQL Server 8.4\bin', 'Machine')
+Restart-Service MySQL84
+& 'C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe' -h 127.0.0.1 -u root -p -e "CREATE DATABASE IF NOT EXISTS digaipe CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+\end{codigo}
+
+\begin{comprobar}
+	\begin{codigo}
+& 'C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe' -h 127.0.0.1 -u root -p -e "SELECT VERSION(); SHOW DATABASES LIKE 'digaipe'"
+Get-NetTCPConnection -LocalPort 3306 -State Listen
+	\end{codigo}
+	La versión debe empezar por \texttt{8.4}, la base \texttt{digaipe} debe existir y
+	\texttt{LocalAddress} debe ser \texttt{127.0.0.1}. Si el instalador creó una regla de
+	cortafuegos para MySQL, elimínela (\texttt{Get-NetFirewallRule -DisplayName *MySQL*} y
+	\texttt{Remove-NetFirewallRule}).
+\end{comprobar}
+
+\section{Instalar la aplicación}
+
+Instale Git y clone el repositorio en \texttt{C:\bs digaipe\bs app} siguiendo el
+capítulo~\ref{cap:preparacion}. Git for Windows también aporta \texttt{bash} y las herramientas
+que usan los scripts de respaldo (\texttt{gzip}, \texttt{sha256sum}, \texttt{date},
+\texttt{df}). Luego construya:
+
+\begin{codigo}
+Set-Location C:\digaipe\app
+npm ci
+npm run build
+New-Item -ItemType Directory -Force C:\digaipe\app\var\uploads
+icacls C:\digaipe\app\var /grant "*S-1-5-19:(OI)(CI)M"
+\end{codigo}
+
+El servicio de la aplicación se ejecuta como \emph{LocalService}, que solo puede leer
+\texttt{C:\bs digaipe\bs app}; el último comando le permite escribir en \texttt{var}.
+
+\begin{comprobar}
+	\texttt{npm run build} debe terminar sin errores, y \texttt{Get-ChildItem -Force
+	C:\bs digaipe\bs app} debe mostrar la carpeta \texttt{build}. \textbf{No} debe haber un
+	archivo \texttt{.env}: la configuración va en \texttt{C:\bs digaipe\bs config}.
+\end{comprobar}
+
+\section{Archivos de configuración}
+\label{sec:win-config}
+
+Igual que en Linux, hay un archivo por cuenta de MySQL. Créelos con el Bloc de notas
+(\texttt{notepad C:\bs digaipe\bs config\bs setup.env}) y reemplace los valores \texttt{<...>}.
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash config\textbackslash setup.env  (instalación, restauración y auditoría: root de MySQL)}]
+MYSQL_ROOT_PASSWORD=<MYSQL_ROOT_PASSWORD>
+DATABASE_URL=mysql://root:<MYSQL_ROOT_PASSWORD>@127.0.0.1:3306/digaipe
+APP_DB_USER=digaipe_app
+APP_DB_PASSWORD=<APP_DB_PASSWORD>
+BACKUP_DB_USER=digaipe_respaldo
+BACKUP_DB_PASSWORD=<BACKUP_DB_PASSWORD>
+READONLY_DB_USER=digaipe_lectura
+READONLY_DB_PASSWORD=
+ORIGIN=https://<DIGAIPE_HOST>
+BETTER_AUTH_SECRET=<BETTER_AUTH_SECRET>
+BOOTSTRAP_ADMIN_EMAIL=<correo del administrador>
+BOOTSTRAP_ADMIN_PASSWORD=<BOOTSTRAP_ADMIN_PASSWORD>
+BOOTSTRAP_ADMIN_NAME=Administrador
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash config\textbackslash digaipe.env  (aplicación)}]
+NODE_ENV=production
+DATABASE_URL=mysql://digaipe_app:<APP_DB_PASSWORD>@127.0.0.1:3306/digaipe
+ORIGIN=https://<DIGAIPE_HOST>
+BETTER_AUTH_SECRET=<BETTER_AUTH_SECRET>
+HOST=127.0.0.1
+PORT=3000
+ADDRESS_HEADER=X-Forwarded-For
+XFF_DEPTH=1
+BODY_SIZE_LIMIT=50M
+TZ=America/Caracas
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash config\textbackslash backup.env  (respaldos; rutas en formato de Git Bash)}]
+DB_HOST=127.0.0.1
+DB_NAME=digaipe
+BACKUP_DB_USER=digaipe_respaldo
+BACKUP_DB_PASSWORD=<BACKUP_DB_PASSWORD>
+BACKUP_ROOT=/d/digaipe-respaldos
+UPLOADS_DIR=/c/digaipe/app/var/uploads
+BACKUP_INTERVAL_DAYS=7
+BACKUP_HOUR_UTC=6
+BACKUP_KEEP_DAYS=70
+BACKUP_KEEP_MIN=10
+BACKUP_MIN_FREE_MB=512
+\end{codigo}
+
+En \texttt{backup.env}, \texttt{/d/digaipe-respaldos} es la forma en que \texttt{bash} escribe
+\texttt{D:\bs digaipe-respaldos}.
+
+La aplicación se ejecuta como \emph{LocalService} y necesita leer su propio archivo:
+
+\begin{codigo}
+icacls C:\digaipe\config\digaipe.env /grant "*S-1-5-19:R"
+\end{codigo}
+
+\begin{aviso}
+	\texttt{ORIGIN} y \texttt{BETTER\_AUTH\_SECRET} deben ser idénticos en \texttt{setup.env} y en
+	\texttt{digaipe.env}, y cada contraseña, idéntica en todos los archivos donde aparece.
+\end{aviso}
+
+\section{Scripts de administración}
+
+Guarde los scripts de PowerShell \textbf{sin acentos} (o como UTF-8 con BOM): Windows
+PowerShell 5.1 lee mal los archivos UTF-8 sin BOM.
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash entorno.ps1  (carga setup.env; lo usan los dos siguientes)}]
+$ErrorActionPreference = 'Stop'
+Get-Content 'C:\digaipe\config\setup.env' |
+    Where-Object { $_ -match '^[A-Za-z_][A-Za-z0-9_]*=.' } |
+    ForEach-Object {
+        $name, $value = $_ -split '=', 2
+        Set-Item -Path "Env:$name" -Value $value
+    }
+Set-Location 'C:\digaipe\app'
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash digaipe-setup.ps1}]
+# Migraciones, triggers de auditoria, cuentas de MySQL, administrador inicial y datos base.
+# Se puede repetir sin riesgo. Obligatorio despues de restaurar o actualizar.
+. 'C:\digaipe\bin\entorno.ps1'
+function Paso([string]$titulo, [scriptblock]$comando) {
+    Write-Host "==> $titulo"
+    & $comando
+    if ($LASTEXITCODE -ne 0) { throw "Fallo el paso: $titulo" }
+}
+Paso 'Migraciones' { npx drizzle-kit migrate }
+Paso 'Triggers de auditoria' { npx tsx scripts/ensure-audit-triggers.ts }
+Paso 'Usuarios de base de datos y permisos' { npx tsx scripts/grant-db-users.ts }
+Paso 'Administrador inicial' { npx tsx scripts/bootstrap-admin.ts }
+Paso 'Datos base: modalidades' { npx tsx scripts/load_admission_mod.ts }
+Paso 'Datos base: tipos OCRE' { npx tsx scripts/load_ocre_types.ts }
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash digaipe-audit.ps1}]
+# Uso: digaipe-audit.ps1 verify [--anchors <archivo>]
+#      digaipe-audit.ps1 anchor --anchors <archivo> [--note <texto>]
+. 'C:\digaipe\bin\entorno.ps1'
+npx tsx scripts/audit-ledger.ts @args
+exit $LASTEXITCODE
+\end{codigo}
+
+Para los respaldos, tres scripts de \texttt{bash}. Guárdelos con finales de línea LF (en el Bloc
+de notas de Windows 11: abajo a la derecha, cambie \emph{Windows (CRLF)} por \emph{Unix (LF)}).
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash entorno.sh}]
+# Cliente de MySQL y variables de backup.env (sin los CR de Windows).
+export PATH="/c/Program Files/MySQL/MySQL Server 8.4/bin:$PATH"
+set -a
+. <(tr -d '\r' < /c/digaipe/config/backup.env)
+set +a
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash respaldo.sh  (lo ejecuta la tarea programada cada hora)}]
+#!/usr/bin/env bash
+# Decide una vez si toca respaldo (semanal, a BACKUP_HOUR_UTC) y, si toca, lo hace.
+. /c/digaipe/bin/entorno.sh
+export WORKER_ONCE=1
+bash /c/digaipe/app/deploy/backup/worker.sh >> /c/digaipe/logs/respaldo.log 2>&1
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash bin\textbackslash restaurar.sh}]
+#!/usr/bin/env bash
+# Uso: restaurar.sh <respaldo> <respaldo>   (el nombre dos veces, como confirmación)
+set -euo pipefail
+. /c/digaipe/bin/entorno.sh
+set -a; . <(tr -d '\r' < /c/digaipe/config/setup.env); set +a
+RESTORE_CONFIRM="${2:-}" bash /c/digaipe/app/deploy/backup/restore.sh "${1:?Uso: restaurar.sh <respaldo> <respaldo>}"
+\end{codigo}
+
+\section{Ejecutar la instalación}
+
+\begin{codigo}
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-setup.ps1
+\end{codigo}
+
+\begin{comprobar}
+	Deben aparecer los seis pasos \texttt{==> ...} sin errores, con líneas
+	\texttt{Granted digaipe\_app ...} y \texttt{Granted digaipe\_respaldo ...} en el paso de
+	permisos.
+\end{comprobar}
+
+\section{Servicio de la aplicación}
+
+NSSM ejecuta la aplicación como servicio de Windows. Descárguelo, copie \texttt{nssm.exe}
+(carpeta \texttt{win64} del ZIP) a \texttt{C:\bs digaipe\bs bin} y cree el servicio:
+
+\begin{codigo}
+Invoke-WebRequest -UseBasicParsing https://nssm.cc/release/nssm-2.24.zip -OutFile C:\digaipe\descargas\nssm-2.24.zip
+Expand-Archive C:\digaipe\descargas\nssm-2.24.zip -DestinationPath C:\digaipe\descargas\nssm
+Copy-Item C:\digaipe\descargas\nssm\nssm-2.24\win64\nssm.exe C:\digaipe\bin\nssm.exe
+C:\digaipe\bin\nssm.exe install digaipe "C:\Program Files\nodejs\node.exe" "--env-file=C:\digaipe\config\digaipe.env build"
+C:\digaipe\bin\nssm.exe set digaipe AppDirectory C:\digaipe\app
+C:\digaipe\bin\nssm.exe set digaipe DisplayName "DIGAIPE (aplicacion web)"
+C:\digaipe\bin\nssm.exe set digaipe Start SERVICE_AUTO_START
+C:\digaipe\bin\nssm.exe set digaipe DependOnService MySQL84
+C:\digaipe\bin\nssm.exe set digaipe AppStdout C:\digaipe\logs\app.log
+C:\digaipe\bin\nssm.exe set digaipe AppStderr C:\digaipe\logs\app.log
+C:\digaipe\bin\nssm.exe set digaipe AppRotateFiles 1
+C:\digaipe\bin\nssm.exe set digaipe AppRotateBytes 10485760
+sc.exe config digaipe obj= "NT AUTHORITY\LocalService"
+Start-Service digaipe
+\end{codigo}
+
+La cuenta del servicio se asigna con \texttt{sc.exe} y no con \texttt{nssm set ObjectName}:
+esta última necesita una contraseña vacía como argumento, y Windows PowerShell 5.1 descarta los
+argumentos vacíos al llamar a programas externos.
+
+\texttt{AppDirectory} es obligatorio: la aplicación busca la plantilla PDF en \texttt{static}
+y guarda las cargas en \texttt{var\bs uploads}, ambas relativas a esa carpeta.
+
+\begin{comprobar}
+	\begin{codigo}
+Get-Service digaipe
+(Invoke-WebRequest -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue http://127.0.0.1:3000/).StatusCode
+	\end{codigo}
+	El servicio debe estar \texttt{Running} y la petición debe devolver un código (200 o 3xx). Si
+	falla, revise \texttt{C:\bs digaipe\bs logs\bs app.log}.
+\end{comprobar}
+
+\section{Caddy (HTTPS)}
+
+Descargue Caddy de sus publicaciones oficiales en GitHub (la misma versión que usa Docker; una
+2.x más reciente también sirve):
+
+\begin{codigo}
+Invoke-WebRequest -UseBasicParsing https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_windows_amd64.zip -OutFile C:\digaipe\descargas\caddy.zip
+Expand-Archive C:\digaipe\descargas\caddy.zip -DestinationPath C:\digaipe\caddy
+New-Item -ItemType Directory -Force C:\digaipe\caddy\data
+notepad C:\digaipe\caddy\Caddyfile
+\end{codigo}
+
+\begin{codigo}[label={C:\textbackslash digaipe\textbackslash caddy\textbackslash Caddyfile}]
+# HTTPS de DIGAIPE: Caddy actúa como autoridad certificadora local (red interna).
+{
+	local_certs
+	skip_install_trust
+	# Ubicación fija de la autoridad y los certificados (incluir en las copias de seguridad).
+	storage file_system {
+		root C:/digaipe/caddy/data
+	}
+}
+
+# Debe coincidir exactamente con ORIGIN (sin https://).
+<DIGAIPE_HOST> {
+	tls internal
+	reverse_proxy 127.0.0.1:3000
+	header -Server
+}
+\end{codigo}
+
+Guarde el archivo sin extensión (en el diálogo, \emph{Tipo: Todos los archivos}). Luego:
+
+\begin{codigo}
+C:\digaipe\caddy\caddy.exe validate --config C:\digaipe\caddy\Caddyfile
+New-Service -Name caddy -DisplayName "Caddy (HTTPS DIGAIPE)" -StartupType Automatic -BinaryPathName "C:\digaipe\caddy\caddy.exe run --config C:\digaipe\caddy\Caddyfile"
+sc.exe failure caddy reset= 86400 actions= restart/5000/restart/5000/restart/5000
+Start-Service caddy
+\end{codigo}
+
+La autoridad certificadora queda en
+\texttt{C:\bs digaipe\bs caddy\bs data\bs pki\bs authorities\bs local}. \textbf{Esa carpeta debe
+estar en las copias de seguridad del servidor}: si se pierde, hay que volver a instalar la raíz en
+todas las PCs (capítulo~\ref{cap:certificado}).
+
+\section{Tarea programada de respaldos}
+
+La tarea se ejecuta cada hora; \texttt{worker.sh} con \texttt{WORKER\_ONCE=1} decide cada vez si
+toca respaldo (cada 7 días, a las 06:00 UTC, o de inmediato si no hay ninguno o se saltó uno).
+
+\begin{codigo}
+$accion = New-ScheduledTaskAction -Execute 'C:\Program Files\Git\bin\bash.exe' -Argument 'C:/digaipe/bin/respaldo.sh'
+$cada_hora = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddMinutes(5) -RepetitionInterval (New-TimeSpan -Hours 1)
+$cuenta = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+$ajustes = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName 'Respaldo' -Action $accion -Trigger $cada_hora -Principal $cuenta -Settings $ajustes
+Start-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName 'Respaldo'
+\end{codigo}
+
+\begin{comprobar}
+	Espere un minuto y revise \texttt{Get-Content C:\bs digaipe\bs logs\bs respaldo.log -Tail 20}:
+	debe decir \texttt{Backup due: no backup exists yet} y \texttt{Backup finished.}
+	\texttt{Get-ChildItem D:\bs digaipe-respaldos} debe mostrar una carpeta
+	\texttt{digaipe-<fecha>}.
+\end{comprobar}
+
+\begin{aviso}[Compruebe la restauración en esta plataforma]
+	Los scripts de respaldo se escribieron para los contenedores Linux; en Windows se ejecutan con
+	el \texttt{bash} de Git for Windows. Antes de depender de ellos, haga un simulacro de
+	restauración completo (sección~\ref{sec:simulacro}) en un equipo aparte con el primer
+	respaldo.
+\end{aviso}
+
+\begin{nota}[Diferencia con Linux y Docker]
+	Si un respaldo falla, se vuelve a intentar en la siguiente hora (en Linux y Docker, a las 6
+	horas), así que un problema persistente, como un disco lleno, deja un evento
+	\texttt{backup.failed} por hora en la auditoría hasta que se corrija.
+\end{nota}
+
+\section{Cortafuegos}
+
+\begin{codigo}
+New-NetFirewallRule -DisplayName "DIGAIPE HTTP/HTTPS" -Direction Inbound -Protocol TCP -LocalPort 80,443 -Action Allow
+\end{codigo}
+
+\section{Siguiente paso}
+
+Continúe con el certificado HTTPS (capítulo~\ref{cap:certificado}) y la verificación
+(capítulo~\ref{cap:verificacion}).
+
+\section{Operación diaria}
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Tarea} & \textbf{Comando} \\
+	\midrule
+	\endhead
+	Ver estado & \texttt{Get-Service MySQL84, digaipe, caddy} \\
+	Ver registros de la aplicación & \texttt{Get-Content C:\bs digaipe\bs logs\bs app.log -Tail 50
+	-Wait} \\
+	Reaplicar la instalación & \texttt{powershell -ExecutionPolicy Bypass -File
+	C:\bs digaipe\bs bin\bs digaipe-setup.ps1} y luego \texttt{Restart-Service digaipe} \\
+	Detener & \texttt{Stop-Service digaipe; Disable-ScheduledTask -TaskPath '\bs DIGAIPE\bs '
+	-TaskName Respaldo} \\
+	Iniciar & \texttt{Start-Service digaipe; Enable-ScheduledTask -TaskPath '\bs DIGAIPE\bs '
+	-TaskName Respaldo} \\
+	\bottomrule
+\end{xltabular}

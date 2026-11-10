@@ -1,0 +1,426 @@
+\chapter{Instalación en servidor físico: Linux}
+\label{cap:linux}
+
+Instalación sin Docker en Debian 12 o Ubuntu 24.04 LTS. Cada componente queda como un servicio
+de \texttt{systemd}. Todo se instala desde los repositorios oficiales de cada programa.
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Ruta} & \textbf{Contenido} \\
+	\midrule
+	\endhead
+	\texttt{/opt/digaipe/app} & Aplicación (propiedad de \texttt{root}, solo lectura para el
+	servicio) \\
+	\texttt{/opt/digaipe/app/var/uploads} & Archivos de admisiones cargados (escritura del
+	servicio) \\
+	\texttt{/etc/digaipe/} & Archivos de configuración con contraseñas (solo \texttt{root}) \\
+	\texttt{/var/backups/digaipe} & Respaldos (mejor en otro disco montado ahí) \\
+	\texttt{/usr/local/sbin/digaipe-*} & Comandos de administración \\
+	\bottomrule
+\end{xltabular}
+
+\section{Preparar el sistema}
+
+Zona horaria, usuarios de servicio y carpetas:
+
+\begin{codigo}
+sudo timedatectl set-timezone America/Caracas
+sudo useradd --system --home-dir /opt/digaipe --shell /usr/sbin/nologin digaipe
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin --groups digaipe digaipe-respaldo
+sudo mkdir -p /opt/digaipe /etc/digaipe /var/backups/digaipe
+sudo chmod 700 /etc/digaipe
+sudo chown digaipe-respaldo:digaipe-respaldo /var/backups/digaipe
+sudo chmod 700 /var/backups/digaipe
+\end{codigo}
+
+\begin{itemize}
+	\item \texttt{digaipe} ejecuta la aplicación.
+	\item \texttt{digaipe-respaldo} ejecuta los respaldos. Pertenece al grupo \texttt{digaipe} para
+	      poder \emph{leer} los archivos cargados, pero no puede modificarlos, y la aplicación no
+	      puede leer los respaldos.
+\end{itemize}
+
+Si los respaldos van en un segundo disco, móntelo en \cod{/var/backups/digaipe} (entrada en
+\cod{/etc/fstab}) \emph{antes} de los comandos \texttt{chown} y \texttt{chmod} de arriba.
+
+\section{Instalar Node.js 24}
+
+Los repositorios de Debian y Ubuntu traen versiones de Node.js más antiguas. Use el repositorio
+de NodeSource, que se actualiza con \texttt{apt}:
+
+\begin{codigo}
+curl -fsSL https://deb.nodesource.com/setup_24.x -o /tmp/nodesource_setup.sh
+sudo bash /tmp/nodesource_setup.sh
+sudo apt install -y nodejs
+\end{codigo}
+
+El script solo agrega el repositorio y su clave; puede revisarlo
+(\cod{less /tmp/nodesource_setup.sh}) antes de ejecutarlo.
+
+\begin{comprobar}
+	\texttt{node -v} debe mostrar \texttt{v24.<x>}, y \texttt{npx -v}, un número de versión.
+\end{comprobar}
+
+\section{Instalar MySQL 8.4}
+
+Debian no trae MySQL (solo MariaDB) y Ubuntu trae MySQL 8.0. Use el repositorio APT oficial de
+MySQL. Descargue el paquete de configuración más reciente desde
+\texttt{https://dev.mysql.com/downloads/repo/apt/} e instálelo:
+
+\begin{codigo}
+sudo apt install -y gnupg wget
+wget https://dev.mysql.com/get/mysql-apt-config_<versión>_all.deb -O /tmp/mysql-apt-config.deb
+sudo apt install -y /tmp/mysql-apt-config.deb
+\end{codigo}
+
+En el menú que aparece, elija \emph{MySQL Server \& Cluster} → \textbf{mysql-8.4-lts} y luego
+\emph{Ok}. Si se equivoca, vuelva al menú con \texttt{sudo dpkg-reconfigure mysql-apt-config}.
+Después:
+
+\begin{codigo}
+sudo apt update
+sudo apt install -y mysql-server
+\end{codigo}
+
+El instalador pide la contraseña de \texttt{root} de MySQL: use \texttt{MYSQL\_ROOT\_PASSWORD}.
+Si pregunta por el método de autenticación, elija el recomendado (\texttt{caching\_sha2\_password}).
+
+Restrinja MySQL al propio servidor creando \cod{/etc/mysql/mysql.conf.d/digaipe.cnf}:
+
+\begin{codigo}[label={/etc/mysql/mysql.conf.d/digaipe.cnf}]
+[mysqld]
+# Solo conexiones desde este servidor: la aplicación y los respaldos.
+bind-address = 127.0.0.1
+mysqlx = OFF
+\end{codigo}
+
+Reinicie y cree la base de datos:
+
+\begin{codigo}
+sudo systemctl restart mysql
+sudo systemctl enable mysql
+mysql -h 127.0.0.1 -u root -p -e "CREATE DATABASE IF NOT EXISTS digaipe CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+\end{codigo}
+
+\begin{comprobar}
+	\begin{codigo}
+mysql -h 127.0.0.1 -u root -p -e "SELECT VERSION(); SHOW DATABASES LIKE 'digaipe'"
+sudo ss -ltnp | grep mysqld
+	\end{codigo}
+	La versión debe empezar por \texttt{8.4}, la base \texttt{digaipe} debe existir y
+	\texttt{mysqld} debe escuchar solo en \texttt{127.0.0.1:3306}.
+\end{comprobar}
+
+\section{Instalar la aplicación}
+
+Clone el repositorio en \cod{/opt/digaipe/app} (capítulo~\ref{cap:preparacion}) y construya:
+
+\begin{codigo}
+cd /opt/digaipe/app
+sudo npm ci
+sudo npm run build
+sudo mkdir -p /opt/digaipe/app/var/uploads
+sudo chown -R digaipe:digaipe /opt/digaipe/app/var
+sudo chmod 2750 /opt/digaipe/app/var /opt/digaipe/app/var/uploads
+\end{codigo}
+
+El bit \texttt{2} (\emph{setgid}) hace que las carpetas nuevas de \cod{var/uploads} hereden el
+grupo \texttt{digaipe}, de modo que el usuario de respaldos siempre pueda leerlas.
+
+El código, \texttt{node\_modules} y \texttt{build} quedan propiedad de \texttt{root}: el
+servicio puede leerlos pero no modificarlos. Solo \texttt{var} es suyo.
+
+\begin{comprobar}
+	\texttt{npm run build} debe terminar sin errores, y \texttt{ls -a /opt/digaipe/app} debe
+	mostrar la carpeta \texttt{build}. \textbf{No} debe haber un archivo \texttt{.env}: la
+	configuración va en \cod{/etc/digaipe/}.
+\end{comprobar}
+
+\begin{nota}
+	El paquete incluye las dependencias de desarrollo (\texttt{drizzle-kit}, \texttt{tsx}) a
+	propósito: la instalación las usa para aplicar migraciones, crear las cuentas de MySQL y
+	verificar la auditoría.
+\end{nota}
+
+\section{Archivos de configuración}
+\label{sec:linux-config}
+
+La instalación usa tres archivos, uno por cada cuenta de MySQL, para que cada proceso conozca
+solo la contraseña que necesita. Créelos con \texttt{sudo nano <archivo>} y reemplace los
+valores \texttt{<...>}.
+
+\begin{codigo}[label={/etc/digaipe/setup.env  (instalación, restauración y auditoría: root de MySQL)}]
+MYSQL_ROOT_PASSWORD=<MYSQL_ROOT_PASSWORD>
+DATABASE_URL=mysql://root:<MYSQL_ROOT_PASSWORD>@127.0.0.1:3306/digaipe
+APP_DB_USER=digaipe_app
+APP_DB_PASSWORD=<APP_DB_PASSWORD>
+BACKUP_DB_USER=digaipe_respaldo
+BACKUP_DB_PASSWORD=<BACKUP_DB_PASSWORD>
+READONLY_DB_USER=digaipe_lectura
+READONLY_DB_PASSWORD=
+ORIGIN=https://<DIGAIPE_HOST>
+BETTER_AUTH_SECRET=<BETTER_AUTH_SECRET>
+BOOTSTRAP_ADMIN_EMAIL=<correo del administrador>
+BOOTSTRAP_ADMIN_PASSWORD=<BOOTSTRAP_ADMIN_PASSWORD>
+BOOTSTRAP_ADMIN_NAME=Administrador
+\end{codigo}
+
+\begin{codigo}[label={/etc/digaipe/digaipe.env  (aplicación)}]
+NODE_ENV=production
+DATABASE_URL=mysql://digaipe_app:<APP_DB_PASSWORD>@127.0.0.1:3306/digaipe
+ORIGIN=https://<DIGAIPE_HOST>
+BETTER_AUTH_SECRET=<BETTER_AUTH_SECRET>
+# Solo Caddy, en este mismo servidor, puede conectarse a la aplicación.
+HOST=127.0.0.1
+PORT=3000
+# IP real del usuario, tomada de la entrada que añade Caddy (auditoría y límite de intentos).
+ADDRESS_HEADER=X-Forwarded-For
+XFF_DEPTH=1
+# Las cargas de admisiones (hoja de cálculo + PDF) superan el límite por defecto de 512K.
+BODY_SIZE_LIMIT=50M
+TZ=America/Caracas
+\end{codigo}
+
+\begin{codigo}[label={/etc/digaipe/backup.env  (respaldos)}]
+DB_HOST=127.0.0.1
+DB_NAME=digaipe
+BACKUP_DB_USER=digaipe_respaldo
+BACKUP_DB_PASSWORD=<BACKUP_DB_PASSWORD>
+BACKUP_ROOT=/var/backups/digaipe
+UPLOADS_DIR=/opt/digaipe/app/var/uploads
+BACKUP_INTERVAL_DAYS=7
+BACKUP_HOUR_UTC=6
+BACKUP_KEEP_DAYS=70
+BACKUP_KEEP_MIN=10
+BACKUP_MIN_FREE_MB=512
+\end{codigo}
+
+\begin{codigo}
+sudo chown root:root /etc/digaipe/setup.env /etc/digaipe/digaipe.env /etc/digaipe/backup.env
+sudo chmod 600 /etc/digaipe/setup.env /etc/digaipe/digaipe.env /etc/digaipe/backup.env
+\end{codigo}
+
+Los servicios leen estos archivos como \texttt{root} al arrancar (\texttt{systemd}), así que no
+hace falta que los usuarios de servicio puedan leerlos.
+
+\begin{aviso}
+	\texttt{ORIGIN} y \texttt{BETTER\_AUTH\_SECRET} deben ser idénticos en \texttt{setup.env} y en
+	\texttt{digaipe.env}, y \texttt{APP\_DB\_PASSWORD} / \texttt{BACKUP\_DB\_PASSWORD}, idénticas
+	en el archivo de instalación y en el que las usa. Si difieren, la aplicación o los respaldos
+	no podrán conectarse.
+\end{aviso}
+
+\section{Comandos de administración}
+
+Estos tres scripts cargan \texttt{setup.env} y ejecutan, como \texttt{root} de MySQL, la
+instalación, la auditoría y la restauración. Hacen lo mismo que los servicios \texttt{setup},
+\texttt{audit} y \texttt{restore} del modo Docker.
+
+\begin{codigo}[label={/usr/local/sbin/digaipe-setup}]
+#!/bin/bash
+# Migraciones, triggers de auditoría, cuentas de MySQL, administrador inicial y datos base.
+# Se puede repetir sin riesgo. Obligatorio después de restaurar o actualizar.
+set -euo pipefail
+cd /opt/digaipe/app
+set -a; . /etc/digaipe/setup.env; set +a
+exec sh scripts/docker/setup.sh
+\end{codigo}
+
+\begin{codigo}[label={/usr/local/sbin/digaipe-audit}]
+#!/bin/bash
+# Uso: digaipe-audit verify [--anchors <archivo>]
+#      digaipe-audit anchor --anchors <archivo> [--note <texto>]
+set -euo pipefail
+cd /opt/digaipe/app
+set -a; . /etc/digaipe/setup.env; set +a
+exec npx tsx scripts/audit-ledger.ts "$@"
+\end{codigo}
+
+\begin{codigo}[label={/usr/local/sbin/digaipe-restaurar}]
+#!/bin/bash
+# Uso: digaipe-restaurar <respaldo> <respaldo>   (el nombre dos veces, como confirmación)
+set -euo pipefail
+set -a; . /etc/digaipe/backup.env; . /etc/digaipe/setup.env; set +a
+RESTORE_CONFIRM="${2:-}" bash /opt/digaipe/app/deploy/backup/restore.sh "${1:?Uso: digaipe-restaurar <respaldo> <respaldo>}"
+# restore.sh copia los archivos como root; la aplicación necesita poder escribirlos.
+chown -R digaipe:digaipe /opt/digaipe/app/var/uploads
+\end{codigo}
+
+\begin{codigo}
+sudo chmod 700 /usr/local/sbin/digaipe-setup /usr/local/sbin/digaipe-audit /usr/local/sbin/digaipe-restaurar
+\end{codigo}
+
+\section{Ejecutar la instalación}
+
+\begin{codigo}
+sudo /usr/local/sbin/digaipe-setup
+\end{codigo}
+
+\begin{comprobar}
+	La salida debe mostrar, en orden y sin errores: \texttt{==> Migraciones},
+	\texttt{==> Triggers de auditoría}, \texttt{==> Usuarios de base de datos y permisos}
+	(con líneas \texttt{Granted digaipe\_app ...} y \texttt{Granted digaipe\_respaldo ...}),
+	\texttt{==> Administrador inicial} y \texttt{==> Datos base}.
+\end{comprobar}
+
+\section{Servicio de la aplicación}
+
+\begin{codigo}[label={/etc/systemd/system/digaipe.service}]
+[Unit]
+Description=DIGAIPE (aplicacion web)
+After=network-online.target mysql.service
+Wants=network-online.target
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=digaipe
+Group=digaipe
+WorkingDirectory=/opt/digaipe/app
+EnvironmentFile=/etc/digaipe/digaipe.env
+ExecStart=/usr/local/bin/node build
+Restart=on-failure
+RestartSec=5
+# Archivos nuevos legibles por el grupo (respaldos), no por otros usuarios.
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/digaipe/app/var
+
+[Install]
+WantedBy=multi-user.target
+\end{codigo}
+
+\texttt{WorkingDirectory} es obligatorio: la aplicación busca la plantilla PDF en
+\cod{static/} y guarda las cargas en \cod{var/uploads/}, ambas relativas a esa carpeta.
+
+\begin{codigo}
+sudo systemctl daemon-reload
+sudo systemctl enable --now digaipe
+\end{codigo}
+
+\begin{comprobar}
+	\begin{codigo}
+systemctl status digaipe
+curl -sI http://127.0.0.1:3000/ | head -n 1
+	\end{codigo}
+	El servicio debe estar \texttt{active (running)} y \texttt{curl} debe responder con una línea
+	\texttt{HTTP/1.1}. Si falla, vea \texttt{journalctl -u digaipe -n 50}.
+\end{comprobar}
+
+\section{Caddy (HTTPS)}
+
+Desde el repositorio oficial de Caddy:
+
+\begin{codigo}
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+\end{codigo}
+
+El paquete crea el usuario \texttt{caddy} y el servicio \texttt{caddy}. Reemplace
+\cod{/etc/caddy/Caddyfile} por:
+
+\begin{codigo}[label={/etc/caddy/Caddyfile}]
+# HTTPS de DIGAIPE: Caddy actúa como autoridad certificadora local (red interna).
+{
+	local_certs
+	# La raíz se instala a mano en las PCs cliente, no en este servidor.
+	skip_install_trust
+}
+
+# Debe coincidir exactamente con ORIGIN (sin https://).
+<DIGAIPE_HOST> {
+	tls internal
+	reverse_proxy 127.0.0.1:3000
+	header -Server
+}
+\end{codigo}
+
+\begin{codigo}
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl enable caddy
+sudo systemctl restart caddy
+\end{codigo}
+
+La autoridad certificadora queda en
+\cod{/var/lib/caddy/.local/share/caddy/pki/authorities/local/}. \textbf{Esa carpeta debe
+estar en las copias de seguridad del servidor}: si se pierde, Caddy crea otra autoridad y hay
+que volver a instalar la raíz en todas las PCs (capítulo~\ref{cap:certificado}).
+
+\section{Servicio de respaldos}
+
+\begin{codigo}[label={/etc/systemd/system/digaipe-respaldo.service}]
+[Unit]
+Description=DIGAIPE (respaldo semanal)
+After=mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=digaipe-respaldo
+Group=digaipe-respaldo
+SupplementaryGroups=digaipe
+EnvironmentFile=/etc/digaipe/backup.env
+ExecStart=/usr/bin/bash /opt/digaipe/app/deploy/backup/worker.sh
+Restart=always
+RestartSec=60
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/digaipe
+
+[Install]
+WantedBy=multi-user.target
+\end{codigo}
+
+\begin{codigo}
+sudo systemctl daemon-reload
+sudo systemctl enable --now digaipe-respaldo
+\end{codigo}
+
+\begin{comprobar}
+	\texttt{journalctl -u digaipe-respaldo -n 20} debe mostrar
+	\texttt{Backup worker started}, \texttt{Backup due: no backup exists yet} y, al cabo de unos
+	segundos, \texttt{Backup finished.} \texttt{sudo ls /var/backups/digaipe} debe mostrar una
+	carpeta \texttt{digaipe-<fecha>}.
+\end{comprobar}
+
+\section{Cortafuegos}
+
+\begin{codigo}
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status
+\end{codigo}
+
+Omita la regla 22 si no administra el servidor por SSH. Si el sistema usa \texttt{nftables} o
+\texttt{firewalld} en lugar de \texttt{ufw}, aplique las mismas reglas con esa herramienta.
+
+\section{Siguiente paso}
+
+Continúe con el certificado HTTPS (capítulo~\ref{cap:certificado}) y la verificación
+(capítulo~\ref{cap:verificacion}).
+
+\section{Operación diaria}
+
+\begin{xltabular}{\linewidth}{@{}l L@{}}
+	\toprule
+	\textbf{Tarea} & \textbf{Comando} \\
+	\midrule
+	\endhead
+	Ver estado & \texttt{systemctl status digaipe caddy mysql digaipe-respaldo} \\
+	Ver registros de la aplicación & \texttt{journalctl -u digaipe -f} \\
+	Reaplicar la instalación & \texttt{sudo /usr/local/sbin/digaipe-setup} y luego
+	\texttt{sudo systemctl restart digaipe} \\
+	Detener & \texttt{sudo systemctl stop digaipe digaipe-respaldo} \\
+	Iniciar & \texttt{sudo systemctl start digaipe digaipe-respaldo} \\
+	\bottomrule
+\end{xltabular}

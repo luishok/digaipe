@@ -1,0 +1,82 @@
+\chapter{Actualización}
+\label{cap:actualizacion}
+
+En todos los modos: haga un \textbf{respaldo manual} justo antes (capítulo~\ref{cap:respaldos}),
+traiga el código nuevo con \texttt{git pull}, reconstruya, vuelva a ejecutar la instalación
+(aplica las migraciones nuevas) y verifique (capítulo~\ref{cap:verificacion}).
+
+\begin{aviso}[Las migraciones no se deshacen]
+	Una vez aplicadas las migraciones de la versión nueva, volver a la versión anterior del
+	programa no devuelve la base a su estado anterior. Para volver atrás hay que restaurar el
+	respaldo manual hecho antes de actualizar, y se pierde lo hecho desde entonces. Por eso: haga
+	el respaldo, compruebe que terminó bien, anote el commit actual y actualice fuera del horario
+	de uso.
+\end{aviso}
+
+\section{Docker}
+
+Desde \cod{/opt/digaipe/app/deploy} (o \texttt{C:\bs digaipe\bs app\bs deploy}; en Windows,
+sin \texttt{sudo}):
+
+\begin{codigo}
+docker compose --profile ops run --rm backup
+sudo git log -1 --format=%h
+sudo git pull
+docker compose build
+docker compose up -d
+docker compose logs setup
+\end{codigo}
+
+\texttt{deploy/.env} no está en Git, así que \texttt{git pull} no lo toca. Compare
+\texttt{.env.example} con su \texttt{.env} por si la versión nueva trae variables nuevas.
+
+\section{Servidor físico}
+
+\so{Linux}
+\begin{codigo}
+sudo systemctl stop digaipe digaipe-respaldo
+sudo systemd-run --wait --pipe -p User=digaipe-respaldo -p SupplementaryGroups=digaipe -p EnvironmentFile=/etc/digaipe/backup.env /usr/bin/bash /opt/digaipe/app/deploy/backup/backup.sh
+cd /opt/digaipe/app
+sudo git log -1 --format=%h
+sudo git pull
+sudo npm ci
+sudo npm run build
+sudo /usr/local/sbin/digaipe-setup
+sudo systemctl start digaipe digaipe-respaldo
+\end{codigo}
+
+\so{Windows}
+\begin{codigo}
+Stop-Service digaipe
+Disable-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName Respaldo
+& 'C:\Program Files\Git\bin\bash.exe' -c '. /c/digaipe/bin/entorno.sh && bash /c/digaipe/app/deploy/backup/backup.sh'
+Set-Location C:\digaipe\app
+git log -1 --format=%h
+git pull
+npm ci
+npm run build
+powershell -ExecutionPolicy Bypass -File C:\digaipe\bin\digaipe-setup.ps1
+Start-Service digaipe
+Enable-ScheduledTask -TaskPath '\DIGAIPE\' -TaskName Respaldo
+\end{codigo}
+
+\texttt{git pull} no toca los archivos cargados (\texttt{var/uploads} está excluido de Git) ni la
+configuración (fuera de la carpeta). Revise si la versión nueva cambió \texttt{deploy/Caddyfile}
+o \texttt{deploy/.env.example}, y traslade los cambios a su \texttt{Caddyfile} y a sus archivos
+\texttt{.env}. Si cambió la versión requerida de Node.js o de MySQL, actualícela antes.
+
+\section{Volver a la versión anterior}
+
+Si la versión nueva falla y hay que volver atrás:
+
+\begin{enumerate}
+	\item Detenga la aplicación y los respaldos.
+	\item Vuelva al commit anotado: \texttt{git checkout <commit>} (con \texttt{sudo} en Linux).
+	\item Reconstruya: Docker, \texttt{docker compose build}; servidor físico, \texttt{npm ci} y
+	      \texttt{npm run build}.
+	\item Restaure el respaldo manual hecho antes de actualizar (capítulo~\ref{cap:respaldos}),
+	      incluido el paso de volver a ejecutar la instalación.
+\end{enumerate}
+
+Cuando corrijan el problema, vuelva a la rama con \texttt{git checkout <rama>} antes del
+siguiente \texttt{git pull}.

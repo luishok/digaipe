@@ -1,0 +1,98 @@
+% Manual de instalación de DIGAIPE.
+% Compilar con LuaLaTeX (fontspec): latexmk manual-instalacion.tex  (ver latexmkrc)
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage{fontspec}
+\usepackage[spanish,es-noshorthands,es-tabla,es-nodecimaldot]{babel}
+\usepackage[margin=2.5cm,headheight=14pt]{geometry}
+\usepackage{xcolor}
+\usepackage{fvextra}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs,array,tabularx,xltabular}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hyphens,spaces,obeyspaces]{url}
+\usepackage[hidelinks,pdfusetitle]{hyperref}
+
+\hypersetup{
+	pdftitle={DIGAIPE - Manual de instalación},
+	pdfsubject={Instalación con Docker y en servidor físico (Linux y Windows)}
+}
+
+% ---------------------------------------------------------------- Estilo
+\definecolor{acento}{RGB}{0,72,120}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\setlist{itemsep=0.2em,topsep=0.3em}
+\renewcommand{\arraystretch}{1.25}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsf{DIGAIPE — Manual de instalación}}
+\fancyhead[R]{\small\textsf{\nouppercase{\leftmark}}}
+\fancyfoot[C]{\small\thepage}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% Código en línea: rutas, comandos y variables (no usar dentro de \section ni \caption).
+\DeclareUrlCommand\cod{\urlstyle{tt}}
+% Barra invertida para rutas de Windows dentro de tablas.
+\newcommand{\bs}{\textbackslash\allowbreak{}}
+\setlength{\emergencystretch}{3em}
+
+% Bloques de comandos.
+\DefineVerbatimEnvironment{codigo}{Verbatim}{%
+	fontsize=\small,tabsize=4,breaklines,breakafter={/},frame=single,framesep=2.5mm,
+	rulecolor=\color{black!35},labelposition=topline}
+
+% Recuadros.
+\newtcolorbox{aviso}[1][Atención]{breakable,colback=red!4,colframe=red!55!black,
+	fonttitle=\bfseries\sffamily,title={#1}}
+\newtcolorbox{nota}[1][Nota]{breakable,colback=blue!3,colframe=acento,
+	fonttitle=\bfseries\sffamily,title={#1}}
+\newtcolorbox{comprobar}[1][Comprobación]{breakable,colback=green!4,colframe=green!35!black,
+	fonttitle=\bfseries\sffamily,title={#1}}
+
+% Etiqueta de sistema operativo al inicio de un paso.
+\newcommand{\so}[1]{\colorbox{acento!12}{\textsf{\small\bfseries #1}}}
+
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+% ---------------------------------------------------------------- Documento
+\begin{document}
+
+\begin{titlepage}
+	\centering
+	\vspace*{3cm}
+	{\sffamily\bfseries\Huge DIGAIPE\par}
+	\vspace{0.6cm}
+	{\sffamily\LARGE Manual de instalación\par}
+	\vspace{1.2cm}
+	{\large Instalación completa con Docker\\[0.3em]
+		e instalación en servidor físico (Linux y Windows)\par}
+	\vfill
+	\begin{tabular}{rl}
+		Versión del código: & commit \texttt{a587434} \\
+		Fecha del manual:   & 10 de noviembre de 2026 \\
+	\end{tabular}
+	\vspace{2cm}
+\end{titlepage}
+
+\tableofcontents
+
+\input{capitulos/01-introduccion}
+\input{capitulos/02-requisitos}
+\input{capitulos/03-preparacion}
+\input{capitulos/04-docker}
+\input{capitulos/05-linux}
+\input{capitulos/06-windows}
+\input{capitulos/07-certificado}
+\input{capitulos/08-verificacion}
+\input{capitulos/09-respaldos}
+\input{capitulos/10-auditoria}
+\input{capitulos/11-actualizacion}
+\input{capitulos/12-problemas}
+
+\appendix
+\input{capitulos/a-referencia}
+
+\end{document}
