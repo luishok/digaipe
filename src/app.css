@@ -1164,6 +1164,11 @@ input[type='tel'] {
     color: #92400e;
 }
 
+.status-badge.status-en-proceso {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
 .code-tag {
     font-family: monospace;
     background-color: #f1f5f9;

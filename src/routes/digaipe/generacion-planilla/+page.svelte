@@ -156,7 +156,12 @@
 		<tbody>
 			{#each data.admissions as admission (admission.id)}
 				<tr>
-					<td>{admission.cedula}</td>
+					<td>
+						{admission.cedula}
+						{#if admission.processingStatus === 'pendiente' || admission.processingStatus === 'en proceso' || admission.processingStatus === 'devuelto' || admission.processingStatus === 'matriculado'}
+							<span class="status-badge status-{admission.processingStatus === 'en proceso' ? 'en-proceso' : admission.processingStatus}">{admission.processingStatus}</span>
+						{/if}
+					</td>
 					<td>{admission.apellidosNombres}</td>
 					<td>{admission.telefono ?? ''}</td>
 					<td>{admission.correo ?? ''}</td>

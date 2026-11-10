@@ -5,6 +5,17 @@
 
 	let { data, form } = $props();
 
+	// Estados locales para la decisión de revisión
+	let decisionStatus = $state<'matriculado' | 'devuelto'>('matriculado');
+	let decisionReason = $state('');
+
+	function handleStatusChange(status: 'matriculado' | 'devuelto') {
+		decisionStatus = status;
+		if (status === 'matriculado') {
+			decisionReason = '';
+		}
+	}
+
 	// Keep the active filters on action URLs so they survive the POST (with or without JS).
 	const filterQuery = $derived(
 		[...page.url.searchParams]
@@ -23,6 +34,131 @@
 		invalidateAll();
 	}
 </script>
+
+<style>
+.label-title{
+    display: flex;
+    flex:column;
+}
+/* Contenedor track */
+.switch-container {
+	position: relative;
+	display: inline-grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	background-color: #e5e7eb;
+	padding: 3px;
+	border-radius: 9999px;
+	border: 1px solid #d1d5db;
+	user-select: none;
+	min-height: 2.375rem;
+	box-sizing: border-box;
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Pastilla deslizante (Glider) */
+.switch-glider {
+	position: absolute;
+	top: 3px;
+	bottom: 3px;
+	left: 3px;
+	width: calc(50% - 3px);
+	background-color: #ffffff;
+	border-radius: 9999px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 2px 5px rgba(0, 0, 0, 0.08);
+	pointer-events: none;
+	/* Transición con efecto de rebote sutil */
+	transition: transform 0.28s cubic-bezier(0.34, 1.3, 0.64, 1),
+	            box-shadow 0.25s ease;
+	will-change: transform;
+	z-index: 1;
+}
+
+/* Desplazamiento a la segunda posición */
+.switch-container.is-devuelto .switch-glider {
+	transform: translateX(100%);
+}
+
+/* Opciones (textos y radio) por encima de la pastilla */
+.switch-option {
+	position: relative;
+	z-index: 2;
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.35rem 0.95rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #6b7280;
+	cursor: pointer;
+	line-height: 1;
+	transition: color 0.22s ease;
+	white-space: nowrap;
+}
+
+.switch-option:hover {
+	color: #1f2937;
+}
+
+.switch-option.active {
+	color: #111827;
+	font-weight: 600;
+}
+
+/* Micro-animación de escala al pulsar (efecto táctil) */
+.switch-container:active .switch-glider {
+	transform: scaleX(0.96) scaleY(0.94);
+}
+
+.switch-container.is-devuelto:active .switch-glider {
+	transform: translateX(100%) scaleX(0.96) scaleY(0.94);
+}
+
+/* Indicadores de estado con pulso sutil */
+.status-indicator {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+	            opacity 0.2s ease;
+	opacity: 0.6;
+	transform: scale(0.85);
+}
+
+.switch-option.active .status-indicator {
+	opacity: 1;
+	transform: scale(1.15);
+}
+
+.dot-matriculado {
+	background-color: #10b981;
+}
+
+.dot-devuelto {
+	background-color: #ef4444;
+}
+
+/* Accesibilidad teclado */
+.switch-option:has(input:focus-visible) {
+	border-radius: 9999px;
+	outline: 2px solid #2563eb;
+	outline-offset: 1px;
+}
+
+/* Ocultar input nativo */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+</style>
 
 <h1>Revisión de documentos</h1>
 {#if form?.message}<p aria-live="polite">{form.message}</p>{/if}
@@ -128,7 +264,12 @@
                     <tr>
                         {#if data.canReview}
                             <td class="td-checkbox">
-                                <input type="checkbox" name="processingId" value={row.id} class="row-checkbox" />
+                                {#if row.status != 'matriculado'}
+                                    <input type="checkbox" name="processingId" value={row.id} class="row-checkbox" />
+                                {:else}
+                                    <input type="checkbox" name="processingId" disabled value={row.id} class="row-checkbox" />
+                                {/if }
+                                
                             </td>
                         {/if}
                         <td class="whitespace-nowrap">{String(row.processingDate).slice(0, 10)}</td>
@@ -172,39 +313,75 @@
     </div>
 
     <!-- Panel de Decisión para Seleccionadas -->
-    {#if data.canReview}
-    <fieldset class="filter-card mt-4">
-        <legend>Decisión para las seleccionadas</legend>
-        
-        <div class="filter-row-flex align-end">
-            <div class="label-input">
-                <label>
-                    Estado
-                    <select name="status">
-                        <option value="matriculado">Matriculado</option>
-                        <option value="devuelto">Devuelto</option>
-                    </select>
-                </label>
-            </div>
+	{#if data.canReview}
+		<fieldset class="filter-card mt-4">
+			<legend>Decisión para las seleccionadas</legend>
 
-            <div class="label-input flex-1">
-                <label>
-                    Motivo de devolución
-                    <input  class="motivo-devolucion-text"
-                        type="text" 
-                        name="reason" 
-                        maxlength="500" 
-                        placeholder="Especifique la razón si devuelve la solicitud..." 
-                    />
-                </label>
-            </div>
+			<div class="filter-row-flex align-end">
+				<!-- Opciones tipo Radio -->
+				<!-- Interruptor Segmentado de Estado -->
+                <!-- Interruptor Segmentado Animado -->
+<div class="label-input">
+	<span class="label-title">Decisión</span>
+	<div 
+		class="switch-container" 
+		class:is-devuelto={decisionStatus === 'devuelto'}
+	>
+		<!-- Pastilla deslizante animada -->
+		<span class="switch-glider" aria-hidden="true"></span>
 
-            <div class="filter-actions">
-                <button type="submit" class="btn-submit">
-                    Guardar decisión
-                </button>
-            </div>
-        </div>
-    </fieldset>
-    {/if}
+		<label class="switch-option" class:active={decisionStatus === 'matriculado'}>
+			<input
+				type="radio"
+				name="status"
+				value="matriculado"
+				class="sr-only"
+				checked={decisionStatus === 'matriculado'}
+				onchange={() => handleStatusChange('matriculado')}
+			/>
+			<span class="status-indicator dot-matriculado"></span>
+			Matricular
+		</label>
+
+		<label class="switch-option" class:active={decisionStatus === 'devuelto'}>
+			<input
+				type="radio"
+				name="status"
+				value="devuelto"
+				class="sr-only"
+				checked={decisionStatus === 'devuelto'}
+				onchange={() => handleStatusChange('devuelto')}
+			/>
+			<span class="status-indicator dot-devuelto"></span>
+			Devolver
+		</label>
+	</div>
+</div>
+				<!-- Campo de Motivo condicionado -->
+				<div class="label-input flex-1">
+					<label>
+						Motivo de devolución
+						<input
+							class="motivo-devolucion-text"
+							type="text"
+							name="reason"
+							maxlength="500"
+							placeholder={decisionStatus === 'devuelto'
+								? 'Especifique la razón de devolución...'
+								: 'No aplica para matriculado'}
+							bind:value={decisionReason}
+							disabled={decisionStatus === 'matriculado'}
+							required={decisionStatus === 'devuelto'}
+						/>
+					</label>
+				</div>
+
+				<div class="filter-actions">
+					<button type="submit" class="btn-submit">
+						Guardar decisión
+					</button>
+				</div>
+			</div>
+		</fieldset>
+	{/if}
 </form>

@@ -2,6 +2,7 @@ import { and, desc, eq, like, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
 	APActiveDates,
+	admissionProcessings,
 	admissions,
 	careers,
 	mod_admission,
@@ -63,7 +64,8 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 			modalityName: mod_admission.name,
 			activeDate: APActiveDates.activeDate,
 			periodoIngreso: admissions.periodoIngreso,
-			fechaAsignacion: admissions.fechaAsignacion
+			fechaAsignacion: admissions.fechaAsignacion,
+			processingStatus: admissionProcessings.status
 		})
 		.from(admissions)
 		.innerJoin(students, eq(admissions.studentId, students.id))
@@ -71,6 +73,7 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 		.innerJoin(proceso_admission, eq(admissions.procesoId, proceso_admission.id))
 		.innerJoin(APActiveDates, eq(proceso_admission.id, APActiveDates.codeId))
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
+		.leftJoin(admissionProcessings, eq(admissions.id, admissionProcessings.admissionId))
 		.where(and(...conditions))
 		.orderBy(desc(admissions.fechaAsignacion), desc(admissions.id))
 		.limit(20);
