@@ -904,7 +904,7 @@ input[type='tel'] {
 .kpi-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #64748b;
+    color: white;
     text-transform: uppercase;
     letter-spacing: 0.025em;
 }
@@ -913,6 +913,11 @@ input[type='tel'] {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--ula-blue, #2563eb);
+}
+.kpi-value-estadistica {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
 }
 
 /* Alertas genéricas (Error y Warning) */
