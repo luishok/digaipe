@@ -11,6 +11,10 @@
 	# The CA root lives in the caddy-data volume; Caddy must not try to install it in the
 	# container's own trust store.
 	skip_install_trust
+	# Browsers send no SNI when the address is an IP. Caddy then picks a certificate by the
+	# connection's local address, which under Podman is the container's IP, not the host's,
+	# so no certificate matches and the handshake fails (Chrome: ERR_SSL_PROTOCOL_ERROR).
+	default_sni {$DIGAIPE_HOST}
 }
 
 # DIGAIPE_HOST is the name or IP clients type, e.g. digaipe.ula.local or 192.168.1.50.
