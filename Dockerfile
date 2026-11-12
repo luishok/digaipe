@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-bookworm-slim AS deps
+FROM docker.io/library/node:24-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 RUN npm ci
@@ -14,7 +14,7 @@ RUN npm run build
 FROM build AS setup
 CMD ["sh", "scripts/docker/setup.sh"]
 
-FROM node:24-bookworm-slim AS app
+FROM docker.io/library/node:24-bookworm-slim AS app
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json .npmrc ./

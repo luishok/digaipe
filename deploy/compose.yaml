@@ -3,7 +3,7 @@ name: digaipe
 
 services:
   db:
-    image: mysql:8.4
+    image: docker.io/library/mysql:8.4
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD en deploy/.env}
@@ -70,7 +70,7 @@ services:
         condition: service_completed_successfully
 
   caddy:
-    image: caddy:2.11.7-alpine
+    image: docker.io/library/caddy:2.11.7-alpine
     restart: unless-stopped
     environment:
       DIGAIPE_HOST: ${DIGAIPE_HOST:?Defina DIGAIPE_HOST en deploy/.env}
@@ -78,7 +78,9 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # :z = SELinux label so containers may read bind mounts (Podman on Fedora/RHEL);
+      # ignored where SELinux is off.
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
       # Holds the local CA (root certificate to install on clients) and issued certificates.
       # Losing it means a new CA, and every client would have to trust the new root again.
       - caddy-data:/data
@@ -88,7 +90,7 @@ services:
 
   # Weekly backups with retention (deploy/backup/worker.sh). Results go to the audit ledger.
   backup-worker:
-    image: mysql:8.4
+    image: docker.io/library/mysql:8.4
     restart: unless-stopped
     entrypoint: ['bash']
     command: ['/scripts/worker.sh']
@@ -102,9 +104,9 @@ services:
       BACKUP_KEEP_MIN: ${BACKUP_KEEP_MIN:-10}
       BACKUP_MIN_FREE_MB: ${BACKUP_MIN_FREE_MB:-512}
     volumes: &backup-volumes
-      - ./backup:/scripts:ro
+      - ./backup:/scripts:ro,z
       - uploads:/uploads:ro
-      - ${BACKUP_DIR:-./backups}:/backups
+      - ${BACKUP_DIR:-./backups}:/backups:z
     depends_on:
       db:
         condition: service_healthy
@@ -113,7 +115,7 @@ services:
 
   # Backup and restore. Same image as db, so mysqldump matches the server. See deploy/README.md.
   backup:
-    image: mysql:8.4
+    image: docker.io/library/mysql:8.4
     profiles: ['ops']
     entrypoint: ['bash']
     command: ['/scripts/backup.sh']
@@ -126,17 +128,17 @@ services:
   # Restore (docs/respaldos.md) and other database-owner work: the only backup-related service
   # with the root password. Started by hand, never by `up`.
   restore:
-    image: mysql:8.4
+    image: docker.io/library/mysql:8.4
     profiles: ['ops']
     entrypoint: ['bash']
     command: ['-c', 'echo "Uso: docker compose --profile ops run --rm -e RESTORE_CONFIRM=<respaldo> restore /scripts/restore.sh <respaldo>"; exit 1']
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - ./backup:/scripts:ro
+      - ./backup:/scripts:ro,z
       # Read-write: restore.sh puts the uploaded files back.
       - uploads:/uploads
-      - ${BACKUP_DIR:-./backups}:/backups
+      - ${BACKUP_DIR:-./backups}:/backups:z
     depends_on:
       db:
         condition: service_healthy
@@ -150,7 +152,7 @@ services:
     environment:
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/digaipe
     volumes:
-      - ${ANCHOR_DIR:-./anchors}:/anchors
+      - ${ANCHOR_DIR:-./anchors}:/anchors:z
     depends_on:
       db:
         condition: service_healthy
