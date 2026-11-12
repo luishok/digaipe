@@ -379,6 +379,7 @@
 				<th>Errores</th>
 				<th>Creado</th>
 				<th>Guardado</th>
+				{#if data.canDeleteDraft}<th>Eliminar borrador</th>{/if}
 			</tr>
 		</thead>
 		<tbody>
@@ -387,7 +388,7 @@
 					<td>{batch.id}</td>
 					<td>{batchStatusLabel(batch.status)}</td>
 					<td>
-						{#if batch.status === 'draft'}
+						{#if batch.status === 'draft' && batch.isOwn}
 							<a href={resolve(`/digaipe/admisiones/cargar/${batch.id}`)}>{batch.sourceFileName}</a>
 						{:else}
 							{batch.sourceFileName}
@@ -398,6 +399,31 @@
 					<td>{batch.errorCount}</td>
 					<td>{new Date(batch.createdAt).toLocaleString()}</td>
 					<td>{batch.savedAt ? new Date(batch.savedAt).toLocaleString() : ''}</td>
+					{#if data.canDeleteDraft}
+						<td>
+							{#if batch.status === 'draft'}
+								<form
+									method="POST"
+									action="?/deleteDraft"
+									onsubmit={(event) => {
+										if (!confirm(`¿Eliminar el lote #${batch.id}? Se borrarán sus archivos.`))
+											event.preventDefault();
+									}}
+								>
+									<input type="hidden" name="batchId" value={batch.id} />
+									<input
+										name="reason"
+										type="text"
+										placeholder="Motivo"
+										aria-label="Motivo de la eliminación"
+										required
+										maxlength="500"
+									/>
+									<button type="submit">Eliminar</button>
+								</form>
+							{/if}
+						</td>
+					{/if}
 				</tr>
 			{/each}
 		</tbody>

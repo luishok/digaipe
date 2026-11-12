@@ -680,3 +680,77 @@ async function assertNoExistingAdmissions(rows: AdmissionPreviewRow[], catalogs:
 		}
 	}
 }
+
+export class DraftBatchDeleteError extends Error {}
+
+/**
+ * Discards a draft upload batch (admin only — enforced in hooks.server.ts and by the caller).
+ * Only drafts can go: a saved batch has admissions pointing at it and is part of the record.
+ * The row is deleted under a lock so a concurrent save cannot slip in between the check and
+ * the delete. The audit event keeps the file names and SHA-256s, so what was discarded stays
+ * traceable after its files are removed.
+ */
+export async function deleteDraftBatch(batchId: number, reason: string, auditContext: AuditContext) {
+	const deleted = await auditedTransaction(auditContext, async (tx) => {
+		const [batch] = await tx
+			.select()
+			.from(admissionImportBatches)
+			.where(eq(admissionImportBatches.id, batchId))
+			.for('update');
+
+		if (!batch) throw new DraftBatchDeleteError('No existe el lote de admisiones.');
+		if (batch.status !== 'draft') {
+			throw new DraftBatchDeleteError('Solo se pueden eliminar lotes en borrador.');
+		}
+
+		// A draft never has admissions; refuse rather than orphan or cascade if one somehow does.
+		const [linked] = await tx
+			.select({ id: admissions.id })
+			.from(admissions)
+			.where(eq(admissions.importBatchId, batchId))
+			.limit(1);
+		if (linked) {
+			throw new DraftBatchDeleteError('El lote tiene admisiones asociadas y no se puede eliminar.');
+		}
+
+		await writeAuditLog(tx, auditContext, {
+			action: 'admission_import_batch.deleted',
+			entityType: 'admission_import_batch',
+			entityId: batchId,
+			before: {
+				id: batch.id,
+				status: batch.status,
+				uploadedByUserId: batch.uploadedByUserId,
+				rowCount: batch.rowCount,
+				warningCount: batch.warningCount,
+				errorCount: batch.errorCount,
+				createdAt: batch.createdAt
+			},
+			after: null,
+			metadata: {
+				reason,
+				sourceFileName: batch.sourceFileName,
+				sourceFileSha256: batch.sourceFileSha256,
+				estadisticaFileName: batch.estadisticaFileName,
+				estadisticaFileSha256: batch.estadisticaFileSha256,
+				manifestFileName: batch.manifestFileName,
+				manifestFileSha256: batch.manifestFileSha256
+			}
+		});
+
+		await tx.delete(admissionImportBatches).where(eq(admissionImportBatches.id, batchId));
+		return batch;
+	});
+
+	// Files go only after the delete committed. Each batch has its own upload directory; only
+	// remove it when it is strictly inside the upload root. A leftover directory is harmless
+	// (nothing points at it), so a failure here is logged, not surfaced.
+	const directory = path.resolve(path.dirname(deleted.sourceFilePath));
+	if (directory.startsWith(ADMISSION_UPLOAD_ROOT + path.sep)) {
+		await rm(directory, { recursive: true, force: true }).catch((error) => {
+			console.error(`No se pudieron borrar los archivos del lote ${batchId}:`, error);
+		});
+	}
+
+	return { batchId };
+}

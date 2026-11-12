@@ -74,12 +74,14 @@ const writeRules: Record<string, Permission | null> = {
 	'/digaipe/admin/roles POST delete': 'users.manage',
 	'/digaipe/admisiones/cargar POST preview': 'admissions.upload',
 	'/digaipe/admisiones/cargar POST save': 'admissions.upload',
+	'/digaipe/admisiones/cargar POST deleteDraft': 'admissions.deleteDraft',
 	'/digaipe/admisiones/cargar/[batchId] POST save': 'admissions.upload',
 	'/digaipe/carreras POST default': 'catalogs.import',
 	'/digaipe/generacion-planilla/[admissionId] POST updateStudent': 'students.edit',
 	'/digaipe/generacion-planilla/[admissionId]/pdf POST default': 'planillas.generate',
 	'/digaipe/procesos-adm POST create': 'processes.manage',
 	'/digaipe/procesos-adm POST saveDates': 'processes.manage',
+	'/digaipe/procesos-adm POST setEnabled': 'processes.toggle',
 	'/digaipe/revision-documentos POST review': 'documents.review',
 	'/digaipe/revision-documentos POST unlock': 'documents.unlock'
 };

@@ -15,6 +15,8 @@ test('each operational role is limited to its own job', () => {
 	assert.ok(!can({ role: 'estadisticas' }, 'admissions.view'));
 	assert.ok(can({ role: 'cargador' }, 'catalogs.import'));
 	assert.ok(!can({ role: 'cargador' }, 'users.manage'));
+	assert.ok(!can({ role: 'cargador' }, 'admissions.deleteDraft'));
+	assert.ok(!can({ role: 'cargador' }, 'processes.toggle'));
 });
 
 test('auditor can view everything and change nothing', () => {

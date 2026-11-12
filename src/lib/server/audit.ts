@@ -34,9 +34,11 @@ export type AuditAction =
 	| 'career.imported'
 	| 'admission_process.created'
 	| 'admission_process.dates_added'
+	| 'admission_process.enabled_changed'
 	| 'admission_import_batch.created'
 	| 'admission_import_batch.saved'
 	| 'admission_import_batch.integrity_failed'
+	| 'admission_import_batch.deleted'
 	| 'admission_planilla.student_updated'
 	| 'auth.sign_in_succeeded'
 	| 'auth.sign_in_failed'
@@ -66,9 +68,11 @@ const auditPolicies: Record<AuditAction, AuditPolicy> = {
 	'career.imported': {},
 	'admission_process.created': {},
 	'admission_process.dates_added': {},
+	'admission_process.enabled_changed': {},
 	'admission_import_batch.created': {},
 	'admission_import_batch.saved': {},
 	'admission_import_batch.integrity_failed': {},
+	'admission_import_batch.deleted': {},
 	'admission_planilla.student_updated': { retainFullValues: true },
 	'auth.sign_in_succeeded': {},
 	'auth.sign_in_failed': {},

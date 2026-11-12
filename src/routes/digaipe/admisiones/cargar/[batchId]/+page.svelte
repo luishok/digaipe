@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { batchStatusLabel } from '$lib';
+	import { can } from '$lib/permissions';
 	import alertIcon from '$lib/assets/alert.png';
 	import errorIcon from '$lib/assets/error.png';
 
@@ -9,6 +10,9 @@
 	const warnings = $derived(data.preview.warnings);
 	const errors = $derived(data.preview.errors);
 	const canSave = $derived(data.batch.status === 'draft' && errors.length === 0);
+	const canDeleteDraft = $derived(
+		data.batch.status === 'draft' && can(data.user, 'admissions.deleteDraft')
+	);
 </script>
 
 
@@ -45,6 +49,23 @@
 	</form>
 {:else}
 	<p style="color: red;">*Corrija los errores y vuelva a cargar los archivos para poder guardar.</p>
+{/if}
+{#if canDeleteDraft}
+	<form
+		method="POST"
+		action="{resolve('/digaipe/admisiones/cargar')}?/deleteDraft"
+		onsubmit={(event) => {
+			if (!confirm(`¿Eliminar el lote #${data.batch.id}? Se borrarán sus archivos.`))
+				event.preventDefault();
+		}}
+	>
+		<input type="hidden" name="batchId" value={data.batch.id} />
+		<label>
+			Motivo de la eliminación
+			<input name="reason" type="text" required maxlength="500" />
+		</label>
+		<button type="submit">Eliminar borrador</button>
+	</form>
 {/if}
 <div class="container-advertencias-errores">
 	{#if warnings.length > 0}

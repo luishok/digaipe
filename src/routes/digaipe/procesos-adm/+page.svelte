@@ -4,6 +4,7 @@
 
 	let { form, data } = $props();
 	const canManage = $derived(can(data.user, 'processes.manage'));
+	const canToggle = $derived(can(data.user, 'processes.toggle'));
 
 	let dateInput = $state('');
 	let dates = $state<string[]>([]);
@@ -188,6 +189,7 @@
 						<th>Estado</th>
 						<th>Fechas</th>
 						{#if canManage}<th>Agregar fechas</th>{/if}
+						{#if canToggle}<th>Activar / Desactivar</th>{/if}
 					</tr>
 				</thead>
 				<tbody>
@@ -195,7 +197,19 @@
 						<tr>
 							<td>{process.id}</td>
 							<td>{process.code}</td>
-							<td>{process.isEnabled ? 'Activo' : 'Sin fechas'}</td>
+							<td>
+								{#if process.status === 'active'}
+									Activo hoy
+								{:else if process.status === 'scheduled'}
+									Programado (próxima: {process.nextDate})
+								{:else if process.status === 'finished'}
+									Finalizado
+								{:else if process.status === 'disabled'}
+									Deshabilitado
+								{:else}
+									Sin fechas
+								{/if}
+							</td>
 							<td>{process.dates.length > 0 ? process.dates.join(', ') : 'Sin fechas activas'}</td>
 							{#if canManage}
 							<td>
@@ -240,6 +254,34 @@
 										<button type="submit">Guardar Fechas</button>
 									</form>
 								{/if}
+							</td>
+							{/if}
+							{#if canToggle}
+							<td>
+								<form
+									method="POST"
+									action="?/setEnabled"
+									use:enhance={({ cancel }) => {
+										const message = process.isEnabled
+											? `¿Desactivar el proceso ${process.code}? No se podrán generar planillas ni revisar documentos hasta reactivarlo.`
+											: `¿Reactivar el proceso ${process.code}?`;
+										if (!confirm(message)) cancel();
+									}}
+								>
+									<input type="hidden" name="processId" value={process.id} />
+									<input type="hidden" name="enabled" value={process.isEnabled ? 'false' : 'true'} />
+									<input
+										name="reason"
+										type="text"
+										placeholder="Motivo"
+										aria-label="Motivo del cambio"
+										required
+										maxlength="500"
+									/>
+									<button type="submit" class={process.isEnabled ? 'button-red' : ''}>
+										{process.isEnabled ? 'Desactivar' : 'Reactivar'}
+									</button>
+								</form>
 							</td>
 							{/if}
 						</tr>

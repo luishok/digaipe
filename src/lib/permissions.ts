@@ -18,8 +18,12 @@ export const PERMISSIONS = [
 	'statistics.view',
 	'admissions.view',
 	'admissions.upload',
+	// Admin only: discard a draft upload batch that was loaded by mistake.
+	'admissions.deleteDraft',
 	'processes.view',
 	'processes.manage',
+	// Admin only: shut a process down (or turn it back on) regardless of its dates.
+	'processes.toggle',
 	'catalogs.view',
 	'catalogs.import',
 	'planillas.view',

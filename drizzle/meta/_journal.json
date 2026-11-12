@@ -43,6 +43,13 @@
       "when": 1793233933915,
       "tag": "0005_backup_audit_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1794355200000,
+      "tag": "0006_process_enabled_switch",
+      "breakpoints": true
     }
   ]
 }
