@@ -21,6 +21,8 @@ salga el aviso): así Caddy crea la autoridad si aún no existe. Luego copie la 
 	\endhead
 	Docker & \cod{docker compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./digaipe-ca.crt}
 	(desde la carpeta \texttt{deploy}) \\
+	Podman & \cod{podman compose cp caddy:/data/caddy/pki/authorities/local/root.crt ./digaipe-ca.crt}
+	(usuario \texttt{digaipe}, desde la carpeta \texttt{deploy}) \\
 	Linux & \cod{sudo cp /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt ./digaipe-ca.crt} \\
 	Windows & \texttt{Copy-Item C:\bs digaipe\bs caddy\bs data\bs pki\bs authorities\bs local\bs
 	root.crt .\bs digaipe-ca.crt} \\

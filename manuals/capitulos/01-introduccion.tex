@@ -6,8 +6,10 @@ Este manual explica cómo instalar DIGAIPE en un servidor de la red instituciona
 a fin, de dos maneras:
 
 \begin{itemize}
-	\item \textbf{Con Docker} (capítulo~\ref{cap:docker}): todos los componentes se ejecutan en
-	      contenedores definidos en \cod{deploy/compose.yaml}.
+	\item \textbf{Con contenedores} (capítulo~\ref{cap:docker}): todos los componentes se
+	      ejecutan en contenedores definidos en \cod{deploy/compose.yaml}, con Docker o con Podman
+	      ejecutado por un usuario sin privilegios (sección~\ref{sec:podman}). En este manual,
+	      ``Docker'' designa este modo con cualquiera de los dos.
 	\item \textbf{En servidor físico} (sin Docker), en Linux (capítulo~\ref{cap:linux}) o en
 	      Windows (capítulo~\ref{cap:windows}): cada componente se instala como un servicio del
 	      sistema operativo.

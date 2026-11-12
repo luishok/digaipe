@@ -1,7 +1,15 @@
-\chapter{Instalación completa con Docker}
+\chapter{Instalación completa con Docker o Podman}
 \label{cap:docker}
 
-En este modo, \cod{deploy/compose.yaml} define todos los servicios:
+En este modo, \cod{deploy/compose.yaml} define todos los servicios. El mismo archivo funciona
+con Docker y con Podman ejecutado por un usuario sin privilegios (sección~\ref{sec:podman}).
+
+\begin{nota}[Podman]
+	Con Podman, \textbf{donde este manual dice \texttt{docker compose}, escriba
+	\texttt{podman compose}}, como usuario \texttt{digaipe} y desde la carpeta \texttt{deploy}.
+	Lo mismo para \texttt{docker build}, \texttt{pull}, \texttt{save} y \texttt{load}. Los pasos de
+	instalación propios de Podman están en la sección~\ref{sec:podman}.
+\end{nota}
 
 \begin{xltabular}{\linewidth}{@{}l L@{}}
 	\toprule
@@ -86,6 +94,174 @@ Si de todos modos usa Docker Desktop: instálelo desde \texttt{https://www.docke
 WSL 2 cuando lo pida, reinicie, y en \emph{Settings → General} active \emph{Start Docker Desktop
 when you sign in}. Compruebe en PowerShell con \texttt{docker version} y
 \texttt{docker compose version}.
+
+\section{Alternativa: Podman sin root (Linux)}
+\label{sec:podman}
+
+Podman ejecuta los contenedores con un usuario normal, sin un demonio con privilegios de
+\texttt{root}. Si alguien toma el control de un contenedor, queda limitado a ese usuario. Si usa
+Docker, salte esta sección.
+
+\subsection{Requisitos}
+
+\begin{itemize}
+	\item \textbf{Podman 5} o posterior: Debian 13, Fedora, o RHEL 9.5 o posterior. Debian 12 y
+	      Ubuntu 24.04 traen Podman 4, que no se ha probado con esta instalación.
+	\item El binario \textbf{\texttt{docker-compose} v2}. \texttt{podman compose} lo usa cuando
+	      lo encuentra. \textbf{No} use \texttt{podman-compose}: no admite bien las condiciones
+	      \texttt{service\_healthy} y \texttt{service\_completed\_successfully}, los perfiles ni
+	      las anclas YAML de \cod{compose.yaml}.
+	\item Un usuario dedicado, \texttt{digaipe}, que ejecuta todos los contenedores. Es una cuenta
+	      normal, distinta de la cuenta de servicio del capítulo~\ref{cap:linux}.
+\end{itemize}
+
+\subsection{Instalar Podman y docker-compose}
+
+En \textbf{Debian 13} (en Fedora o RHEL, \texttt{sudo dnf install -y podman}):
+
+\begin{codigo}
+sudo apt update
+sudo apt install -y podman systemd-container
+\end{codigo}
+
+Descargue \texttt{docker-compose-linux-x86\_64} y \texttt{docker-compose-linux-x86\_64.sha256}
+de la versión más reciente en \texttt{https://github.com/docker/compose/releases}, compruebe la
+suma e instálelo:
+
+\begin{codigo}
+sha256sum -c docker-compose-linux-x86_64.sha256
+sudo install -m 755 docker-compose-linux-x86_64 /usr/local/bin/docker-compose
+\end{codigo}
+
+\begin{comprobar}
+	\texttt{podman --version} debe mostrar \texttt{5.<x>} o posterior, y
+	\texttt{docker-compose version}, \texttt{v2.<x>}.
+\end{comprobar}
+
+\subsection{Usuario, puertos y carpetas}
+
+\begin{codigo}
+sudo useradd --create-home --shell /bin/bash digaipe
+grep digaipe /etc/subuid /etc/subgid
+sudo loginctl enable-linger digaipe
+echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-digaipe.conf
+sudo sysctl --system
+\end{codigo}
+
+\begin{itemize}
+	\item \texttt{grep} debe mostrar un rango para \texttt{digaipe} en ambos archivos: son los
+	      identificadores que usan los contenedores. Si no aparece, agréguelo con
+	      \texttt{sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 digaipe}.
+	\item \texttt{enable-linger} hace que los servicios del usuario funcionen sin que nadie inicie
+	      sesión, también después de un reinicio.
+	\item Un usuario normal no puede abrir puertos menores de 1024; el \texttt{sysctl} permite
+	      abrir desde el 80, que Caddy necesita (80 y 443).
+\end{itemize}
+
+Haga el resto de la sección ``Configurar \texttt{.env}'' de este capítulo como se indica, y
+luego entregue al usuario \texttt{digaipe} el archivo y las carpetas que usan los contenedores
+(ajuste las rutas a las que puso en \texttt{BACKUP\_DIR} y \texttt{ANCHOR\_DIR}):
+
+\begin{codigo}
+sudo chown digaipe:digaipe /opt/digaipe/app/deploy/.env
+sudo chmod 600 /opt/digaipe/app/deploy/.env
+sudo mkdir -p /srv/respaldos/digaipe /srv/anclas/digaipe
+sudo chown digaipe:digaipe /srv/respaldos/digaipe /srv/anclas/digaipe
+\end{codigo}
+
+El código en \cod{/opt/digaipe/app} sigue perteneciendo a \texttt{root}: el usuario
+\texttt{digaipe} solo necesita leerlo.
+
+\subsection{Construir y arrancar}
+
+Entre como \texttt{digaipe} con \texttt{machinectl}. \textbf{No} use \texttt{sudo -u} ni
+\texttt{su}: no crean la sesión de \texttt{systemd} que necesitan el socket de Podman y los
+healthchecks, y \texttt{setup} y \texttt{app} nunca arrancarían.
+
+\begin{codigo}
+sudo machinectl shell digaipe@
+systemctl --user enable --now podman.socket
+cd /opt/digaipe/app/deploy
+podman compose build
+podman compose up -d
+\end{codigo}
+
+Compruebe igual que con Docker (sección ``Construir y arrancar'' más adelante), con
+\texttt{podman compose ps -a} y \texttt{podman compose logs setup}. El aviso
+\texttt{>>>> Executing external compose provider} es normal. Para ocultarlo, agregue
+\texttt{compose\_warning\_logs = false} en la sección \texttt{[engine]} de
+\cod{~/.config/containers/containers.conf}.
+
+\subsection{Arranque automático}
+\label{sec:podman-arranque}
+
+Podman no tiene un demonio que vuelva a arrancar los contenedores después de reiniciar el
+servidor. Como usuario \texttt{digaipe}, cree este servicio de usuario:
+
+\begin{codigo}[label={/home/digaipe/.config/systemd/user/digaipe.service}]
+[Unit]
+Description=DIGAIPE (podman compose)
+Wants=podman.socket
+After=podman.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/digaipe/app/deploy
+ExecStart=/usr/bin/podman compose up -d
+ExecStop=/usr/bin/podman compose stop
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target
+\end{codigo}
+
+\begin{codigo}
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/digaipe.service
+systemctl --user daemon-reload
+systemctl --user enable digaipe.service
+\end{codigo}
+
+\begin{comprobar}
+	Reinicie el servidor una vez. Sin iniciar sesión gráfica, entre con
+	\texttt{sudo machinectl shell digaipe@} y compruebe con \texttt{podman compose ps -a} que todo
+	volvió a arrancar.
+\end{comprobar}
+
+\subsection{IP real de los usuarios}
+\label{sec:podman-ip}
+
+La auditoría y el límite de intentos de inicio de sesión usan la IP que recibe Caddy. Según la
+versión y la red de Podman sin root, Caddy puede ver la misma dirección interna
+(\texttt{10.x}, \texttt{169.254.x}) para todas las conexiones. La auditoría perdería entonces la
+IP real, y un usuario que se equivoca de contraseña bloquearía a todos.
+
+\begin{aviso}[Compruébelo antes de usar el sistema]
+	Inicie sesión desde \textbf{otra PC} y abra Administración → Auditoría: el evento debe mostrar
+	la IP de esa PC (punto 6 del capítulo~\ref{cap:verificacion}). Si muestra una dirección
+	interna, no use esta instalación: cambie a Podman con \texttt{root}
+	(\texttt{sudo podman compose ...}, con el servicio del sistema \texttt{podman.socket}) o a
+	Docker.
+\end{aviso}
+
+\subsection{Otras diferencias con Docker}
+
+\begin{itemize}
+	\item \textbf{Cortafuegos.} Podman sin root no modifica las reglas del sistema (Docker sí):
+	      \texttt{ufw} o \texttt{firewalld} se aplican a los puertos 80 y 443 como a cualquier
+	      programa. Abra solo esos dos (sección ``Cortafuegos'').
+	\item \textbf{SELinux} (Fedora, RHEL). Las carpetas montadas llevan \texttt{:z} en
+	      \cod{compose.yaml} para que los contenedores puedan leerlas. Si \texttt{BACKUP\_DIR}
+	      está en un disco sin etiquetas SELinux (USB con FAT, NFS) y el montaje falla, quite
+	      \texttt{:z} de esa línea y monte el disco con la opción \texttt{context=}.
+	\item \textbf{Volúmenes.} Quedan en
+	      \cod{/home/digaipe/.local/share/containers/storage/volumes/}. Sus archivos pertenecen a
+	      identificadores del rango de \cod{/etc/subuid}. Para copiarlos, use
+	      \texttt{podman volume export} o \texttt{podman unshare cp -a}.
+	\item \textbf{Imágenes en otra PC.} \texttt{podman save} necesita \texttt{-m} para guardar
+	      varias imágenes en un mismo archivo.
+\end{itemize}
 
 \section{Obtener el código}
 
@@ -201,7 +377,8 @@ New-NetFirewallRule -DisplayName "DIGAIPE HTTP/HTTPS" -Direction Inbound -Protoc
 Todos los servicios tienen \texttt{restart: unless-stopped}: vuelven a arrancar con Docker tras
 un reinicio del servidor. En Linux, basta con que el servicio \texttt{docker} esté habilitado
 (\texttt{systemctl enable docker}, hecho arriba). En Windows, vea las limitaciones de la
-sección~\ref{sec:docker-windows}.
+sección~\ref{sec:docker-windows}. Con Podman, la política de reinicio no basta: configure el
+servicio de usuario de la sección~\ref{sec:podman-arranque}.
 
 \section{Siguiente paso}
 
@@ -243,3 +420,6 @@ Los datos viven en estos volúmenes de Docker:
 	\texttt{digaipe\_caddy-config} & Configuración interna de Caddy \\
 	\bottomrule
 \end{xltabular}
+
+Con Podman sin root, los volúmenes tienen los mismos nombres y están en
+\cod{/home/digaipe/.local/share/containers/storage/volumes/}.

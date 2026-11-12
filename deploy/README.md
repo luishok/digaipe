@@ -1,4 +1,6 @@
-# Instalación de DIGAIPE con Docker (red sin internet)
+# Instalación de DIGAIPE con Docker o Podman (red sin internet)
+
+Con Podman sin root, vea la sección 2b y escriba `podman compose` donde dice `docker compose`.
 
 Servicios: `db` (MySQL 8.4), `setup` (migraciones, permisos, admin inicial; se ejecuta y
 termina), `app` (SvelteKit) y `caddy` (HTTPS). La base de datos y la app no publican puertos:
@@ -36,6 +38,103 @@ docker compose up -d                 # sin --build: usa las imágenes cargadas
 El contenedor `setup` aplica las migraciones, crea el usuario de base de datos de la aplicación
 con permisos mínimos, crea el administrador inicial y carga modalidades y tipos OCRE. Al terminar
 arranca `app`. Revise con `docker compose logs setup`.
+
+## 2b. Alternativa: Podman sin root (Linux)
+
+El mismo `compose.yaml` funciona con Podman ejecutado por un usuario normal, sin demonio con
+privilegios de root. **En el resto de este documento, donde dice `docker compose`, escriba
+`podman compose`** (y `podman` en lugar de `docker` para `build`, `pull`, `save` y `load`).
+
+**Requisitos:** Podman 5 (Debian 13, Fedora, RHEL 9.5 o posterior; `podman --version`) y el
+binario `docker-compose` v2. `podman compose` usa `docker-compose` cuando lo encuentra; no use
+`podman-compose`, que no admite bien las condiciones `service_healthy` /
+`service_completed_successfully`, los perfiles ni las anclas YAML de este archivo.
+
+Preparar las imágenes (paso 1) con Podman: los mismos comandos cambiando `docker` por `podman`,
+y `podman save` necesita `-m` para guardar varias imágenes en un archivo:
+
+```sh
+podman save -m -o digaipe-imagenes.tar digaipe/app:local digaipe/setup:local \
+  docker.io/library/mysql:8.4 docker.io/library/caddy:2.11.7-alpine
+```
+
+Instalación en el servidor, una sola vez, como administrador:
+
+```sh
+sudo apt install -y podman systemd-container       # Debian; en Fedora/RHEL: dnf install podman
+# docker-compose v2: descargue de https://github.com/docker/compose/releases el binario
+# docker-compose-linux-x86_64 y su .sha256, compruebe la suma y cópielo:
+sudo install -m 755 docker-compose-linux-x86_64 /usr/local/bin/docker-compose
+
+sudo useradd --create-home --shell /bin/bash digaipe  # usuario que ejecuta los contenedores
+grep digaipe /etc/subuid /etc/subgid                  # debe mostrar un rango en ambos archivos
+sudo loginctl enable-linger digaipe                   # sus servicios arrancan sin iniciar sesión
+
+# Un usuario normal no puede abrir puertos menores de 1024; Caddy necesita 80 y 443.
+echo 'net.ipv4.ip_unprivileged_port_start=80' | sudo tee /etc/sysctl.d/99-digaipe.conf
+sudo sysctl --system
+
+# .env y las carpetas de BACKUP_DIR / ANCHOR_DIR deben pertenecer al usuario digaipe.
+sudo chown digaipe:digaipe /opt/digaipe/app/deploy/.env && sudo chmod 600 /opt/digaipe/app/deploy/.env
+```
+
+Luego, **como el usuario `digaipe`** (use `sudo machinectl shell digaipe@`, no `sudo -u` ni
+`su`: hace falta una sesión de systemd para el socket de Podman y los healthchecks):
+
+```sh
+systemctl --user enable --now podman.socket
+cd /opt/digaipe/app/deploy
+podman load -i digaipe-imagenes.tar      # o: podman compose build
+podman compose up -d
+```
+
+Arranque automático: Podman no tiene demonio que reinicie los contenedores tras un reinicio del
+servidor. Cree `~/.config/systemd/user/digaipe.service` (usuario `digaipe`):
+
+```ini
+[Unit]
+Description=DIGAIPE (podman compose)
+Wants=podman.socket
+After=podman.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/digaipe/app/deploy
+ExecStart=/usr/bin/podman compose up -d
+ExecStop=/usr/bin/podman compose stop
+TimeoutStartSec=600
+
+[Install]
+WantedBy=default.target
+```
+
+```sh
+systemctl --user daemon-reload
+systemctl --user enable digaipe.service
+```
+
+Reinicie el servidor una vez y compruebe con `podman compose ps -a` que todo vuelve a arrancar.
+
+Diferencias con Docker:
+
+- **IP real de los usuarios: compruébela antes de usar el sistema.** La auditoría y el límite
+  de intentos de inicio de sesión usan la IP que Caddy recibe. Según la versión y la red de
+  Podman sin root, Caddy puede ver una IP interna (10.x, 169.254.x) para todas las conexiones:
+  la auditoría perdería la IP y un usuario que falla la contraseña bloquearía a todos. Prueba:
+  inicie sesión desde otra PC y mire la IP registrada en Administración → Auditoría. Si no es la
+  de esa PC, use Podman con root (`sudo podman compose ...`) o Docker.
+- **Cortafuegos:** Podman sin root no modifica las reglas del sistema (Docker sí), así que
+  `ufw`/`firewalld` se aplican a los puertos 80 y 443 como a cualquier programa.
+- **SELinux** (Fedora/RHEL): las carpetas montadas llevan `:z` en `compose.yaml` para que los
+  contenedores puedan leerlas. Si `BACKUP_DIR` está en un disco sin etiquetas SELinux (USB FAT,
+  NFS) y el montaje falla, quite `:z` de esa línea y monte el disco con la opción `context=`.
+- **Volúmenes:** quedan en `/home/digaipe/.local/share/containers/storage/volumes/`. Sus
+  archivos pertenecen a UIDs del rango de `/etc/subuid`; para copiarlos use
+  `podman unshare cp -a ...` o `podman volume export`.
+- El aviso `>>>> Executing external compose provider` es normal; se oculta con
+  `compose_warning_logs = false` en la sección `[engine]` de
+  `~/.config/containers/containers.conf`.
 
 ## 3. Certificado HTTPS
 
@@ -177,3 +276,6 @@ archivos cargados y la autoridad certificadora.** No lo use salvo que quiera emp
 | `digaipe_db-data` | Base de datos |
 | `digaipe_uploads` | Archivos de admisiones cargados |
 | `digaipe_caddy-data` | Autoridad certificadora local y certificados |
+
+Con Podman sin root, estos volúmenes están en
+`/home/digaipe/.local/share/containers/storage/volumes/` (ver sección 2b).

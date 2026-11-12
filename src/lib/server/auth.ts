@@ -3,12 +3,15 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
+import { building } from '$app/environment';
 import { db } from '$lib/server/db';
 import { admin } from 'better-auth/plugins';
 
 export const auth = betterAuth({
 	baseURL: env.ORIGIN,
-	secret: env.BETTER_AUTH_SECRET,
+	// Placeholder only while `vite build` analyses routes (no runtime env in the image build).
+	// At runtime an unset secret still makes Better Auth throw on startup.
+	secret: building ? 'build-time-placeholder-not-a-secret' : env.BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, { provider: 'mysql' }),
 	emailAndPassword: { enabled: true, disableSignUp: true },
 	// Shared office PCs: a session ends after 8 hours without use (default was 7 days). Each use

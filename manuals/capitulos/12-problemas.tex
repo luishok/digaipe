@@ -1,7 +1,8 @@
 \chapter{Solución de problemas}
 \label{cap:problemas}
 
-Primero mire los registros: \texttt{docker compose logs <servicio>} (Docker),
+Primero mire los registros: \texttt{docker compose logs <servicio>} (Docker;
+\texttt{podman compose logs <servicio>} con Podman),
 \texttt{journalctl -u <servicio> -n 100} (Linux) o \texttt{C:\bs digaipe\bs logs} (Windows).
 
 \begin{xltabular}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth} L L@{}}
@@ -61,5 +62,22 @@ Primero mire los registros: \texttt{docker compose logs <servicio>} (Docker),
 	trátelo como incidente \\
 	Docker Desktop: DIGAIPE no responde tras reiniciar el servidor & Nadie inició sesión en
 	Windows & Vea la sección~\ref{sec:docker-windows} \\
+	Podman: \texttt{caddy} no arranca, \emph{rootlessport cannot expose privileged port 80} &
+	Falta permitir puertos bajos a usuarios normales & Aplique
+	\texttt{net.ipv4.ip\_unprivileged\_port\_start=80} (sección~\ref{sec:podman}) \\
+	Podman: \texttt{setup} y \texttt{app} nunca arrancan; \texttt{db} queda en
+	\texttt{starting} & Los healthchecks no se ejecutan: la sesión no tiene systemd de usuario &
+	Entre con \texttt{sudo machinectl shell digaipe@}, no con \texttt{sudo -u} ni \texttt{su} \\
+	Podman: \emph{Cannot connect to the Docker daemon} o \emph{no such file} en
+	\texttt{podman.sock} & El socket de Podman no está activo para ese usuario &
+	\texttt{systemctl --user enable --now podman.socket} \\
+	Podman: \emph{permission denied} al montar \texttt{BACKUP\_DIR}, \texttt{ANCHOR\_DIR} o
+	\texttt{.env} ilegible & La carpeta o el archivo no pertenecen al usuario \texttt{digaipe},
+	o SELinux bloquea el montaje & \texttt{chown digaipe:digaipe}; en discos sin etiquetas
+	SELinux, vea la sección~\ref{sec:podman} \\
+	Podman: DIGAIPE no vuelve tras reiniciar el servidor & Falta \texttt{enable-linger} o el
+	servicio de usuario \texttt{digaipe.service} & Sección~\ref{sec:podman-arranque} \\
+	Podman: la auditoría muestra la misma IP interna para todas las PCs & La red de Podman sin
+	root oculta la IP del cliente & Sección~\ref{sec:podman-ip} \\
 	\bottomrule
 \end{xltabular}

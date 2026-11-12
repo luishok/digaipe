@@ -41,6 +41,10 @@ Recorra esta lista al terminar cualquier instalación y anote el resultado en el
 	aplicación no está leyendo la cabecera \texttt{X-Forwarded-For}: revise
 	\texttt{ADDRESS\_HEADER} y \texttt{XFF\_DEPTH} (capítulo~\ref{cap:problemas}). Sin la IP real,
 	el límite de intentos de inicio de sesión bloquearía a todos los usuarios a la vez.
+
+	Con \textbf{Podman sin root}, una IP interna (\texttt{10.x}, \texttt{169.254.x}) igual para
+	todas las PCs indica que la red de Podman oculta la dirección del cliente; vea la
+	sección~\ref{sec:podman-ip}.
 \end{nota}
 
 \begin{aviso}[Después de verificar]
