@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { auditStudentDataView } from '$lib/server/audit';
+import { searchCondition } from '$lib/server/admisiones/search';
 import { db } from '$lib/server/db';
 import {
 	admissionImportBatches,
@@ -10,7 +11,7 @@ import {
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
-import { and, desc, eq, gte, like, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 function getFilter(url: URL, key: string) {
 	return url.searchParams.get(key)?.trim() ?? '';
@@ -33,17 +34,11 @@ export const load: PageServerLoad = async (event) => {
 	};
 
 	const conditions = [];
-	if (filters.search) {
-		const pattern = `%${filters.search}%`;
-		conditions.push(
-			or(
-				like(students.cedula, pattern),
-				like(students.apellidos_nombres, pattern),
-				like(students.telefono, pattern),
-				like(students.correo, pattern)
-			)
-		);
-	}
+	const searchFilter = searchCondition(filters.search, {
+		cedula: students.cedula,
+		text: [students.apellidos_nombres, students.telefono, students.correo]
+	});
+	if (searchFilter) conditions.push(searchFilter);
 	if (filters.process) conditions.push(eq(proceso_admission.code, filters.process));
 	if (filters.period) conditions.push(eq(admissions.periodoIngreso, filters.period));
 	if (filters.modality) conditions.push(eq(mod_admission.code, filters.modality));

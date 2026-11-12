@@ -1,0 +1,20 @@
+%% Manual de Reportes y Estadísticas de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-estadisticas.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual de Reportes y Estadísticas}
+\hypersetup{pdftitle={DIGAIPE - Manual de Reportes y Estadísticas},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual de Reportes y Estadísticas}
+  {Reportes en pantalla, PDF y CSV}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/estadisticas}
+\input{capitulos/problemas}
+
+\end{document}

@@ -1,0 +1,20 @@
+%% Manual de Matrícula y Devolución de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-revision.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual de Matrícula y Devolución}
+\hypersetup{pdftitle={DIGAIPE - Manual de Matrícula y Devolución},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual de Matrícula y Devolución}
+  {Revisión de documentos: matricular, devolver\\y desbloquear admisiones}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/revision}
+\input{capitulos/problemas}
+
+\end{document}

@@ -178,7 +178,7 @@ export async function writeAuditLog(writer: AuditWriter, context: AuditContext, 
 	const after = prepareAuditValue(entry.after, policy);
 	const metadata = redactAuditValue(entry.metadata ?? null);
 
-	await writer.execute(sql`
+	const statement = sql`
 		CALL append_audit_event(
 			${randomUUID()},
 			${'application'},
@@ -196,7 +196,13 @@ export async function writeAuditLog(writer: AuditWriter, context: AuditContext, 
 			${JSON.stringify(after)},
 			${JSON.stringify(metadata)}
 		)
-	`);
+	`;
+	// append_audit_event locks audit_chain_state with SELECT … FOR UPDATE. In autocommit mode
+	// that lock ends with the SELECT itself, so two concurrent appends read the same last
+	// sequence and one fails (ER_DUP_ENTRY on audit_events.PRIMARY), failing its request. A
+	// caller's transaction already holds the lock to the end; a bare `db` call gets its own.
+	if (writer === db) await db.transaction((tx) => tx.execute(statement));
+	else await writer.execute(statement);
 }
 
 // Bounds the size of one view event; the full count is always recorded.

@@ -76,7 +76,11 @@ async function readAnchors(file: string, allowMissing: boolean): Promise<Anchor[
 		.filter((line) => line.trim())
 		.map((line, index) => {
 			const anchor = JSON.parse(line) as Anchor;
-			if (anchor.version !== 1 || !Number.isSafeInteger(anchor.sequence) || !/^[0-9a-f]{64}$/.test(anchor.eventHash)) {
+			if (
+				anchor.version !== 1 ||
+				!Number.isSafeInteger(anchor.sequence) ||
+				!/^[0-9a-f]{64}$/.test(anchor.eventHash)
+			) {
 				throw new Error(`${file}:${index + 1} is not a valid anchor line`);
 			}
 			return anchor;
@@ -101,8 +105,13 @@ async function verify(
 	const [[span]] = await connection.query<mysql.RowDataPacket[]>(
 		'SELECT COALESCE(MIN(sequence), 0) AS first, COALESCE(MAX(sequence), 0) AS last, COUNT(*) AS total FROM audit_events'
 	);
-	if (Number(span.total) > 0 && (Number(span.first) !== 1 || Number(span.total) !== Number(span.last))) {
-		problems.push(`sequence is not contiguous: ${span.total} events spanning ${span.first}..${span.last}`);
+	if (
+		Number(span.total) > 0 &&
+		(Number(span.first) !== 1 || Number(span.total) !== Number(span.last))
+	) {
+		problems.push(
+			`sequence is not contiguous: ${span.total} events spanning ${span.first}..${span.last}`
+		);
 	}
 
 	const [[state]] = await connection.query<mysql.RowDataPacket[]>(
@@ -111,8 +120,13 @@ async function verify(
 		 FROM audit_chain_state s WHERE s.id = 1`
 	);
 	if (!state) problems.push('audit_chain_state row is missing');
-	else if (Number(state.last_sequence) !== Number(span.last) || state.last_hash !== (state.head_hash ?? '0'.repeat(64))) {
-		problems.push(`audit_chain_state (${state.last_sequence}) does not match the newest event (${span.last})`);
+	else if (
+		Number(state.last_sequence) !== Number(span.last) ||
+		state.last_hash !== (state.head_hash ?? '0'.repeat(64))
+	) {
+		problems.push(
+			`audit_chain_state (${state.last_sequence}) does not match the newest event (${span.last})`
+		);
 	}
 
 	// The triggers that block edits to the ledger and record changes to business tables. Needs
@@ -120,20 +134,28 @@ async function verify(
 	const drift = await triggerDrift(connection, database, await expectedTriggers());
 	if (drift.missing.length) problems.push(`audit triggers missing: ${drift.missing.join(', ')}`);
 	if (drift.changed.length) problems.push(`audit triggers altered: ${drift.changed.join(', ')}`);
-	if (drift.unexpected.length) problems.push(`triggers not in the migrations: ${drift.unexpected.join(', ')}`);
+	if (drift.unexpected.length)
+		problems.push(`triggers not in the migrations: ${drift.unexpected.join(', ')}`);
 
 	let anchorCount = 0;
 	if (anchorsFile) {
-		const anchors = (await readAnchors(anchorsFile, allowMissingAnchors)).filter((anchor) => anchor.database === database);
+		const anchors = (await readAnchors(anchorsFile, allowMissingAnchors)).filter(
+			(anchor) => anchor.database === database
+		);
 		anchorCount = anchors.length;
 		for (const anchor of anchors) {
 			const [[row]] = await connection.query<mysql.RowDataPacket[]>(
 				'SELECT event_hash FROM audit_events WHERE sequence = ?',
 				[anchor.sequence]
 			);
-			if (!row) problems.push(`anchor ${anchor.sequence} (${anchor.anchoredAt}): event is missing; the ledger was truncated`);
+			if (!row)
+				problems.push(
+					`anchor ${anchor.sequence} (${anchor.anchoredAt}): event is missing; the ledger was truncated`
+				);
 			else if (row.event_hash !== anchor.eventHash)
-				problems.push(`anchor ${anchor.sequence} (${anchor.anchoredAt}): hash changed; the ledger was rewritten`);
+				problems.push(
+					`anchor ${anchor.sequence} (${anchor.anchoredAt}): hash changed; the ledger was rewritten`
+				);
 		}
 	}
 
@@ -155,7 +177,9 @@ async function main() {
 	const databaseUrl = process.env.DATABASE_URL;
 	if (!databaseUrl) throw new Error('DATABASE_URL is not set');
 	if (command !== 'verify' && command !== 'anchor') {
-		throw new Error('Usage: audit-ledger.ts verify [--anchors <file>] | anchor --anchors <file> [--note <text>]');
+		throw new Error(
+			'Usage: audit-ledger.ts verify [--anchors <file>] | anchor --anchors <file> [--note <text>]'
+		);
 	}
 	if (command === 'anchor' && !anchorsFile) throw new Error('anchor needs --anchors <file>');
 
@@ -180,15 +204,26 @@ async function main() {
 		const anchored = await head(connection);
 		const note = option('--note');
 		// Record the anchoring in the ledger itself, so a gap in anchoring is visible there too.
-		await connection.query('CALL append_audit_event(?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, NULL, ?)', [
-			randomUUID(),
-			'system',
-			'audit.anchored',
-			'success',
-			'audit_ledger',
-			String(anchored.sequence),
-			JSON.stringify({ sequence: anchored.sequence, eventHash: anchored.eventHash, note: note ?? null })
-		]);
+		// In a transaction: append_audit_event's FOR UPDATE lock would otherwise end with its own
+		// SELECT and race with the running app's appends (ER_DUP_ENTRY on the sequence).
+		await connection.beginTransaction();
+		await connection.query(
+			'CALL append_audit_event(?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, NULL, NULL, ?)',
+			[
+				randomUUID(),
+				'system',
+				'audit.anchored',
+				'success',
+				'audit_ledger',
+				String(anchored.sequence),
+				JSON.stringify({
+					sequence: anchored.sequence,
+					eventHash: anchored.eventHash,
+					note: note ?? null
+				})
+			]
+		);
+		await connection.commit();
 		const anchor: Anchor = {
 			version: 1,
 			anchoredAt: new Date().toISOString(),

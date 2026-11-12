@@ -19,20 +19,28 @@ async function main() {
 	try {
 		const drift = await triggerDrift(connection, database, expected);
 		for (const name of [...drift.changed, ...drift.missing]) {
-			if (drift.changed.includes(name)) await connection.query(`DROP TRIGGER ${connection.escapeId(name)}`);
+			if (drift.changed.includes(name))
+				await connection.query(`DROP TRIGGER ${connection.escapeId(name)}`);
 			await connection.query(expected.get(name)!.sql);
 		}
 		if (drift.missing.length || drift.changed.length) {
+			// In a transaction so the ledger lock is held until commit (see writeAuditLog).
+			await connection.beginTransaction();
 			await connection.query(
 				"CALL append_audit_event(?, 'system', 'schema.triggers_repaired', 'success', NULL, NULL, NULL, NULL, NULL, NULL, 'database', ?, NULL, NULL, ?)",
 				[randomUUID(), database, JSON.stringify(drift)]
 			);
-			console.log(`Recreated ${drift.missing.length} missing and ${drift.changed.length} altered trigger(s).`);
+			await connection.commit();
+			console.log(
+				`Recreated ${drift.missing.length} missing and ${drift.changed.length} altered trigger(s).`
+			);
 		} else {
 			console.log(`All ${expected.size} audit triggers present and unchanged.`);
 		}
 		if (drift.unexpected.length) {
-			console.error(`WARNING: triggers not defined in the migrations: ${drift.unexpected.join(', ')}`);
+			console.error(
+				`WARNING: triggers not defined in the migrations: ${drift.unexpected.join(', ')}`
+			);
 		}
 	} finally {
 		await connection.end();

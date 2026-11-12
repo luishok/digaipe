@@ -1,4 +1,4 @@
-import { and, desc, eq, like, or } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
 	APActiveDates,
@@ -11,6 +11,7 @@ import {
 	students
 } from '$lib/server/db/schema';
 import { caracasDateKey } from './processing';
+import { searchCondition } from './search';
 
 export type PlanillaAdmission = Awaited<ReturnType<typeof getActiveAdmissionForPlanilla>>;
 
@@ -29,23 +30,22 @@ export function cleanNullableFormValue(value: FormDataEntryValue | null, maxLeng
 }
 
 export async function searchActiveAdmissionsForPlanilla(search: string, today = getTodayDateKey()) {
-	const pattern = `%${search}%`;
 	const conditions = [
 		eq(proceso_admission.isEnabled, true),
 		eq(APActiveDates.activeDate, activeDateValue(today))
 	];
 
-	if (search) {
-		const searchCondition = or(
-			like(students.cedula, pattern),
-			like(students.apellidos_nombres, pattern),
-			like(students.telefono, pattern),
-			like(students.correo, pattern),
-			like(careers.programa_academico, pattern),
-			like(proceso_admission.code, pattern)
-		);
-		if (searchCondition) conditions.push(searchCondition);
-	}
+	const searchFilter = searchCondition(search, {
+		cedula: students.cedula,
+		text: [
+			students.apellidos_nombres,
+			students.telefono,
+			students.correo,
+			careers.programa_academico,
+			proceso_admission.code
+		]
+	});
+	if (searchFilter) conditions.push(searchFilter);
 
 	return db
 		.select({

@@ -60,11 +60,12 @@
 			copied = false;
 		}
 	}
-	const filteredCareers = $derived(
-		careerSearch
-			? data.options.careers.filter((c) => c.toLowerCase().includes(careerSearch.toLowerCase()))
-			: data.options.careers
-	);
+	// Case- and accent-insensitive, like the server-side search ('medicina' finds 'MEDICINA').
+	const fold = (value: string) =>
+		value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+	const careerQuery = $derived(fold(careerSearch.trim()));
+	const careerMatches = (career: string) => !careerQuery || fold(career).includes(careerQuery);
+	const pct = (value: number) => `${(value * 100).toFixed(1)} %`;
 </script>
 
 <h1>Reportes y estadísticas</h1>
@@ -137,7 +138,7 @@
 		</section>
 
 		<!-- SECCIÓN 2: Filtros Avanzados (Ocultos por defecto para limpiar la vista) -->
-		<details class="form-card accordion-card">
+		<details class="form-card accordion-card" open={data.hasAdvancedFilters}>
 			<summary class="card-header accordion-summary">
 				<h2>2. Filtros Avanzados (Opcional)</h2>
 				<span class="accordion-icon">▼</span>
@@ -147,8 +148,18 @@
 				<div class="input-group search-group">
 					<label>
 						Búsqueda de texto general
-						<input name="search" value={data.spec?.filters.search ?? ''} placeholder="Ej. nombre, cédula..." />
+						<input
+							type="search"
+							name="search"
+							maxlength="100"
+							value={data.spec?.filters.search ?? ''}
+							placeholder="Ej. pérez juan, V-12.345.678, medicina"
+							aria-describedby="search-help"
+						/>
 					</label>
+					<small id="search-help">
+						Busca por nombre, cédula o carrera. Varias palabras deben aparecer todas, en cualquier orden.
+					</small>
 				</div>
 
 				<div class="input-grid multi-select-grid">
@@ -202,8 +213,9 @@
 					</div>
 					<div class="checkbox-scroll-box">
 						<div class="checkbox-grid-dense">
-							{#each filteredCareers as value (value)}
-								<label class="checkbox-chip">
+							<!-- Non-matching careers are hidden, not removed, so earlier selections still submit. -->
+							{#each data.options.careers as value (value)}
+								<label class="checkbox-chip" hidden={!careerMatches(value)}>
 									<input type="checkbox" name="filter_career" {value} checked={has(data.spec?.filters.career, value)} />
 									<span>{value}</span>
 								</label>
@@ -279,6 +291,11 @@
 			<section class="report-card">
 				<div class="report-header">
 					<h2 class="report-title">Resultados del Reporte</h2>
+					<p class="report-filters">
+						{data.spec?.dateFrom} a {data.spec?.dateTo}
+						· {data.spec?.dateBasis === 'digaipe' ? 'Fecha válida DIGAIPE' : 'Fecha de asignación origen'}
+						{#if data.appliedFilters}· {data.appliedFilters}{:else}· Sin filtros adicionales{/if}
+					</p>
 					<div class="kpi-grid">
 						<div class="kpi-card">
 							<span class="kpi-label">{data.spec?.reportMode === 'reconciliacion' ? 'Asignados' : 'Admisiones'}</span>
@@ -294,6 +311,17 @@
 				{#if data.report.totalAdmissions > 5000}
 					<div role="alert" class="report-alert alert-warning">
 						<span>⚠️ Este reporte incluye <strong>{data.report.totalAdmissions.toLocaleString()}</strong> admisiones; la exportación puede tardar.</span>
+					</div>
+				{/if}
+
+				{#if data.report.totalAdmissions === 0}
+					<div role="status" class="report-alert alert-warning">
+						<span>No hay admisiones para este rango y filtros. Revise las fechas, la base de fecha o la búsqueda.</span>
+					</div>
+				{/if}
+				{#if data.spec?.reportMode === 'general' && data.report.totalAdmissions > data.report.rows.length}
+					<div role="status" class="report-alert alert-warning">
+						<span>Vista previa: se muestran las primeras {data.report.rows.length.toLocaleString()} de {data.report.totalAdmissions.toLocaleString()} admisiones. Descargue CSV o PDF para el reporte completo.</span>
 					</div>
 				{/if}
 
@@ -347,10 +375,62 @@
 										<tr><th scope="row">Devueltas (histórico)</th><td>{r.devoluciones.everDevueltas}</td></tr>
 										<tr><th scope="row">Sin retornar</th><td>{r.devoluciones.sinRetornar}</td></tr>
 										<tr><th scope="row">Reingresadas</th><td>{r.devoluciones.reingresadas}</td></tr>
+										<tr><th scope="row">Reingresadas matriculadas</th><td>{r.devoluciones.reingresadasMatriculadas}</td></tr>
+										<tr><th scope="row">Reingresadas pendientes</th><td>{r.devoluciones.reingresadasPendientes}</td></tr>
+										<tr><th scope="row">Tasa de retorno</th><td>{pct(r.devoluciones.tasaRetorno)}</td></tr>
+									</tbody>
+								</table>
+							</div>
+							<div class='table_container'>
+								<table>
+									<caption>Tasas</caption>
+									<thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
+									<tbody>
+										{#if data.spec.dateBasis !== 'digaipe'}
+											<tr><th scope="row">Matriculados / asignados</th><td>{pct(r.rates.matriculadosSobreAsignados)}</td></tr>
+											<tr><th scope="row">No presentación</th><td>{pct(r.rates.noPresentacion)}</td></tr>
+										{/if}
+										<tr><th scope="row">Matriculados / procesados</th><td>{pct(r.rates.matriculadosSobreProcesados)}</td></tr>
+									</tbody>
+								</table>
+							</div>
+							<div class='table_container'>
+								<table>
+									<caption>Antigüedad (días)</caption>
+									<thead><tr><th>Rango</th><th>Pendientes en revisión</th>{#if data.spec.dateBasis !== 'digaipe'}<th>No procesados</th>{/if}</tr></thead>
+									<tbody>
+										{#each r.agingPendientes as bucket, i (bucket.label)}
+											<tr><th scope="row">{bucket.label}</th><td>{bucket.count}</td>{#if data.spec.dateBasis !== 'digaipe'}<td>{r.agingNoProcesados[i]?.count ?? 0}</td>{/if}</tr>
+										{/each}
 									</tbody>
 								</table>
 							</div>
 						</div>
+						<div class='table_container mt-3'>
+							<table>
+								<caption>Matriz por {r.matrix.dimensionLabel.toLowerCase()}</caption>
+								<thead><tr><th>{r.matrix.dimensionLabel}</th><th>No procesado</th><th>Pendiente</th><th>Matriculado</th><th>Devuelto</th><th>Total</th><th>% matric.</th></tr></thead>
+								<tbody>
+									{#each r.matrix.rows as row (row.label)}
+										<tr><th scope="row">{row.label}</th><td>{row.noProcesado}</td><td>{row.pendiente}</td><td>{row.matriculado}</td><td>{row.devuelto}</td><td>{row.total}</td><td>{pct(row.pctMatric)}</td></tr>
+									{/each}
+									<tr><th scope="row">Total</th><td>{r.matrix.totals.noProcesado}</td><td>{r.matrix.totals.pendiente}</td><td>{r.matrix.totals.matriculado}</td><td>{r.matrix.totals.devuelto}</td><td>{r.matrix.totals.total}</td><td>{pct(r.matrix.totals.pctMatric)}</td></tr>
+								</tbody>
+							</table>
+						</div>
+						{#if r.overduePendientes.length}
+							<div class='table_container mt-3'>
+								<table>
+									<caption>Pendientes con más de 15 días en revisión</caption>
+									<thead><tr><th>Cédula</th><th>Estudiante</th><th>Carrera</th><th>Días</th></tr></thead>
+									<tbody>
+										{#each r.overduePendientes as p (p.cedula + p.career)}
+											<tr><td>{p.cedula}</td><td>{p.student}</td><td>{p.career}</td><td>{p.days}</td></tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						{/if}
 					{:else if data.spec?.reportMode === 'estadisticas'}
 						<div class='table_container'>
 							<table>
@@ -359,7 +439,7 @@
 								<tbody>
 									<tr><th scope="row">Admisiones procesadas</th><td>{data.report.totalAdmissions}</td></tr>
 									<tr><th scope="row">Estudiantes únicos</th><td>{data.report.totalUniqueStudents}</td></tr>
-									{#each data.report.breakdowns['Estado'] ?? [] as row (row.label)}<tr><th scope="row">{row.label}</th><td>{row.count}</td></tr>{/each}
+									{#each data.report.statusCounts as row (row.label)}<tr><th scope="row">{row.label}</th><td>{row.count}</td></tr>{/each}
 								</tbody>
 							</table>
 						</div>

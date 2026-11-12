@@ -11,6 +11,7 @@ import {
 	type ProcessingStatus
 } from '$lib/server/admisiones/processing';
 import { db } from '$lib/server/db';
+import { searchCondition } from '$lib/server/admisiones/search';
 import {
 	admissionProcessings,
 	admissions,
@@ -18,7 +19,7 @@ import {
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
-import { and, asc, eq, gte, inArray, like, lte, or, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, type SQL } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
 import { can } from '$lib/permissions';
 import type { Actions, PageServerLoad } from './$types';
@@ -63,16 +64,11 @@ export const load: PageServerLoad = async (event) => {
 	if (statuses.has(status as ProcessingStatus))
 		conditions.push(eq(admissionProcessings.status, status));
 	if (process) conditions.push(eq(proceso_admission.code, process));
-	if (search) {
-		const pattern = `%${search}%`;
-		conditions.push(
-			or(
-				like(students.cedula, pattern),
-				like(students.apellidos_nombres, pattern),
-				like(careers.programa_academico, pattern)
-			)!
-		);
-	}
+	const searchFilter = searchCondition(search, {
+		cedula: students.cedula,
+		text: [students.apellidos_nombres, careers.programa_academico]
+	});
+	if (searchFilter) conditions.push(searchFilter);
 	const [rows, processes] = await Promise.all([
 		db
 			.select({
@@ -201,7 +197,10 @@ export const actions: Actions = {
 						entityId: row.id,
 						before: { status: row.status },
 						after: { status },
-						metadata: { admissionId: row.admissionId, reason: status === 'devuelto' ? reason : null }
+						metadata: {
+							admissionId: row.admissionId,
+							reason: status === 'devuelto' ? reason : null
+						}
 					});
 				}
 				return selected.length;

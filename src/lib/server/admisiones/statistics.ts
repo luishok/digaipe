@@ -9,8 +9,9 @@ import {
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
-import { and, asc, eq, gte, inArray, like, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { caracasDateKey } from './processing';
+import { searchCondition } from './search';
 import { parseReportMode, type ReportMode } from './report-mode';
 
 export type { ReportMode } from './report-mode';
@@ -194,8 +195,7 @@ export function parseStatisticsSpec(url: URL): { spec: StatisticsSpec | null; er
 	if (dateTo && !validDate(dateTo)) errors.push('La fecha Hasta no es válida.');
 	if (dateFrom && dateTo && dateFrom > dateTo)
 		errors.push('La fecha Desde debe ser anterior o igual a Hasta.');
-	if (!reportMode)
-		errors.push('El tipo de reporte no es válido.');
+	if (!reportMode) errors.push('El tipo de reporte no es válido.');
 	if (!['asignacion', 'digaipe'].includes(dateBasis)) errors.push('La base de fecha no es válida.');
 	if (errors.length || !reportMode) return { spec: null, errors };
 	const columns = multiParam(url, 'col');
@@ -236,16 +236,11 @@ function filterConditions(spec: StatisticsSpec): SQL[] {
 	if (spec.filters.career.length)
 		conditions.push(inArray(careers.programa_academico, spec.filters.career));
 	if (spec.filters.faculty.length) conditions.push(inArray(careers.facultad, spec.filters.faculty));
-	if (spec.filters.search) {
-		const pattern = `%${spec.filters.search}%`;
-		conditions.push(
-			or(
-				like(students.cedula, pattern),
-				like(students.apellidos_nombres, pattern),
-				like(careers.programa_academico, pattern)
-			)!
-		);
-	}
+	const search = searchCondition(spec.filters.search, {
+		cedula: students.cedula,
+		text: [students.apellidos_nombres, careers.programa_academico]
+	});
+	if (search) conditions.push(search);
 	return conditions;
 }
 
@@ -272,12 +267,13 @@ function sorted(values: Array<string | number | null>) {
 
 export async function loadStatisticsOptions(): Promise<StatisticsOptions> {
 	const [processes, periods, modalities, careerRows, statusRows, facultyRows] = await Promise.all([
-		db.select({ value: proceso_admission.code }).from(proceso_admission),
-		db.select({ value: admissions.periodoIngreso }).from(admissions),
-		db.select({ value: mod_admission.code }).from(mod_admission),
-		db.select({ value: careers.programa_academico }).from(careers),
-		db.select({ value: admissionProcessings.status }).from(admissionProcessings),
-		db.select({ value: careers.facultad }).from(careers)
+		// DISTINCT in SQL: admissions/processings grow with every intake, the option lists don't.
+		db.selectDistinct({ value: proceso_admission.code }).from(proceso_admission),
+		db.selectDistinct({ value: admissions.periodoIngreso }).from(admissions),
+		db.selectDistinct({ value: mod_admission.code }).from(mod_admission),
+		db.selectDistinct({ value: careers.programa_academico }).from(careers),
+		db.selectDistinct({ value: admissionProcessings.status }).from(admissionProcessings),
+		db.selectDistinct({ value: careers.facultad }).from(careers)
 	]);
 	return {
 		processes: sorted(processes.map((r) => r.value)),
@@ -437,18 +433,24 @@ export async function buildReconciliation(
 		if (r.status && r.status in byStatus) byStatus[r.status as ReviewStatus]++;
 
 	// ── Devoluciones: which admissions were EVER returned (audit ledger) ──
+	// Only the processings in this report matter, so scope the ledger scan to them (uses
+	// audit_events_entity_idx) instead of reading every 'devuelto' event ever recorded.
 	const everDevueltaGlobal = new Set<number>();
-	const devueltoEvents = await db
-		.select({ entityId: auditEvents.entityId })
-		.from(auditEvents)
-		.where(
-			and(
-				eq(auditEvents.action, 'admission_document.reviewed'),
-				eq(auditEvents.entityType, 'admission_processing'),
-				sql`JSON_UNQUOTE(JSON_EXTRACT(${auditEvents.afterValue}, '$.status')) = 'devuelto'`
-			)
-		);
-	for (const row of devueltoEvents) everDevueltaGlobal.add(Number(row.entityId));
+	const processingIds = procesados.map((r) => String(r.processingId));
+	for (let i = 0; i < processingIds.length; i += 1000) {
+		const devueltoEvents = await db
+			.selectDistinct({ entityId: auditEvents.entityId })
+			.from(auditEvents)
+			.where(
+				and(
+					eq(auditEvents.entityType, 'admission_processing'),
+					inArray(auditEvents.entityId, processingIds.slice(i, i + 1000)),
+					eq(auditEvents.action, 'admission_document.reviewed'),
+					sql`JSON_UNQUOTE(JSON_EXTRACT(${auditEvents.afterValue}, '$.status')) = 'devuelto'`
+				)
+			);
+		for (const row of devueltoEvents) everDevueltaGlobal.add(Number(row.entityId));
+	}
 
 	let everDevueltas = 0;
 	let sinRetornar = 0;

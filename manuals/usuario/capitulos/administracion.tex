@@ -1,0 +1,141 @@
+% Rol: Administrador.
+\chapter{Administración}\label{cap:administracion}
+
+\begin{ficharol}{Administrador}{Este capítulo es para usted si es responsable de DIGAIPE:
+  crea las cuentas, asigna los roles y supervisa el trabajo.}
+El administrador puede hacer \textbf{todo} lo que hacen los demás roles (vea los capítulos
+siguientes). Además, solo él puede: crear y eliminar usuarios, asignar roles, activar o
+desactivar procesos de admisión y eliminar lotes en borrador. También consulta la auditoría.
+\end{ficharol}
+
+\section{El panel de administración}
+
+En el menú pulse \menu{Administración}. Verá dos tarjetas:
+
+\pantalla{admin-inicio}[0.85\linewidth]
+
+\begin{itemize}
+  \item \textbf{Usuarios y roles}: crear, cambiar y eliminar cuentas.
+  \item \textbf{Auditoría}: consultar y exportar el registro de actividad (capítulo
+        \ref{cap:auditoria}).
+\end{itemize}
+
+\section{Crear un usuario}
+
+Pulse la tarjeta \textbf{Usuarios y roles}. Arriba está el formulario \emph{Agregar usuario}:
+
+\begin{captura}{usuarios-form}{2732}{1140}
+  \anotad{1}{90}{140}{705}{310}
+  \anotad{2}{736}{140}{1348}{310}
+  \anotad{3}{1383}{140}{1996}{310}
+  \anotad{4}{2029}{170}{2640}{847}
+  \anota{5}{1204}{995}{1528}{1064}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Nombre completo} de la persona.
+  \item[2] \textbf{Correo electrónico}: con este correo entrará al sistema. No puede repetirse.
+  \item[3] \textbf{Contraseña} inicial, de 8 a 128 caracteres.
+  \item[4] \textbf{Roles}: marque uno o más.
+  \item[5] \boton{Agregar usuario}.
+\end{leyenda}
+
+\begin{pasos}
+  \paso{Llene los datos}{Escriba nombre, correo y una contraseña inicial.}
+  \paso{Escoja los roles}{Marque solo los roles que la persona necesita para su trabajo.}
+  \paso{Guarde}{Pulse \boton{Agregar usuario}. Verá \emph{«Usuario creado correctamente.»}}
+  \paso{Entregue la contraseña}{Dele la contraseña a la persona en privado (en persona o por
+        teléfono, nunca por un grupo de mensajería).}
+\end{pasos}
+
+\begin{consejo}[Pocos permisos]
+Dé a cada persona solo los roles que necesita. Es más seguro y evita errores: alguien que solo
+imprime planillas no debería poder matricular.
+\end{consejo}
+
+\section{Cambiar roles y eliminar usuarios}
+
+Debajo del formulario está la lista \emph{Usuarios registrados}:
+
+\begin{captura}{usuarios-tabla}{2732}{1480}
+  \anota{1}{49}{93}{2683}{307}
+  \anota{2}{1051}{530}{2184}{622}
+  \anota{3}{2198}{544}{2412}{612}
+  \anota{4}{2460}{530}{2608}{621}
+  \anota{5}{66}{1350}{262}{1457}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Buscar} por correo o por rol.
+  \item[2] \textbf{Roles} de cada usuario: marque o desmarque.
+  \item[3] \boton{Guardar} aplica el cambio de roles de esa fila.
+  \item[4] \enlace{Eliminar usuario}: abre la confirmación para borrar la cuenta.
+  \item[5] \textbf{Su cuenta} está protegida: no puede cambiar sus propios roles ni eliminarse.
+\end{leyenda}
+
+\subsection{Cambiar los roles}
+
+Marque o desmarque los roles en la fila del usuario y pulse \boton{Guardar} en esa fila.
+
+\begin{nota}
+Al cambiar los roles, el sistema \textbf{cierra la sesión} de ese usuario para que el cambio
+tome efecto. Avísele que debe volver a entrar.
+\end{nota}
+
+\subsection{Eliminar un usuario}
+
+\begin{pasos}
+  \paso{Abra la confirmación}{En la fila del usuario pulse \enlace{Eliminar usuario}.}
+  \paso{Confirme}{Marque la casilla \emph{«Confirmo eliminar a …»}.}
+  \paso{Elimine}{Pulse \boton{Eliminar definitivamente}.}
+\end{pasos}
+
+\begin{importante}[No siempre se puede eliminar]
+Si el usuario ya trabajó en el sistema (cargó admisiones, generó planillas o tiene eventos de
+auditoría), DIGAIPE no deja eliminarlo, para no perder el historial, y muestra un mensaje que lo
+explica. Si esa persona ya no debe usar el sistema, comuníquese de inmediato con el soporte
+técnico de DIGAIPE para bloquear su acceso.
+\end{importante}
+
+\section{Activar o desactivar un proceso}
+
+Solo el administrador ve, en \menu{Admisiones > Procesos de Admisión}, la columna
+\emph{Activar / Desactivar}:
+
+\begin{captura}{admin-procesos}{1600}{850}[0.75\linewidth]
+  \anota{1}{1185}{615}{1450}{780}
+  \anota{2}{408}{636}{561}{806}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] Escriba el \textbf{motivo} y pulse \boton{Desactivar} (o \boton{Reactivar} si estaba
+        apagado). El sistema pide confirmación.
+  \item[2] El estado cambia a \textbf{Deshabilitado}.
+\end{leyenda}
+
+\begin{importante}[Efecto de desactivar]
+Con el proceso desactivado \textbf{no se pueden generar planillas ni revisar documentos} de ese
+proceso, aunque tenga fechas activas. Úselo para detener un proceso de inmediato (por ejemplo,
+un listado con problemas) y reactívelo cuando esté resuelto.
+\end{importante}
+
+\section{Eliminar un lote en borrador}
+
+Cada vez que alguien pulsa \boton{Previsualizar} en la carga de admisiones queda un lote en
+\textbf{Borrador}. Si un borrador sobra o tiene errores, el administrador puede eliminarlo desde
+\menu{Admisiones > Gestión de Aspirantes > Cargar admisiones}, en la tabla \emph{Lotes
+recientes}:
+
+\begin{captura}{admin-borrador}{2732}{700}
+  \anota{1}{2100}{215}{2615}{335}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] Escriba el \textbf{motivo}, pulse \boton{Eliminar} y confirme. Se borran el lote y
+        sus archivos.
+\end{leyenda}
+
+\begin{nota}
+Solo se pueden eliminar lotes en \textbf{Borrador}. Un lote \textbf{Guardado} ya tiene
+admisiones en el sistema y no se puede eliminar desde aquí.
+\end{nota}

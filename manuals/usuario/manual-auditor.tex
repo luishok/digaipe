@@ -1,0 +1,20 @@
+%% Manual del Auditor de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-auditor.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual del Auditor}
+\hypersetup{pdftitle={DIGAIPE - Manual del Auditor},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual del Auditor}
+  {Consulta de solo lectura y registro de auditoría}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/auditoria}
+\input{capitulos/problemas}
+
+\end{document}

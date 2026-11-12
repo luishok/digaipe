@@ -18,3 +18,4 @@ npx tsx scripts/bootstrap-admin.ts
 echo '==> Datos base'
 npx tsx scripts/load_admission_mod.ts
 npx tsx scripts/load_ocre_types.ts
+npx tsx scripts/load_careers.ts

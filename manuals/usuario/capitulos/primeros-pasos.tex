@@ -1,0 +1,126 @@
+% Capítulo común a todos los manuales.
+\chapter{Primeros pasos}\label{cap:primeros}
+
+\section{¿Qué es DIGAIPE?}
+
+DIGAIPE (Dirección de Gestión de Admisión, Ingreso y Permanencia Estudiantil) es el sistema
+interno de la Universidad de Los Andes para manejar las admisiones de
+estudiantes nuevos: desde que llega el listado de asignados hasta que cada estudiante queda
+matriculado, con sus reportes y estadísticas.
+
+Cada persona trabaja con un \textbf{rol}. El rol decide qué opciones del menú ve y qué puede hacer.
+El trabajo pasa de un rol al siguiente en este orden:
+
+\begin{center}
+\begin{tikzpicture}[
+  caja/.style={draw=ulaazul,line width=1pt,rounded corners=3pt,fill=white,
+    font=\sffamily\footnotesize,align=center,text width=2.35cm,minimum height=1.45cm},
+  flecha/.style={-{Stealth[length=6pt]},line width=1pt,color=ulaazul}]
+  \node[caja] (a) {\textbf{Administrador}\\crea usuarios y\\asigna roles};
+  \node[caja,right=0.45cm of a] (b) {\textbf{Carga de}\\\textbf{admisiones}\\proceso y listado};
+  \node[caja,right=0.45cm of b] (c) {\textbf{Generación de}\\\textbf{planillas}\\imprime la planilla};
+  \node[caja,right=0.45cm of c] (d) {\textbf{Matrícula y}\\\textbf{devolución}\\revisa documentos};
+  \node[caja,right=0.45cm of d] (e) {\textbf{Estadísticas}\\reportes y\\cifras};
+  \foreach \i/\j in {a/b,b/c,c/d,d/e} \draw[flecha] (\i) -- (\j);
+  \node[caja,below=0.55cm of c,text width=7cm,minimum height=0.9cm,draw=ulagris,dashed]
+    (f) {\textbf{Auditor}: puede ver todo lo anterior, sin modificar nada};
+\end{tikzpicture}
+\end{center}
+
+\begin{tabularx}{\linewidth}{@{}>{\leavevmode\color{ulaazuloscuro}\sffamily\bfseries}p{4.2cm} X@{}}
+  \toprule
+  \normalfont\bfseries Rol & \bfseries Qué hace \\
+  \midrule
+  Administrador & Todo lo del sistema. Además crea y elimina usuarios, asigna roles, activa o
+                  desactiva procesos, elimina lotes en borrador y consulta la auditoría. \\
+  Carga de admisiones & Crea los procesos de admisión con sus fechas, carga el listado de
+                  asignados (Excel) y mantiene la tabla de carreras. \\
+  Generación de planillas & Busca a cada estudiante, corrige sus datos de contacto y genera
+                  su planilla en PDF. \\
+  Matrícula y devolución & Revisa los documentos de cada estudiante y lo marca como
+                  matriculado o le devuelve la solicitud. \\
+  Estadísticas & Saca reportes por fechas, carreras, facultades y modalidades, en pantalla,
+                  PDF o CSV. \\
+  Auditor (solo lectura) & Consulta todo, incluido el registro de auditoría, sin poder cambiar
+                  nada. \\
+  \bottomrule
+\end{tabularx}
+
+\begin{nota}
+Una misma persona puede tener varios roles. En ese caso verá en el menú las opciones de todos
+ellos.
+\end{nota}
+
+\section{Entrar al sistema}
+
+Abra el navegador (Chrome, Edge o Firefox) y escriba la dirección de DIGAIPE que le dio el
+administrador. Verá esta pantalla:
+
+\begin{captura}{login}{2732}{1600}
+  \anotad{1}{1623}{806}{2423}{882}
+  \anotad{2}{1623}{1011}{2423}{1093}
+  \anotad{3}{1623}{1156}{2423}{1254}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Correo electrónico} con el que el administrador creó su cuenta.
+  \item[2] \textbf{Contraseña.} Se escribe con puntos para que nadie la vea.
+  \item[3] Pulse \boton{Iniciar sesión} para entrar.
+\end{leyenda}
+
+\begin{importante}[Si no puede entrar]
+Revise que el correo esté bien escrito y que no tenga activadas las mayúsculas. Si olvidó la
+contraseña, comuníquese con el administrador de DIGAIPE: el sistema no tiene opción para
+recuperarla por correo.
+\end{importante}
+
+\section{La pantalla de inicio}
+
+Al entrar verá la página de inicio. Arriba está la barra azul con el menú; solo aparecen las
+opciones que su rol le permite usar.
+
+\begin{captura}{inicio}{2732}{1600}
+  \anota{1}{43}{11}{594}{167}
+  \anota{2}{864}{43}{2462}{151}
+  \anota{3}{2570}{22}{2690}{81}
+  \anota{4}{1274}{551}{2570}{1453}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Logo de la ULA.} Haga clic aquí en cualquier momento para volver al inicio.
+  \item[2] \textbf{Menú principal.} Al pasar el ratón sobre \menu{Admisiones} o
+        \menu{Parametros} se abre una lista con más opciones.
+  \item[3] \textbf{Salir.} Cierra su sesión. Úselo siempre al terminar, sobre todo en
+        computadoras compartidas.
+  \item[4] \textbf{Accesos rápidos} a las tareas más comunes.
+\end{leyenda}
+
+\subsection{El menú Admisiones}
+
+Pase el ratón sobre \menu{Admisiones} para ver sus opciones:
+
+\begin{captura}{menu-admisiones}{2732}{1000}[0.8\linewidth]
+  \anota{1}{1145}{178}{1544}{918}
+\end{captura}
+
+\begin{tabularx}{\linewidth}{@{}>{\leavevmode\color{ulaazul}\sffamily\bfseries}l X@{}}
+  \toprule
+  \normalfont\bfseries Opción & \bfseries Para qué sirve \\
+  \midrule
+  Gestión de Aspirantes & Ver el listado de admitidos y cargar nuevos listados. \\
+  Procesos de Admisión & Crear procesos y definir los días en que están activos. \\
+  Generación de Planilla & Generar la planilla PDF de cada estudiante. \\
+  Revisión de Documentos & Matricular o devolver solicitudes. \\
+  \bottomrule
+\end{tabularx}
+
+\section{Consejos generales}
+
+\begin{itemize}
+  \item Todo lo que usted hace queda registrado con su nombre, la fecha y la hora. No comparta
+        su cuenta con nadie.
+  \item Si el administrador le cambia los roles, el sistema cierra su sesión. Vuelva a entrar
+        y verá el menú actualizado.
+  \item Si algo no funciona como dice este manual, consulte el capítulo
+        \emph{Problemas frecuentes} al final, o comuníquese con el administrador.
+\end{itemize}

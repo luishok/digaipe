@@ -1,0 +1,115 @@
+% Rol: Estadísticas.
+\chapter{Reportes y estadísticas}\label{cap:estadisticas}
+
+\begin{ficharol}{Estadísticas}{Este capítulo es para usted si prepara cifras e informes
+  sobre las admisiones.}
+Con este rol usted puede generar cuatro tipos de reporte, filtrarlos, verlos en pantalla y
+descargarlos en PDF o CSV (para Excel). Además puede consultar la tabla de carreras. No puede
+modificar admisiones.
+\end{ficharol}
+
+\section{Los cuatro tipos de reporte}
+
+\begin{tabularx}{\linewidth}{@{}>{\leavevmode\color{ulaazuloscuro}\sffamily\bfseries}p{3.6cm} X@{}}
+  \toprule
+  \normalfont\bfseries Tipo & \bfseries Para qué sirve \\
+  \midrule
+  Análisis general (datos) & Una tabla con una fila por admisión y las columnas que usted
+                             escoja. Ideal para descargar en CSV y trabajar en Excel. \\
+  Consolidado de revisión & Cuántas admisiones hay por día, por estado y por carrera, con
+                            totales por día y total general. \\
+  Estadísticas & Cuadros resumen: por estado, por día, semana y mes, por carrera, facultad,
+                 modalidad, período, género y más. \\
+  Reconciliación (embudo) & Compara los asignados contra los procesados: cuántos faltan por
+                            atender, cuántos se devolvieron y volvieron, y cuánto tiempo llevan
+                            pendientes. \\
+  \bottomrule
+\end{tabularx}
+
+\section{Armar un reporte}
+
+Entre a \menu{Estadísticas}.
+
+\begin{captura}{estadisticas-form}{2732}{2620}[0.92\linewidth]
+  \anota{1}{876}{151}{1314}{226}
+  \anota{2}{1410}{151}{1849}{226}
+  \anota{3}{650}{322}{1349}{399}
+  \anota{4}{1422}{333}{2101}{397}
+  \anota{5}{1061}{446}{1664}{526}
+  \anota{6}{50}{593}{2677}{1779}
+  \anota{7}{50}{1837}{2677}{2273}
+  \anota{8}{619}{2320}{2107}{2433}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Tipo de reporte}: uno de los cuatro de la tabla anterior.
+  \item[2] \textbf{Base de fecha}: \emph{Fecha de asignación origen} cuenta a los estudiantes
+        asignados en ese rango (vengan o no a inscribirse). \emph{Fecha válida DIGAIPE} cuenta
+        lo que se atendió en ese rango.
+  \item[3] \textbf{Desde} y \textbf{Hasta}: obligatorias.
+  \item[4] \textbf{Rangos rápidos}: llenan las fechas por usted (hoy, últimos 7 días, este mes,
+        este año).
+  \item[5] \textbf{Incluir cédula y nombre}: déjelo sin marcar salvo que de verdad necesite
+        identificar a los estudiantes.
+  \item[6] \textbf{Filtros}: proceso, período, modalidad, estado, facultad, carreras y búsqueda
+        por texto. Mantenga pulsada la tecla \texttt{Ctrl} para escoger varios valores de una
+        lista.
+  \item[7] \textbf{Opciones del tipo de reporte}: columnas (análisis general), desgloses
+        (estadísticas) o dimensión de la matriz (reconciliación).
+  \item[8] \textbf{Botones}: \boton{Vista previa}, \boton{Descargar PDF}, \boton{Descargar CSV},
+        \boton{Copiar enlace} y \enlace{Limpiar}.
+\end{leyenda}
+
+\begin{pasos}
+  \paso{Escoja el tipo}{En \campo{Tipo de reporte} escoja el que necesita.}
+  \paso{Ponga las fechas}{Llene \campo{Desde} y \campo{Hasta}, o use un rango rápido.}
+  \paso{Filtre (opcional)}{Escoja proceso, carreras u otros filtros. Si no escoge nada, el
+        reporte incluye todo.}
+  \paso{Vea el resultado}{Pulse \boton{Vista previa}. El resultado aparece debajo del
+        formulario.}
+  \paso{Descargue}{Pulse \boton{Descargar PDF} para imprimir o \boton{Descargar CSV} para
+        abrirlo en Excel.}
+\end{pasos}
+
+\begin{importante}[Faltan las fechas]
+Si pulsa \boton{Vista previa} sin fechas, aparece el recuadro rojo \emph{«No se puede generar el
+reporte — Seleccione las fechas Desde y Hasta.»}
+\end{importante}
+
+\section{Leer el resultado}
+
+\begin{captura}{estadisticas-resultado}{2732}{1220}
+  \anota{1}{89}{20}{2634}{210}
+  \anota{2}{89}{270}{687}{344}
+  \anota{3}{49}{497}{2676}{1179}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Totales}: cuántas admisiones y cuántos estudiantes distintos entran en el
+        reporte. Un estudiante con dos carreras cuenta como dos admisiones y un estudiante.
+  \item[2] \textbf{Exportar} el mismo resultado en CSV o PDF.
+  \item[3] \textbf{Cuadros}: en el tipo \emph{Estadísticas}, primero los indicadores principales
+        y luego un cuadro por cada desglose escogido.
+\end{leyenda}
+
+Así se ve la primera página del PDF del tipo \emph{Estadísticas}:
+
+\pantalla{reporte-pdf-1}[0.6\linewidth]
+
+\begin{consejo}[Compartir un reporte]
+Después de pulsar \boton{Vista previa}, \boton{Copiar enlace} copia la dirección de ese reporte
+con todos sus filtros. Pegue el enlace en un correo: quien tenga permiso de estadísticas verá
+exactamente el mismo reporte. Si cambia algún filtro, pulse de nuevo \boton{Vista previa} antes
+de copiar el enlace.
+\end{consejo}
+
+\begin{nota}[Reportes grandes]
+Si el reporte tiene más de 5.000 admisiones, el sistema avisa que la descarga puede tardar y
+generar un archivo grande. Use filtros para achicarlo.
+\end{nota}
+
+\begin{importante}[Datos personales]
+Los reportes con cédula y nombre contienen datos personales de los estudiantes. Guárdelos solo
+en equipos de la universidad y no los envíe por correos personales ni redes sociales. Cada
+consulta queda registrada en la auditoría.
+\end{importante}

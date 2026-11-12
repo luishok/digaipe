@@ -1,0 +1,25 @@
+%% Manual del Administrador de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-administrador.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual del Administrador}
+\hypersetup{pdftitle={DIGAIPE - Manual del Administrador},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual del Administrador}
+  {Guía completa del proceso:\\administración, carga de admisiones, planillas,\\revisión de documentos, estadísticas y auditoría}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/administracion}
+\input{capitulos/carga}
+\input{capitulos/planillas}
+\input{capitulos/revision}
+\input{capitulos/estadisticas}
+\input{capitulos/auditoria}
+\input{capitulos/problemas}
+
+\end{document}

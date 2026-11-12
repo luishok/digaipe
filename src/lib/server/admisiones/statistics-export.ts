@@ -222,7 +222,7 @@ function mastheadSubtitle(report: StatisticsReport) {
 	].join('  ·  ');
 }
 
-function filtersSummary(spec: StatisticsSpec) {
+export function filtersSummary(spec: StatisticsSpec) {
 	const parts: string[] = [];
 	if (spec.filters.process.length) parts.push(`Proceso: ${spec.filters.process.join(', ')}`);
 	if (spec.filters.period.length) parts.push(`Período: ${spec.filters.period.join(', ')}`);

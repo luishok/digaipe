@@ -1,0 +1,107 @@
+% Rol: Matrícula y devolución.
+\chapter{Revisión de documentos}\label{cap:revision}
+
+\begin{ficharol}{Matrícula y devolución}{Este capítulo es para usted si revisa los
+  documentos que traen los estudiantes y decide si quedan matriculados.}
+Con este rol usted puede ver las admisiones que ya tienen planilla generada, marcarlas como
+\textbf{Matriculado} o \textbf{Devuelto}, y desbloquearlas cuando haga falta corregir algo. No
+puede cargar listados ni generar planillas.
+\end{ficharol}
+
+\section{La pantalla de un vistazo}
+
+Entre a \menu{Admisiones > Revisión de Documentos}.
+
+\begin{captura}{revision}{2732}{2110}[0.88\linewidth]
+  \anota{1}{46}{20}{2686}{457}
+  \anota{2}{68}{703}{123}{1044}
+  \anota{3}{377}{703}{546}{1714}
+  \anota{4}{2112}{703}{2650}{1714}
+  \anota{5}{90}{1940}{596}{2039}
+  \anota{6}{664}{1960}{1664}{2036}
+  \anota{7}{2303}{1968}{2642}{2036}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Filtros}: rango de fechas, búsqueda por cédula o nombre, estado y proceso.
+        Pulse \boton{Filtrar} para aplicar o \enlace{Limpiar} para quitarlos.
+  \item[2] \textbf{Casillas}: marque las admisiones a las que les va a aplicar la misma
+        decisión.
+  \item[3] \textbf{Estado actual}: amarillo es \emph{Pendiente}, verde es \emph{Matriculado} y
+        rojo es \emph{Devuelto}.
+  \item[4] \textbf{Desbloquear}: devuelve una admisión a \emph{Pendiente} (vea
+        la sección~\ref{sec:desbloquear}).
+  \item[5] \textbf{Decisión}: escoja \emph{Matricular} o \emph{Devolver}.
+  \item[6] \textbf{Motivo de devolución}: obligatorio solo al devolver.
+  \item[7] \boton{Guardar decisión} aplica la decisión a todas las marcadas.
+\end{leyenda}
+
+\section{Matricular estudiantes}
+
+\begin{pasos}
+  \paso{Busque al estudiante}{En \campo{Buscar} escriba la cédula o el apellido y pulse
+        \boton{Filtrar}.}
+  \paso{Revise sus documentos}{Compare los documentos físicos con los datos de la fila.}
+  \paso{Márquelo}{Marque la casilla \num{2} a la izquierda de su fila.}
+  \paso{Guarde la decisión}{En \campo{Decisión} escoja \textbf{Matricular} y pulse
+        \boton{Guardar decisión}. Arriba aparece cuántas admisiones se actualizaron y la fila
+        pasa a verde.}
+\end{pasos}
+
+\begin{consejo}
+Puede matricular a varios estudiantes de una sola vez: marque todas sus casillas antes de pulsar
+\boton{Guardar decisión}.
+\end{consejo}
+
+\section{Devolver una solicitud}
+
+Si a un estudiante le falta algún documento, en lugar de matricularlo se le devuelve la
+solicitud.
+
+\begin{pasos}
+  \paso{Márquelo}{Marque la casilla de su fila.}
+  \paso{Escoja Devolver}{En \campo{Decisión} escoja \textbf{Devolver}.}
+  \paso{Escriba el motivo}{En \campo{Motivo de devolución} explique qué le falta, por ejemplo:
+        \emph{«Falta copia de la cédula de identidad.»}}
+  \paso{Guarde}{Pulse \boton{Guardar decisión}.}
+\end{pasos}
+
+\begin{importante}[Siempre indique el motivo]
+Sin motivo el sistema no guarda la devolución y muestra \emph{«Debe indicar el motivo de
+devolución.»}. El motivo queda visible en la columna \emph{Motivo} para quien atienda al
+estudiante después.
+\end{importante}
+
+\begin{captura}{revision-devuelto}{2732}{1360}
+  \anota{1}{75}{133}{113}{515}
+  \anota{2}{53}{1003}{2678}{1175}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] Las admisiones \textbf{matriculadas} tienen la casilla bloqueada (gris): no se
+        pueden cambiar sin desbloquearlas primero.
+  \item[2] Una admisión \textbf{devuelta}, con su motivo. Cuando el estudiante regrese con lo
+        que faltaba, márquela y matricúlela normalmente.
+\end{leyenda}
+
+\section{Desbloquear una admisión}\label{sec:desbloquear}
+
+Desbloquear devuelve una admisión matriculada o devuelta a \textbf{Pendiente}. Úselo cuando se
+matriculó a alguien por error o cuando hay que corregir algo.
+
+\begin{pasos}
+  \paso{Escriba el motivo}{En la fila de la admisión, en \campo{Motivo de desbloqueo…},
+        explique por qué la desbloquea.}
+  \paso{Desbloquee}{Pulse \botonsec{Desbloquear} en esa misma fila. Verá \emph{«Admisión
+        desbloqueada y devuelta a Pendiente.»}}
+\end{pasos}
+
+\begin{nota}
+Cada decisión y cada desbloqueo quedan registrados en la auditoría con su usuario, la fecha, la
+hora y el motivo.
+\end{nota}
+
+\section{Si no puede marcar ni guardar}
+
+Si el administrador \textbf{desactivó} el proceso, no se pueden revisar documentos de ese
+proceso hasta que lo reactive. Consulte con el administrador.

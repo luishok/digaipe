@@ -1,0 +1,6 @@
+# Manuales de usuario: compilar con LuaLaTeX (fontspec).
+# latexmk         -> compila los seis manuales
+# latexmk -c      -> limpia auxiliares
+$pdf_mode = 4;
+$out_dir = 'build';
+@default_files = ('manual-*.tex');

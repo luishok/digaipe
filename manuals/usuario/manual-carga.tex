@@ -1,0 +1,20 @@
+%% Manual de Carga de Admisiones de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-carga.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual de Carga de Admisiones}
+\hypersetup{pdftitle={DIGAIPE - Manual de Carga de Admisiones},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual de Carga de Admisiones}
+  {Procesos de admisión, carga del listado de asignados\\y tablas de carreras}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/carga}
+\input{capitulos/problemas}
+
+\end{document}

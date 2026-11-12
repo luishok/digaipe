@@ -1,0 +1,3 @@
+# El manual usa fontspec: compilar con LuaLaTeX.
+$pdf_mode = 4;
+$out_dir = 'build';

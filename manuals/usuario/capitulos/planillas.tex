@@ -1,0 +1,91 @@
+% Rol: Generación de planillas.
+\chapter{Generación de planillas}\label{cap:planillas}
+
+\begin{ficharol}{Generación de planillas}{Este capítulo es para usted si atiende a los
+  estudiantes y les imprime su planilla de inscripción.}
+Con este rol usted puede buscar a los estudiantes cuyo proceso está activo hoy, corregir su
+nombre, teléfono, correo y género, y generar o reimprimir su planilla en PDF. No puede cargar
+listados ni matricular.
+\end{ficharol}
+
+\section{Buscar al estudiante}
+
+Entre a \menu{Admisiones > Generación de Planilla}.
+
+\begin{captura}{planilla-lista}{2732}{1060}
+  \anota{1}{46}{151}{738}{192}
+  \anota{2}{667}{257}{2065}{552}
+  \anota{3}{46}{697}{2686}{1030}
+  \anota{4}{2472}{880}{2664}{940}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Fecha de hoy.} Solo aparecen los estudiantes cuyo proceso está activo hoy.
+  \item[2] \textbf{Buscar}: escriba la cédula o parte del nombre y pulse \boton{Buscar}.
+        \enlace{Limpiar} vuelve a mostrar a todos.
+  \item[3] \textbf{Datos del estudiante.} Si ya tiene planilla, junto a la cédula aparece su
+        estado (\emph{pendiente}, \emph{matriculado} o \emph{devuelto}).
+  \item[4] \enlace{Seleccionar} abre el detalle del estudiante.
+\end{leyenda}
+
+\begin{nota}[¿No aparece el estudiante?]
+Si el estudiante no sale en la lista, su proceso no está activo hoy, o su listado todavía no se
+ha cargado. Consulte con la persona encargada de la carga de admisiones.
+\end{nota}
+
+\section{Revisar y corregir los datos}
+
+Al pulsar \enlace{Seleccionar} se abre el \emph{Detalle de admisión}:
+
+\begin{captura}{planilla-detalle}{2732}{1880}
+  \anota{1}{49}{42}{2673}{481}
+  \anota{2}{90}{373}{389}{441}
+  \anota{3}{90}{723}{1287}{893}
+  \anota{4}{1394}{580}{2673}{1819}
+  \anota{5}{1871}{1585}{2195}{1685}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Estudiante}: nombre, teléfono, correo y género. Estos datos sí se pueden
+        corregir.
+  \item[2] \boton{Guardar datos} guarda las correcciones.
+  \item[3] \textbf{Admisión}: estado de la planilla y datos que vienen del listado (cédula,
+        carrera, modalidad, etc.). Estos no se pueden cambiar aquí.
+  \item[4] \textbf{Campos generados para planilla}: los calcula el sistema.
+  \item[5] Botón para \textbf{generar} o \textbf{reimprimir} la planilla.
+\end{leyenda}
+
+\begin{pasos}
+  \paso{Pregunte al estudiante}{Confirme con el estudiante su nombre, teléfono y correo.}
+  \paso{Corrija lo necesario}{Cambie los datos en la sección \emph{Estudiante} y escoja el
+        \campo{Genero}.}
+  \paso{Guarde}{Pulse \boton{Guardar datos}. Verá el mensaje \emph{«Datos del estudiante
+        actualizados.»}}
+\end{pasos}
+
+\begin{importante}[La cédula no se cambia aquí]
+Si la cédula, la carrera o la modalidad están mal, no genere la planilla: avísele a la persona
+de carga de admisiones, porque esos datos vienen del listado oficial.
+\end{importante}
+
+\section{Generar la planilla}
+
+\begin{pasos}
+  \paso{Revise los datos}{Asegúrese de haber guardado las correcciones.}
+  \paso{Genere el PDF}{Pulse \boton{Generar planilla PDF}. La planilla se abre en una pestaña
+        nueva del navegador.}
+  \paso{Imprima}{Imprima la planilla desde esa pestaña y entréguesela al estudiante.}
+\end{pasos}
+
+Así se ve una planilla generada (con datos de prueba):
+
+\pantalla{planilla-pdf-1}[0.8\linewidth]
+
+Al generarla, la admisión queda en estado \textbf{Pendiente}: ya pasa a la cola de
+\emph{Revisión de documentos}. Desde ese momento el botón cambia a \boton{Reimprimir PDF}, que
+sirve para volver a imprimir la misma planilla.
+
+\begin{consejo}
+Si el estudiante pierde la planilla, búsquelo de nuevo, pulse \enlace{Seleccionar} y luego
+\boton{Reimprimir PDF}.
+\end{consejo}

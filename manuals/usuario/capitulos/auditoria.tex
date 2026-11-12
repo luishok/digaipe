@@ -1,0 +1,70 @@
+% Rol: Auditor (y consulta de auditoría para el Administrador).
+\chapter{Auditoría}\label{cap:auditoria}
+
+\begin{ficharol}{Auditor (solo lectura)}{Este capítulo es para usted si revisa quién hizo
+  qué en el sistema.}
+Con este rol usted puede ver todas las pantallas del sistema y el registro de auditoría, y
+exportarlo. \textbf{No puede modificar nada}: los botones de guardar, cargar o generar no
+aparecen o no tienen efecto para usted.
+\end{ficharol}
+
+\section{Qué ve el auditor}
+
+El auditor ve el menú completo: \menu{Estadísticas}, \menu{Admisiones}, \menu{Parametros} y
+\menu{Administración}. Dentro de \menu{Administración} solo tiene acceso a \textbf{Auditoría};
+la gestión de usuarios es exclusiva del administrador.
+
+En las pantallas de trabajo (por ejemplo \emph{Revisión de documentos}) el auditor ve los
+mismos datos que los demás, pero sin las casillas ni los botones de decisión.
+
+\section{El registro de auditoría}
+
+Entre a \menu{Administración} y pulse la tarjeta \textbf{Auditoría}. Cada vez que alguien entra
+al sistema, carga un listado, genera una planilla, matricula, devuelve, desbloquea, consulta
+datos de estudiantes o cambia un usuario, queda un \textbf{evento} en este registro.
+
+\begin{captura}{auditoria}{2732}{1670}
+  \anota{1}{49}{177}{2690}{715}
+  \anota{2}{2263}{768}{2690}{879}
+  \anota{3}{49}{1046}{2690}{1609}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Filtros}: acción, origen, usuario, tipo y número de entidad, y rango de
+        fecha y hora (\campo{Desde} y \campo{Hasta}).
+  \item[2] \textbf{Exportar}: descarga hasta 10.000 eventos. Solo aparece cuando hay fechas en
+        \campo{Desde} y \campo{Hasta}.
+  \item[3] \textbf{Un evento}: número de secuencia, fecha y hora (en hora UTC), acción y
+        resultado, usuario, entidad afectada, valores antes y después, y su huella de
+        integridad.
+\end{leyenda}
+
+\subsection{Acciones más útiles para filtrar}
+
+Escriba el nombre de la acción en el filtro \campo{Acción}:
+
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily\small}l X@{}}
+  \toprule
+  \normalfont\bfseries Acción & \bfseries Qué registra \\
+  \midrule
+  auth.sign\_in\_succeeded        & Alguien entró al sistema. \\
+  user.created / user.deleted     & Se creó o se eliminó un usuario. \\
+  user\_role.changed              & Se cambiaron los roles de un usuario. \\
+  admission\_document.reviewed    & Una admisión se matriculó o se devolvió. \\
+  admission\_document.unlocked    & Una admisión se desbloqueó. \\
+  student\_data.viewed            & Alguien consultó datos de estudiantes. \\
+  career.imported                 & Se cargó un archivo de carreras. \\
+  \bottomrule
+\end{tabularx}
+
+\begin{nota}[Hora UTC]
+Las horas del registro están en \textbf{UTC}, que va 4 horas \emph{adelante} de la hora de
+Venezuela. Por ejemplo, las 02:06 UTC del 12 de noviembre son las 10:06 p.\,m. del 11 de
+noviembre en Venezuela.
+\end{nota}
+
+\begin{importante}[El registro no se puede alterar]
+Cada evento guarda una huella (\emph{hash}) que lo encadena con el anterior. Si alguien
+modificara un evento directamente en la base de datos, la cadena se rompería y se notaría. Por
+eso el registro sirve como respaldo legal de lo ocurrido.
+\end{importante}

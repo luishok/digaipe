@@ -27,9 +27,11 @@ list_backups() {
 # Appends a backup.* event to the audit ledger, so backups and restores show on the audit page.
 # record_backup_event (drizzle/0005) accepts only backup.* actions and names the calling account.
 # Args: action outcome backup_name metadata_json
+# Wrapped in a transaction so the ledger lock lasts until commit; in autocommit the append can
+# collide with the running app's appends (duplicate sequence).
 ledger_event() {
 	mysql -h "$DB_HOST" -u"$DB_USER" "$DB_NAME" -e \
-		"CALL record_backup_event('$1', '$2', '$3', CAST('$4' AS JSON))"
+		"START TRANSACTION; CALL record_backup_event('$1', '$2', '$3', CAST('$4' AS JSON)); COMMIT;"
 }
 
 # Keeps only characters that are safe inside the SQL string literal and JSON above.

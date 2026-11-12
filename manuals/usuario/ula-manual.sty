@@ -1,0 +1,230 @@
+% ============================================================================
+% ula-manual.sty — Plantilla de manuales de usuario de DIGAIPE
+% Imagen institucional: Universidad de Los Andes (Mérida, Venezuela).
+% Compilar con LuaLaTeX (fontspec).
+% ============================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{ula-manual}[2026/11/11 Plantilla de manuales de usuario ULA]
+
+\RequirePackage{fontspec}
+\RequirePackage[spanish,es-noshorthands,es-tabla,es-nodecimaldot]{babel}
+\RequirePackage[letterpaper,top=2.6cm,bottom=2.4cm,left=2.5cm,right=2.5cm,headheight=28pt]{geometry}
+\RequirePackage{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{calc,positioning,shadows,arrows.meta}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{enumitem}
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{booktabs,array,tabularx}
+\RequirePackage{xparse}
+\RequirePackage{amssymb}
+\RequirePackage{needspace}
+\RequirePackage{etoolbox}
+\RequirePackage[hidelinks,pdfusetitle]{hyperref}
+
+% Primero las capturas recortadas para el manual; el escudo y lo demás en img/.
+\graphicspath{{img/recortes/}{img/}}
+
+% ---------------------------------------------------------------- Colores
+% Azul ULA tomado de la cabecera de la aplicación (#0033A0).
+\definecolor{ulaazul}{HTML}{0033A0}
+\definecolor{ulaazuloscuro}{HTML}{001F66}
+\definecolor{ulaceleste}{HTML}{0079D2}
+\definecolor{ulafondo}{HTML}{EEF3FB}
+\definecolor{ulagris}{HTML}{475569}
+\definecolor{ulalinea}{HTML}{CBD5E1}
+% Color de las anotaciones: contrasta con el azul de la interfaz.
+\definecolor{marca}{HTML}{E8590C}
+\definecolor{exito}{HTML}{2F7D32}
+\definecolor{peligro}{HTML}{B42318}
+
+% ---------------------------------------------------------------- Tipografía
+% Titulares en serif (eco del logotipo ULA), texto en sans de buena lectura.
+\setmainfont{TeX Gyre Heros}
+\setsansfont{TeX Gyre Heros}
+\newfontfamily\titulofont{TeX Gyre Termes}
+\setmonofont{TeX Gyre Cursor}[Scale=0.95]
+
+\setlength{\parskip}{0.55em}
+\setlength{\parindent}{0pt}
+\linespread{1.08}
+\setlist{itemsep=0.25em,topsep=0.3em}
+\renewcommand{\arraystretch}{1.3}
+\setlength{\emergencystretch}{3em}
+
+% ---------------------------------------------------------------- Títulos
+% Capítulo = un rol o una gran tarea. Fondo blanco (pensado para imprimir):
+% etiqueta y filete en azul ULA, título en azul oscuro.
+\newcommand{\filetecapitulo}{\par\vspace{0.5em}\noindent\begin{tikzpicture}
+  \fill[ulaazul] (0,0) rectangle (3cm,2.2pt);
+  \fill[ulalinea] (3cm,0) rectangle (\linewidth,0.6pt);\end{tikzpicture}}
+\titleformat{\chapter}[display]{\normalfont}
+  {\sffamily\small\bfseries\color{ulaazul}\MakeUppercase{\chaptertitlename}\ \thechapter}{0.4em}
+  {\titulofont\fontsize{30}{34}\selectfont\color{ulaazuloscuro}}[\filetecapitulo]
+\titleformat{name=\chapter,numberless}[display]{\normalfont}{}{0pt}
+  {\titulofont\fontsize{30}{34}\selectfont\color{ulaazuloscuro}}[\filetecapitulo]
+\titlespacing*{\chapter}{0pt}{0pt}{0.6cm}
+\titlespacing*{name=\chapter,numberless}{0pt}{0pt}{0.6cm}
+
+\titleformat{\section}
+  {\titulofont\Large\bfseries\color{ulaazul}}
+  {\thesection}{0.8em}{}[\vspace{-0.4em}{\color{ulalinea}\rule{\linewidth}{0.6pt}}]
+\titlespacing*{\section}{0pt}{1.4em}{0.2em}
+% Evita títulos huérfanos al pie de página.
+\pretocmd{\section}{\Needspace{12\baselineskip}}{}{}
+
+\titleformat{\subsection}
+  {\sffamily\large\bfseries\color{ulaazuloscuro}}
+  {}{0pt}{}
+\titlespacing*{\subsection}{0pt}{1.1em}{0.4em}
+
+% ---------------------------------------------------------------- Encabezado y pie
+\newcommand{\manualtitulo}{Manual de usuario}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\raisebox{-0.25\height}{\includegraphics[height=22pt]{ula-crest}}\hspace{0.6em}%
+  \sffamily\footnotesize\color{ulagris}\textbf{\color{ulaazul}DIGAIPE}\enspace·\enspace\manualtitulo}
+\fancyhead[R]{\sffamily\footnotesize\color{ulagris}\nouppercase{\leftmark}}
+\fancyfoot[L]{\sffamily\scriptsize\color{ulagris}Universidad de Los Andes · Mérida, Venezuela}
+\newcommand{\numeropagina}{{\sffamily\small\bfseries\color{ulaazul}\thepage}}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[R]{\numeropagina}
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}%
+  \fancyfoot[L]{\sffamily\scriptsize\color{ulagris}Universidad de Los Andes · Mérida, Venezuela}%
+  \fancyfoot[R]{\numeropagina}}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+
+% ---------------------------------------------------------------- Portada
+% \portada{Título}{Subtítulo}{Versión / fecha}
+\newcommand{\portada}[3]{%
+  \begin{titlepage}
+  \begin{tikzpicture}[remember picture,overlay]
+    % Filetes finos arriba y abajo como único uso de color sólido.
+    \fill[ulaazul] ([xshift=2.5cm,yshift=-1.6cm]current page.north west)
+      rectangle ([xshift=-2.5cm,yshift=-1.75cm]current page.north east);
+    \fill[ulaazul] ([xshift=2.5cm,yshift=1.6cm]current page.south west)
+      rectangle ([xshift=-2.5cm,yshift=1.75cm]current page.south east);
+    \node (escudo) at ([yshift=-6.0cm]current page.north) {\includegraphics[height=5.2cm]{ula-crest}};
+    \node[text=ulagris,font=\sffamily\small,align=center]
+      at ([yshift=-9.4cm]current page.north) {Mérida · Venezuela};
+    \node[text=ulaazul,font=\titulofont\bfseries\fontsize{46}{50}\selectfont]
+      at ([yshift=-12.6cm]current page.north) {DIGAIPE};
+    \fill[ulaazul] ([xshift=-1.5cm,yshift=-13.9cm]current page.north)
+      rectangle ([xshift=1.5cm,yshift=-14.0cm]current page.north);
+    \node[text=ulaazuloscuro,font=\titulofont\fontsize{24}{28}\selectfont,align=center,text width=15cm]
+      at ([yshift=-15.1cm]current page.north) {#1};
+    \node[text=ulagris,font=\sffamily\large,align=center,text width=14cm]
+      at ([yshift=-18.2cm]current page.north) {#2};
+    \node[text=ulagris,font=\sffamily\small,align=center]
+      at ([yshift=2.5cm]current page.south) {#3};
+  \end{tikzpicture}
+  \end{titlepage}}
+
+% ---------------------------------------------------------------- Elementos de interfaz
+% Botón de la aplicación:  \boton{Filtrar}
+\newcommand{\boton}[1]{\tikz[baseline=(b.base)]\node[draw=ulaazul,line width=0.9pt,text=ulaazul,rounded corners=2pt,
+  inner xsep=5pt,inner ysep=2.5pt,font=\sffamily\small\bfseries] (b) {\strut #1};}
+% Botón secundario (gris):  \botonsec{Desbloquear}
+\newcommand{\botonsec}[1]{\tikz[baseline=(b.base)]\node[fill=ulafondo,draw=ulalinea,text=ulaazuloscuro,
+  rounded corners=2pt,inner xsep=5pt,inner ysep=2.5pt,font=\sffamily\small\bfseries] (b) {\strut #1};}
+% Enlace de texto:  \enlace{Limpiar}
+\newcommand{\enlace}[1]{{\sffamily\color{ulaceleste}\underline{#1}}}
+% Campo de formulario:  \campo{Desde}
+\newcommand{\campo}[1]{{\sffamily\bfseries\color{ulaazuloscuro}«#1»}}
+% Ruta en el menú:  \menu{Administración > Roles}
+\ExplSyntaxOn
+\NewDocumentCommand{\menu}{m}{
+  \seq_set_split:Nnn \l_tmpa_seq {>} {#1}
+  {\sffamily\bfseries\color{ulaazul}
+   \seq_use:Nn \l_tmpa_seq {\,\textcolor{marca}{$\blacktriangleright$}\,}}}
+\ExplSyntaxOff
+% Rol requerido:  \rol{Administrador}
+\newcommand{\rol}[1]{\tikz[baseline=(r.base)]\node[draw=ulaazul,text=ulaazul,rounded corners=6pt,
+  inner xsep=6pt,inner ysep=2pt,font=\sffamily\footnotesize\bfseries] (r) {\strut #1};}
+% Número de anotación en el texto:  \num{3}
+\newcommand{\num}[1]{\tikz[baseline=(c.base)]\node[circle,fill=marca,text=white,inner sep=0pt,
+  minimum size=1.15em,font=\sffamily\footnotesize\bfseries] (c) {#1};}
+
+% ---------------------------------------------------------------- Ficha de rol
+% Al inicio de cada capítulo: quién lo usa y qué puede hacer.
+% \begin{ficharol}{Administrador}{Gestiona usuarios, roles y procesos.} ... \end{ficharol}
+\newtcolorbox{ficharol}[2]{enhanced,breakable,colback=ulafondo,colframe=ulafondo,
+  borderline west={4pt}{0pt}{ulaazul},sharp corners,left=12pt,top=8pt,bottom=8pt,
+  fontupper=\sffamily\small,
+  title={\rol{#1}\quad{\color{ulaazuloscuro}\normalsize #2}},
+  coltitle=ulaazuloscuro,colbacktitle=ulafondo,attach title to upper,after title={\par\medskip}}
+
+% ---------------------------------------------------------------- Pasos numerados
+% \begin{pasos} \paso{Título corto}{Explicación} ... \end{pasos}
+\newcounter{paso}
+\newenvironment{pasos}{\setcounter{paso}{0}\par\medskip}{\par\medskip}
+\newcommand{\paso}[2]{\stepcounter{paso}%
+  \par\noindent
+  \begin{tikzpicture}[baseline={([yshift=-0.78em]p.north)}]
+    \node[circle,draw=ulaazul,line width=1.4pt,text=ulaazul,minimum size=0.9cm,font=\sffamily\large\bfseries,inner sep=0] (p) {\thepaso};
+  \end{tikzpicture}\hspace{0.7em}%
+  \begin{minipage}[t]{\dimexpr\linewidth-1.6cm\relax}
+    {\sffamily\bfseries\color{ulaazuloscuro}#1}\par\vspace{0.15em}#2
+  \end{minipage}\par\medskip}
+
+% ---------------------------------------------------------------- Recuadros
+\newtcolorbox{consejo}[1][Consejo]{enhanced,breakable,colback=exito!5,colframe=exito!5,
+  borderline west={4pt}{0pt}{exito},sharp corners,fontupper=\small,
+  title={\faLabel{exito}{$\checkmark$}\ #1},coltitle=exito,fonttitle=\sffamily\bfseries,
+  colbacktitle=exito!5,attach title to upper,after title={\par}}
+\newtcolorbox{importante}[1][Importante]{enhanced,breakable,colback=peligro!5,colframe=peligro!5,
+  borderline west={4pt}{0pt}{peligro},sharp corners,fontupper=\small,
+  title={\faLabel{peligro}{!}\ #1},coltitle=peligro,fonttitle=\sffamily\bfseries,
+  colbacktitle=peligro!5,attach title to upper,after title={\par}}
+\newtcolorbox{nota}[1][Nota]{enhanced,breakable,colback=ulafondo,colframe=ulafondo,
+  borderline west={4pt}{0pt}{ulaceleste},sharp corners,fontupper=\small,
+  title={\faLabel{ulaceleste}{i}\ #1},coltitle=ulaazul,fonttitle=\sffamily\bfseries,
+  colbacktitle=ulafondo,attach title to upper,after title={\par}}
+% Ícono redondo de los recuadros.
+\newcommand{\faLabel}[2]{\tikz[baseline=(i.base)]\node[circle,fill=#1,text=white,inner sep=0pt,
+  minimum size=1.2em,font=\sffamily\footnotesize\bfseries] (i) {#2};}
+
+% ---------------------------------------------------------------- Capturas anotadas
+% \begin{captura}{archivo}{ancho px}{alto px}[ancho en página]
+%   coordenadas en píxeles de la imagen, origen arriba a la izquierda
+%   \marca{1}{x}{y}                 número de anotación
+%   \marcaflecha{1}{x}{y}{xd}{yd}   número en (x,y) con flecha hacia (xd,yd)
+%   \resaltar{x1}{y1}{x2}{y2}       recuadro alrededor de un elemento
+%   \ocultar{x1}{y1}{x2}{y2}        tapa datos personales
+% \end{captura}
+\tikzset{
+  resalte/.style={draw=marca,line width=1.6pt,rounded corners=3pt},
+  numero/.style={circle,fill=marca,text=white,draw=white,line width=1.2pt,inner sep=0pt,
+    minimum size=0.62cm,font=\sffamily\small\bfseries,drop shadow={opacity=0.3}},
+}
+\NewDocumentEnvironment{captura}{m m m O{\linewidth}}
+  {\par\medskip\begin{center}\begin{tikzpicture}[x=#4/#2,y=-#4/#2]
+     \node[anchor=north west,inner sep=0pt] (img) at (0,0) {\includegraphics[width=#4]{#1}};
+     \draw[ulalinea,line width=0.8pt] (0,0) rectangle (#2,#3);}
+  {\end{tikzpicture}\end{center}\vspace{-0.6em}}
+\newcommand{\marca}[3]{\node[numero] at (#2,#3) {#1};}
+% \anota{n}{x1}{y1}{x2}{y2}: recuadro alrededor del elemento y número en su esquina.
+\newcommand{\anota}[5]{\draw[resalte] (#2,#3) rectangle (#4,#5);\node[numero] at (#2,#3) {#1};}
+% \anotad: igual, con el número en la esquina superior DERECHA (cuando tapa una etiqueta).
+\newcommand{\anotad}[5]{\draw[resalte] (#2,#3) rectangle (#4,#5);\node[numero] at (#4,#3) {#1};}
+
+% Pantalla sin anotaciones, con borde fino:  \pantalla{archivo}[ancho]
+\NewDocumentCommand{\pantalla}{m O{\linewidth}}{\par\medskip\begin{center}%
+  \tikz\node[draw=ulalinea,line width=0.8pt,inner sep=0pt]{\includegraphics[width=#2]{#1}};%
+  \end{center}\vspace{-0.6em}}
+\newcommand{\marcaflecha}[5]{\draw[marca,line width=1.4pt,-{Stealth[length=7pt]}] (#2,#3) -- (#4,#5);
+  \node[numero] at (#2,#3) {#1};}
+\newcommand{\resaltar}[4]{\draw[resalte] (#1,#2) rectangle (#3,#4);}
+\newcommand{\ocultar}[4]{\fill[ulagris!55] (#1,#2) rectangle (#3,#4);
+  \node[text=white,font=\sffamily\tiny\bfseries] at ($(#1,#2)!0.5!(#3,#4)$) {OCULTO};}
+
+% Leyenda de la captura: \begin{leyenda} \item[1] texto ... \end{leyenda}
+\newlist{leyenda}{description}{1}
+\setlist[leyenda]{font=\normalfont,leftmargin=2.1em,labelwidth=1.4em,labelsep=0.7em,
+  itemsep=0.35em,before=\small,format=\leyendanum}
+\newcommand{\leyendanum}[1]{\num{#1}}
+
+\endinput

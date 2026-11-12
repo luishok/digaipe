@@ -1,0 +1,20 @@
+%% Manual de Generación de Planillas de DIGAIPE.
+%% Compilar con LuaLaTeX:  latexmk manual-planillas.tex   (ver latexmkrc)
+\documentclass[11pt,letterpaper,oneside]{report}
+\usepackage{ula-manual}
+\renewcommand{\manualtitulo}{Manual de Generación de Planillas}
+\hypersetup{pdftitle={DIGAIPE - Manual de Generación de Planillas},pdfsubject={Manual de usuario}}
+
+\begin{document}
+
+\portada{Manual de Generación de Planillas}
+  {Búsqueda de estudiantes, corrección de datos\\y generación de la planilla en PDF}
+  {Versión 1.0 · Noviembre de 2026}
+
+\tableofcontents
+
+\input{capitulos/primeros-pasos}
+\input{capitulos/planillas}
+\input{capitulos/problemas}
+
+\end{document}

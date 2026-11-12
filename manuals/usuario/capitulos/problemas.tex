@@ -1,0 +1,38 @@
+% Capítulo común: problemas frecuentes.
+\chapter{Problemas frecuentes}\label{cap:problemas}
+
+\newcommand{\problema}[2]{\par\medskip\noindent{\sffamily\bfseries\color{ulaazul}#1}\par
+  \nopagebreak\vspace{0.15em}#2\par}
+
+\problema{No veo una opción del menú.}{El menú muestra solo lo que su rol permite. Si necesita
+otra opción, pídale al administrador que le asigne el rol correspondiente.}
+
+\problema{El sistema me sacó y tengo que volver a entrar.}{Pasa cuando el administrador cambia
+sus roles. Vuelva a iniciar sesión y verá el menú actualizado.}
+
+\problema{Olvidé mi contraseña.}{El sistema no la envía por correo. Comuníquese con el
+administrador de DIGAIPE.}
+
+\problema{Un estudiante no aparece en Generación de planilla.}{Su proceso no está activo hoy o su
+listado no se ha cargado. Revise en \menu{Admisiones > Procesos de Admisión} si el proceso tiene
+la fecha de hoy y no está \emph{Deshabilitado}.}
+
+\problema{Al cargar el listado dice «No existe el proceso».}{Cree primero el proceso en
+\menu{Admisiones > Procesos de Admisión} con el mismo código que trae la columna
+\texttt{Num\_Asignacion} del Excel.}
+
+\problema{Al cargar el listado dice «No existe una carrera con codigo OFAE…».}{El código de la
+columna \texttt{Opcion} no está en \menu{Parametros > Carreras}. Corrija el Excel o agregue la
+carrera con un archivo CSV.}
+
+\problema{Al cargar el listado dice «Faltan columnas requeridas».}{Revise que la primera fila del
+Excel tenga los nombres de columna exactos del capítulo de carga de admisiones.}
+
+\problema{El botón Previsualizar está gris.}{Falta alguno de los tres archivos: el Excel, la
+estadística firmada en PDF o el manifiesto en PDF.}
+
+\problema{No puedo marcar a un estudiante matriculado.}{Las admisiones matriculadas quedan
+bloqueadas. Desbloquéela primero (con su motivo) y luego aplique la nueva decisión.}
+
+\problema{El reporte dice «Seleccione las fechas Desde y Hasta».}{Llene ambas fechas o use un
+rango rápido antes de pulsar Vista previa.}

@@ -1,0 +1,245 @@
+% Rol: Carga de admisiones.
+\chapter{Carga de admisiones}\label{cap:carga}
+
+\begin{ficharol}{Carga de admisiones}{Este capítulo es para usted si prepara cada proceso de
+  admisión y carga el listado de estudiantes asignados.}
+Con este rol usted puede crear procesos de admisión, agregarles fechas, cargar el listado de
+asignados y mantener la tabla de carreras. No puede generar planillas, matricular ni ver
+estadísticas.
+\end{ficharol}
+
+El trabajo se hace en dos pasos y \textbf{siempre en este orden}:
+
+\begin{enumerate}
+  \item Crear el \textbf{proceso de admisión} y decir qué días estará activo.
+  \item Cargar el \textbf{listado de asignados} de ese proceso.
+\end{enumerate}
+
+\begin{importante}[El proceso va primero]
+Si carga un listado cuyo proceso todavía no existe, el sistema lo rechaza con el error
+\emph{«No existe el proceso…»}. Cree primero el proceso y luego cargue el archivo.
+\end{importante}
+
+\section{Crear un proceso de admisión}
+
+Entre a \menu{Admisiones > Procesos de Admisión}. A la izquierda se crean procesos nuevos y a la
+derecha aparecen los que ya existen.
+
+\begin{captura}{procesos-crear}{2732}{710}
+  \anotad{1}{145}{249}{693}{324}
+  \anota{2}{419}{359}{966}{426}
+  \anota{3}{1791}{461}{1904}{550}
+  \anota{4}{1987}{461}{2154}{550}
+  \anota{5}{2243}{464}{2549}{545}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Código del proceso}, tal como aparece en el listado, por ejemplo
+        \texttt{.UA900/26-11-11}.
+  \item[2] Botón \boton{Crear}.
+  \item[3] \textbf{Estado} del proceso (vea la tabla más abajo).
+  \item[4] \textbf{Fechas} en que el proceso está activo.
+  \item[5] \textbf{Agregar fechas} a un proceso que ya existe.
+\end{leyenda}
+
+\begin{pasos}
+  \paso{Escriba el código}{En \campo{Código del Proceso} escriba el código y pulse
+        \boton{Crear}. Aparece el mensaje con el proceso creado.}
+  \paso{Escoja los días activos}{En \campo{Agregar Fechas Activas} escoja una fecha y pulse
+        \boton{+}. Repita para cada día. Si se equivoca, pulse la \textbf{x} roja junto a la
+        fecha para quitarla.}
+  \paso{Guarde las fechas}{Pulse \boton{Guardar Fechas}. Verá \emph{«Fechas Guardadas!»} y la
+        página se actualiza sola a los pocos segundos.}
+\end{pasos}
+
+\begin{captura}{procesos-fechas}{2732}{1060}[0.85\linewidth]
+  \anotad{1}{145}{410}{814}{490}
+  \anotad{2}{191}{588}{1221}{807}
+  \anota{3}{418}{856}{964}{924}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] Escoja la fecha y pulse \boton{+}.
+  \item[2] Fechas que va a guardar.
+  \item[3] \boton{Guardar Fechas}.
+\end{leyenda}
+
+\begin{importante}[Las fechas mandan]
+Los estudiantes de un proceso \textbf{solo aparecen en Generación de planilla los días en que
+su proceso está activo}. Si el proceso no tiene la fecha de hoy, nadie podrá generar sus
+planillas.
+\end{importante}
+
+\subsection{Estados de un proceso}
+
+\begin{tabularx}{\linewidth}{@{}>{\leavevmode\color{ulaazuloscuro}\sffamily\bfseries}l X@{}}
+  \toprule
+  \normalfont\bfseries Estado & \bfseries Significado \\
+  \midrule
+  Activo hoy     & Hoy es uno de sus días activos. Ya se pueden generar planillas. \\
+  Programado     & Tiene fechas futuras; indica la próxima. \\
+  Finalizado     & Todas sus fechas ya pasaron. \\
+  Sin fechas     & Se creó pero todavía no tiene días activos. \\
+  Deshabilitado  & El administrador lo apagó, sin importar sus fechas. \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Agregar días a un proceso que ya existe}
+
+En la tabla \emph{Procesos Guardados}, en la fila del proceso, escoja la fecha en
+\campo{Agregar fechas} y pulse \boton{+}. Repita si necesita más días y pulse
+\boton{Guardar Fechas} en esa misma fila.
+
+\section{Cargar el listado de asignados}
+
+Entre a \menu{Admisiones > Gestión de Aspirantes} y pulse \boton{Cargar admisiones}.
+
+\subsection{Los tres archivos}
+
+Para cargar un listado se necesitan \textbf{tres archivos}. El botón \boton{Previsualizar} se
+activa solo cuando los tres están seleccionados.
+
+\begin{captura}{carga-archivos}{2732}{900}
+  \anota{1}{121}{290}{918}{744}
+  \anota{2}{984}{290}{1782}{744}
+  \anota{3}{1848}{290}{2643}{744}
+  \anota{4}{1251}{788}{1515}{859}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Archivo de admisiones} en Excel (\texttt{.xlsx}) con el listado de asignados.
+  \item[2] \textbf{Estadística firmada} en PDF.
+  \item[3] \textbf{Manifiesto} en PDF.
+  \item[4] \boton{Previsualizar}: revisa el archivo \textbf{sin guardar nada todavía}.
+\end{leyenda}
+
+Para escoger cada archivo, haga clic dentro del recuadro o arrastre el archivo encima. Cuando
+está listo, el recuadro se pone verde y muestra el nombre del archivo.
+
+\subsection{Columnas que debe tener el Excel}
+
+La primera hoja del Excel debe tener estas columnas en la primera fila. Los nombres deben
+escribirse exactamente así:
+
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily}l X@{}}
+  \toprule
+  \normalfont\bfseries Columna & \bfseries Contenido \\
+  \midrule
+  Num\_Asignacion   & Código del proceso (debe existir en DIGAIPE). \\
+  Ced\_estudiante   & Cédula del estudiante. \\
+  Apel\_Nom         & Apellidos y nombres. \\
+  Periodo\_ingreso  & Período de ingreso, por ejemplo \texttt{A2026}. \\
+  Fecha\_asignacion & Fecha de asignación. \\
+  Opcion            & Código OFAE de la carrera (debe existir en Carreras). \\
+  Moda\_Ingre       & Código de la modalidad de ingreso (debe existir en Modalidades). \\
+  Cod\_Ocre         & Tipo OCRE, por ejemplo \texttt{ADM}. \\
+  Ano               & Año, en números. \\
+  Proceso           & Número de proceso, en números. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\normalfont\small Opcionales: \texttt{Telefono}, \texttt{Correo\_e},
+    \texttt{Sex}. Un punto (\texttt{.}) en teléfono o correo se guarda como vacío.} \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Revisar la vista previa}
+
+Después de \boton{Previsualizar}, el sistema muestra qué encontró. Este es un ejemplo con un
+error:
+
+\begin{captura}{carga-errores}{2732}{1220}[0.9\linewidth]
+  \anota{1}{48}{31}{2679}{250}
+  \anota{2}{48}{399}{1331}{867}
+  \anota{3}{1395}{399}{2679}{867}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \textbf{Resumen}: los archivos cargados y cuántas filas, advertencias y errores hay.
+        Con el enlace \enlace{Abrir vista previa permanente} puede volver a esta revisión más
+        tarde.
+  \item[2] \textbf{Advertencias}: cosas que conviene revisar, pero \textbf{no impiden} guardar.
+  \item[3] \textbf{Errores}: hay que corregirlos. Cada uno indica la \emph{fila} del Excel, el
+        \emph{campo} y el problema.
+\end{leyenda}
+
+Más abajo aparece la tabla \emph{Vista previa} con cada fila tal como se va a guardar.
+
+\begin{consejo}[Cómo corregir un error]
+Abra el Excel, vaya a la fila que indica el mensaje, corrija el dato, guarde el archivo y vuelva
+a seleccionar los tres archivos. Los errores más comunes son un código de carrera que no existe
+en \menu{Parametros > Carreras} o un proceso que todavía no se ha creado.
+\end{consejo}
+
+\subsection{Guardar}
+
+Cuando la vista previa no tiene errores, aparece el botón \boton{Guardar admisiones}. Púlselo.
+El sistema confirma cuántas admisiones guardó y el lote pasa a \textbf{Guardado} en la tabla
+\emph{Lotes recientes}:
+
+\begin{captura}{carga-guardado}{2732}{510}
+  \anota{1}{46}{14}{478}{63}
+  \anota{2}{46}{265}{2686}{366}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] Mensaje de confirmación.
+  \item[2] El lote guardado, con sus filas, advertencias y errores.
+\end{leyenda}
+
+\begin{nota}[Lotes en borrador]
+Cada vista previa crea un lote en \textbf{Borrador}. Un borrador no afecta a nadie. Si cargó un
+archivo por error, pídale al administrador que lo elimine.
+\end{nota}
+
+\section{Ver el listado de aspirantes}
+
+En \menu{Admisiones > Gestión de Aspirantes} puede consultar todos los admitidos ya guardados.
+
+\begin{captura}{aspirantes}{2978}{980}
+  \anota{1}{97}{27}{463}{520}
+  \anota{2}{528}{441}{857}{520}
+  \anota{3}{2042}{411}{2487}{524}
+  \anota{4}{40}{630}{2970}{964}
+\end{captura}
+
+\begin{leyenda}
+  \item[1] \boton{Cargar admisiones}: lleva a la pantalla de carga.
+  \item[2] \textbf{Filtros}: modalidad, período, carrera, fechas, proceso y búsqueda libre por
+        cédula o nombre.
+  \item[3] \boton{Filtrar} aplica los filtros; \enlace{Limpiar} los quita.
+  \item[4] \textbf{Listado}. La última columna indica de qué lote y archivo vino cada fila.
+\end{leyenda}
+
+\section{Carreras y modalidades}
+
+En el menú \menu{Parametros} están las tablas que el sistema usa para revisar cada listado.
+
+\subsection{Carreras}
+
+\menu{Parametros > Carreras} muestra todas las carreras. Escriba en el buscador para filtrar por
+programa, facultad o núcleo.
+
+Para agregar carreras nuevas:
+\begin{enumerate}
+  \item Pulse \boton{Subir Archivo}.
+  \item Haga clic en el recuadro y escoja el archivo CSV.
+  \item Pulse \boton{Procesar y Guardar}.
+\end{enumerate}
+
+\pantalla{carreras-subir}[0.75\linewidth]
+
+El CSV debe usar \textbf{punto y coma} (\texttt{;}) como separador y tener estas columnas en la
+primera fila:
+
+\begin{center}
+\ttfamily\small Programa Académico;OPSU;OFAE;OCRE;Facultad o Núcleo;Nucleo;Clave
+\end{center}
+
+\begin{nota}
+Solo se agregan las carreras nuevas. Si una carrera ya existe (mismo núcleo y mismo código
+OFAE), se omite y no se modifica. Al terminar, el sistema dice cuántas agregó y cuántas omitió.
+\end{nota}
+
+\subsection{Modalidades de admisión}
+
+\menu{Parametros > Modalidades de Admisión} muestra los códigos de modalidad (por ejemplo
+\texttt{AR} Alto Rendimiento, \texttt{ATL} Atleta). Es solo de consulta.
