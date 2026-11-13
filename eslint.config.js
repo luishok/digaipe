@@ -22,7 +22,10 @@ export default defineConfig(
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
-			'no-undef': 'off'
+			'no-undef': 'off',
+			// `const { secret, ...rest } = row` is how server-only fields are dropped before data
+			// reaches the browser; the omitted names are intentionally unused.
+			'@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }]
 		}
 	},
 	{

@@ -11,6 +11,7 @@ import {
 	students
 } from '$lib/server/db/schema';
 import { caracasDateKey } from './processing';
+import { formatDate } from '../../dates';
 import { searchCondition } from './search';
 
 export type PlanillaAdmission = Awaited<ReturnType<typeof getActiveAdmissionForPlanilla>>;
@@ -139,19 +140,27 @@ function admissionProcessPrefix(processCode: string) {
 	return processCode.replace(/^\.+/, '').trim().split('/')[0] ?? processCode;
 }
 
-function formatLegacyDate(value: Date | string) {
-	const dateKey = typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
-	const [year, month, day] = dateKey.split('-');
-	return `${day}/${month}/${year}`;
-}
+// Only the fields the planilla uses, so rows from the search list work as well as the detail record.
+type PlanillaSource = Pick<
+	NonNullable<PlanillaAdmission>,
+	| 'processCode'
+	| 'clave'
+	| 'opcion'
+	| 'cedula'
+	| 'activeDate'
+	| 'apellidosNombres'
+	| 'modalityName'
+	| 'careerName'
+	| 'programaAcademico'
+>;
 
-export function buildLegacyPlanillaFields(admission: NonNullable<PlanillaAdmission>) {
+export function buildLegacyPlanillaFields(admission: PlanillaSource) {
 	const processPrefix = admissionProcessPrefix(admission.processCode);
 	const clave = admission.clave ?? admission.opcion;
 	const planilla = `. ${processPrefix}${clave}${admission.cedula}`;
 
 	return {
-		fechaMat: formatLegacyDate(admission.activeDate),
+		fechaMat: formatDate(admission.activeDate),
 		propio: titleCase(admission.apellidosNombres),
 		planilla,
 		mod: admission.modalityName,

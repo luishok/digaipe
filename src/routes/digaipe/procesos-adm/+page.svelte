@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { can } from '$lib/permissions';
+	import { formatDate } from '$lib/dates';
 
 	let { form, data } = $props();
 	const canManage = $derived(can(data.user, 'processes.manage'));
@@ -126,7 +127,7 @@
 					<ul>
 						{#each dates as date (date)}
 							<li>
-								{date}
+								{formatDate(date)}
 								<button type="button" class="button-red" onclick={() => removeDate(date)}>x</button>
 							</li>
 						{/each}
@@ -201,7 +202,7 @@
 								{#if process.status === 'active'}
 									Activo hoy
 								{:else if process.status === 'scheduled'}
-									Programado (próxima: {process.nextDate})
+									Programado (próxima: {formatDate(process.nextDate)})
 								{:else if process.status === 'finished'}
 									Finalizado
 								{:else if process.status === 'disabled'}
@@ -210,7 +211,7 @@
 									Sin fechas
 								{/if}
 							</td>
-							<td>{process.dates.length > 0 ? process.dates.join(', ') : 'Sin fechas activas'}</td>
+							<td>{process.dates.length > 0 ? process.dates.map(formatDate).join(', ') : 'Sin fechas activas'}</td>
 							{#if canManage}
 							<td>
 								<input class="input-date" type="date" bind:value={dateInputs[process.id]} />
@@ -222,7 +223,7 @@
 									<ul>
 										{#each processPendingDates(process.id) as date (date)}
 											<li>
-												{date}
+												{formatDate(date)}
 												<button
 													type="button"
 													class="button-red"

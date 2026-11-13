@@ -1,10 +1,28 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { can } from '$lib/permissions';
 
 	let { data, form } = $props();
 
+	// --- Agregar / modificar una carrera ---
+	type Career = (typeof data.all_careers)[number];
+	let careerDialog = $state<HTMLDialogElement>();
+	// null = agregando una carrera nueva
+	let editing = $state<Career | null>(null);
+	// Admissions point at the career by núcleo + OFAE, so those are locked once it is in use.
+	let codesLocked = $derived(!!editing && editing.admissionCount > 0);
+	let singleResult = $derived(form?.action === 'create' || form?.action === 'update' ? form : null);
+	let lastSaved = $state<string | null>(null);
+
+	function openCareerDialog(career: Career | null) {
+		editing = career;
+		form = null;
+		lastSaved = null;
+		careerDialog?.showModal();
+	}
+
 	// --- Lógica del Modal ---
-	let modalElement: HTMLDialogElement; // Aquí se guardará la referencia al <dialog>
+	let modalElement = $state<HTMLDialogElement>(); // Aquí se guardará la referencia al <dialog>
 
 	function openModal() {
 		modalElement?.showModal();
@@ -18,7 +36,7 @@
 	// Variable derivada que reacciona cuando cambia 'files'
 	let fileName = $derived(files && files.length > 0 ? files[0].name : null);
 
-	let headers = [
+	let headers: { key: keyof Career; value: string }[] = [
 		{ key: 'programa_academico', value: 'Programa Academico' },
 		{ key: 'codigo', value: 'Codigo OPSU' },
 		{ key: 'ofae', value: 'Codigo OFAE' },
@@ -59,7 +77,87 @@
 			<div>
 				<!-- Cambiamos el id por un evento onclick -->
 				<button onclick={openModal} class="btn-primary">Subir Archivo</button>
+				<button type="button" onclick={() => openCareerDialog(null)}>Agregar Carrera</button>
 			</div>
+
+			<dialog bind:this={careerDialog} aria-labelledby="career-dialog-title">
+				<div class="modal-actions">
+					<button type="button" onclick={() => careerDialog?.close()} class="close-button">X</button>
+				</div>
+				<h3 id="career-dialog-title">{editing ? 'Modificar Carrera' : 'Agregar Carrera'}</h3>
+				{#key editing}
+					<form
+						method="POST"
+						action={editing ? '?/update' : '?/create'}
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								await update();
+								if (result.type === 'success') {
+									lastSaved = String(result.data?.message ?? '');
+									careerDialog?.close();
+								}
+							};
+						}}
+					>
+						{#if editing}
+							<input type="hidden" name="id" value={editing.id} />
+						{/if}
+						<label>
+							Programa Académico
+							<input
+								name="programa_academico"
+								value={editing?.programa_academico ?? ''}
+								required
+								maxlength="255"
+							/>
+						</label>
+						<label>
+							Facultad o Núcleo
+							<input name="facultad" value={editing?.facultad ?? ''} required maxlength="255" />
+						</label>
+						<label>
+							Núcleo (letra)
+							<input
+								name="nucleo"
+								value={editing?.nucleo ?? ''}
+								required
+								maxlength="1"
+								pattern="[A-Za-z]"
+								readonly={codesLocked}
+							/>
+						</label>
+						<label>
+							Código OFAE
+							<input
+								name="ofae"
+								value={editing?.ofae ?? ''}
+								required
+								maxlength="4"
+								pattern={'[A-Za-z0-9]{1,4}'}
+								readonly={codesLocked}
+							/>
+						</label>
+						{#if codesLocked}
+							<p>
+								El núcleo y el OFAE no se pueden cambiar: {editing?.admissionCount} admisión(es) usan
+								esta carrera.
+							</p>
+						{/if}
+						<label>
+							Código OPSU
+							<input name="codigo" type="number" min="0" step="1" value={editing?.codigo ?? ''} />
+						</label>
+						<label>
+							Código OCRE
+							<input name="ocre" type="number" min="0" step="1" value={editing?.ocre ?? ''} />
+						</label>
+						<button type="submit">{editing ? 'Guardar Cambios' : 'Agregar'}</button>
+					</form>
+				{/key}
+				{#if singleResult?.error}
+					<p role="alert">{singleResult.message}</p>
+				{/if}
+			</dialog>
 
 			<!-- Usamos bind:this para conectar el HTML con la variable de arriba -->
 			<dialog bind:this={modalElement}>
@@ -68,7 +166,7 @@
 				</div>
 				<div class="import_careers">
 					<h3>Subir Archivo CSV</h3>
-					<form method="POST" enctype="multipart/form-data" class="modal-form">
+					<form method="POST" action="?/import" enctype="multipart/form-data" class="modal-form">
 						<label class="custom-file-upload {fileName ? 'has-file' : ''}">
 							<input type="file" name="csvFile" accept=".csv" bind:files required />
 
@@ -116,9 +214,9 @@
 						<button type="submit">Procesar y Guardar</button>
 					</form>
 
-					{#if form && !form.error}
+					{#if form?.action === 'import' && !form.error}
 						<p style="color: green;">{form.message}</p>
-					{:else if form?.error}
+					{:else if form?.action === 'import' && form.error}
 						<p style="color: red;">{form.message}</p>
 					{/if}
 				</div>
@@ -136,23 +234,32 @@
 		style="width: 100%;"
 	/>
 </div>
+{#if lastSaved}
+	<p role="status">{lastSaved}</p>
+{/if}
 <div class="table_container">
 	<table>
 		<thead>
 			<!-- Siempre es buena práctica envolver los <th> en un <tr> -->
 			<tr>
-				{#each headers as header}
+				{#each headers as header (header.key)}
 					<th>{header.value}</th>
 				{/each}
+				{#if can(data.user, 'catalogs.import')}<th>Acciones</th>{/if}
 			</tr>
 		</thead>
 		<tbody>
 			<!-- ¡Importante! Iteramos sobre la variable derivada 'filteredCareers' -->
-			{#each filteredCareers as career}
+			{#each filteredCareers as career (career.id)}
 				<tr>
-					{#each headers as header}
+					{#each headers as header (header.key)}
 						<td>{career[header.key]}</td>
 					{/each}
+					{#if can(data.user, 'catalogs.import')}
+						<td>
+							<button type="button" onclick={() => openCareerDialog(career)}>Modificar</button>
+						</td>
+					{/if}
 				</tr>
 			{/each}
 		</tbody>

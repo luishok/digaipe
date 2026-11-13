@@ -221,37 +221,95 @@ export class BatchIntegrityError extends Error {
  * batch is only ever previewed or saved from the exact bytes that were uploaded.
  * Returns the admissions spreadsheet.
  */
+export const BATCH_FILE_ROLES = ['source', 'estadistica', 'manifest'] as const;
+export type BatchFileRole = (typeof BATCH_FILE_ROLES)[number];
+
+function storedFile(batch: StoredBatchFiles, role: BatchFileRole) {
+	if (role === 'source') return { role, filePath: batch.sourceFilePath, sha256: batch.sourceFileSha256 };
+	if (role === 'estadistica')
+		return { role, filePath: batch.estadisticaFilePath, sha256: batch.estadisticaFileSha256 };
+	return { role, filePath: batch.manifestFilePath, sha256: batch.manifestFileSha256 };
+}
+
+/** The file's bytes if it is inside the upload root and matches its recorded SHA-256. */
+type StoredFileCheck =
+	| { ok: true; bytes: Buffer }
+	| { ok: false; problem: 'outside_upload_root' | 'missing' | 'hash_mismatch' };
+
+async function checkStoredFile(file: ReturnType<typeof storedFile>): Promise<StoredFileCheck> {
+	const resolved = path.resolve(file.filePath);
+	if (!resolved.startsWith(ADMISSION_UPLOAD_ROOT + path.sep))
+		return { ok: false, problem: 'outside_upload_root' };
+	const bytes = await readFile(resolved).catch(() => null);
+	if (!bytes) return { ok: false, problem: 'missing' };
+	if (createHash('sha256').update(bytes).digest('hex') !== file.sha256)
+		return { ok: false, problem: 'hash_mismatch' };
+	return { ok: true, bytes };
+}
+
+async function refuseBatch(
+	batch: StoredBatchFiles,
+	auditContext: AuditContext,
+	problems: { role: string; problem: string }[]
+): Promise<never> {
+	await writeAuditLog(db, auditContext, {
+		action: 'admission_import_batch.integrity_failed',
+		entityType: 'admission_import_batch',
+		entityId: batch.id,
+		metadata: { problems },
+		outcome: 'failure'
+	});
+	throw new BatchIntegrityError();
+}
+
 export async function readVerifiedBatchSource(batch: StoredBatchFiles, auditContext: AuditContext) {
-	const files = [
-		{ role: 'source', filePath: batch.sourceFilePath, sha256: batch.sourceFileSha256 },
-		{ role: 'estadistica', filePath: batch.estadisticaFilePath, sha256: batch.estadisticaFileSha256 },
-		{ role: 'manifest', filePath: batch.manifestFilePath, sha256: batch.manifestFileSha256 }
-	];
 	const problems: { role: string; problem: string }[] = [];
 	let source: Buffer | null = null;
-	for (const file of files) {
-		const resolved = path.resolve(file.filePath);
-		if (!resolved.startsWith(ADMISSION_UPLOAD_ROOT + path.sep)) {
-			problems.push({ role: file.role, problem: 'outside_upload_root' });
-			continue;
-		}
-		const bytes = await readFile(resolved).catch(() => null);
-		if (!bytes) problems.push({ role: file.role, problem: 'missing' });
-		else if (createHash('sha256').update(bytes).digest('hex') !== file.sha256)
-			problems.push({ role: file.role, problem: 'hash_mismatch' });
-		else if (file.role === 'source') source = bytes;
+	for (const role of BATCH_FILE_ROLES) {
+		const result = await checkStoredFile(storedFile(batch, role));
+		if (!result.ok) problems.push({ role, problem: result.problem });
+		else if (role === 'source') source = result.bytes;
 	}
-	if (problems.length || !source) {
-		await writeAuditLog(db, auditContext, {
-			action: 'admission_import_batch.integrity_failed',
-			entityType: 'admission_import_batch',
-			entityId: batch.id,
-			metadata: { problems },
-			outcome: 'failure'
-		});
-		throw new BatchIntegrityError();
-	}
+	if (problems.length || !source) return refuseBatch(batch, auditContext, problems);
 	return source;
+}
+
+/** One of a batch's files, verified the same way; for viewing and downloading. */
+export async function readVerifiedBatchFile(
+	batch: StoredBatchFiles,
+	role: BatchFileRole,
+	auditContext: AuditContext
+) {
+	const result = await checkStoredFile(storedFile(batch, role));
+	if (!result.ok) return refuseBatch(batch, auditContext, [{ role, problem: result.problem }]);
+	return result.bytes;
+}
+
+/**
+ * The spreadsheet's first sheet as text rows for display, read the same way as the import
+ * (first sheet, dates as calendar dates). Dates are returned as ISO keys; the page formats them.
+ */
+export function readSheetForDisplay(buffer: Buffer, maxRows: number) {
+	const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+	const sheetName = workbook.SheetNames[0];
+	if (!sheetName) return { sheetName: '', sheetCount: 0, header: [], rows: [], totalRows: 0 };
+	const matrix = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], {
+		header: 1,
+		defval: '',
+		blankrows: false
+	});
+	const cell = (value: unknown): { text: string; isDate?: true } =>
+		value instanceof Date && !Number.isNaN(value.getTime())
+			? { text: parseDateValue(value), isDate: true }
+			: { text: cleanString(value) };
+	const [header = [], ...body] = matrix;
+	return {
+		sheetName,
+		sheetCount: workbook.SheetNames.length,
+		header: header.map((value) => cleanString(value)),
+		rows: body.slice(0, maxRows).map((row) => row.map(cell)),
+		totalRows: body.length
+	};
 }
 
 export async function createDraftBatch(

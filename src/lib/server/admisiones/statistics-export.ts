@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ReportRow, StatisticsReport, StatisticsSpec } from './statistics';
 import { csvLine } from './csv';
+import { formatDateTime } from '../../dates';
 import {
 	formatCount,
 	formatDate,
@@ -23,8 +24,8 @@ export function makeFolio(date = new Date()) {
 }
 
 const criteria = (report: StatisticsReport) => [
-	['Desde', report.spec.dateFrom],
-	['Hasta', report.spec.dateTo],
+	['Desde', formatDate(report.spec.dateFrom)],
+	['Hasta', formatDate(report.spec.dateTo)],
 	[
 		'Base de fecha',
 		report.spec.dateBasis === 'asignacion' ? 'Fecha de asignación origen' : 'Fecha válida DIGAIPE'
@@ -42,8 +43,8 @@ type FlatField = {
 const FLAT_FIELDS: FlatField[] = [
 	{ key: 'cedula', header: 'Cédula', studentOnly: true, value: (r) => r.cedula },
 	{ key: 'student', header: 'Estudiante', studentOnly: true, value: (r) => r.student },
-	{ key: 'fOrigen', header: 'Fecha asignación origen', value: (r) => r.assignmentDate },
-	{ key: 'fDigaipe', header: 'Fecha válida DIGAIPE', value: (r) => r.processingDate ?? '' },
+	{ key: 'fOrigen', header: 'Fecha asignación origen', value: (r) => formatDate(r.assignmentDate) },
+	{ key: 'fDigaipe', header: 'Fecha válida DIGAIPE', value: (r) => formatDate(r.processingDate) },
 	{ key: 'estado', header: 'Estado', value: (r) => r.status ?? '' },
 	{ key: 'periodo', header: 'Período', value: (r) => r.period },
 	{ key: 'ano', header: 'Año', value: (r) => r.year },
@@ -95,7 +96,7 @@ export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = 
 	if (report.spec.reportMode === 'consolidado')
 		lines.push(
 			...report.pivot.flatMap((date) => [
-				csvLine(['Fecha válida', date.date, date.count]),
+				csvLine(['Fecha válida', formatDate(date.date), date.count]),
 				...date.statuses.flatMap((status) => [
 					csvLine([status.label, status.count]),
 					...status.careers.flatMap((career) => [
@@ -103,7 +104,7 @@ export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = 
 						...career.students.map((student) => csvLine(['', '', student.label, student.count]))
 					])
 				]),
-				csvLine(['Total fecha', date.date, date.count])
+				csvLine(['Total fecha', formatDate(date.date), date.count])
 			]),
 			csvLine(['Total general', report.totalAdmissions])
 		);
@@ -196,9 +197,8 @@ const REPORT_TITLES: Record<StatisticsReport['spec']['reportMode'], string> = {
 };
 
 function mastheadMeta(report: StatisticsReport) {
-	const now = new Date();
-	const p = (n: number) => String(n).padStart(2, '0');
-	const generatedAt = `${p(now.getDate())}/${p(now.getMonth() + 1)}/${now.getFullYear()} ${p(now.getHours())}:${p(now.getMinutes())}`;
+	// Venezuelan time, not the server's: the container's clock may be UTC.
+	const generatedAt = formatDateTime(new Date());
 	const basis =
 		report.spec.dateBasis === 'digaipe' ? 'Fecha válida DIGAIPE' : 'Fecha de asignación origen';
 	return [

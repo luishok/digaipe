@@ -1,9 +1,5 @@
 import 'dotenv/config';
 
-import { betterAuth } from 'better-auth/minimal';
-
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { admin } from 'better-auth/plugins';
 import { drizzle } from 'drizzle-orm/mysql2';
 import * as schema from '../src/lib/server/db/schema';
 
@@ -11,7 +7,7 @@ import mysql from 'mysql2/promise';
 import * as fs from 'node:fs';
 import { parse } from 'csv-parse';
 import * as path from 'node:path';
-import { careers, mod_admission } from '../src/lib/server/db/schema';
+import { mod_admission } from '../src/lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');

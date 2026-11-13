@@ -31,7 +31,14 @@ export type AuditAction =
 	| 'user.created'
 	| 'user.deleted'
 	| 'user_role.changed'
+	| 'user.password_reset'
+	| 'user.password_changed'
+	| 'user.password_change_failed'
 	| 'career.imported'
+	| 'career.created'
+	| 'career.updated'
+	| 'admission_modality.created'
+	| 'admission_modality.updated'
 	| 'admission_process.created'
 	| 'admission_process.dates_added'
 	| 'admission_process.enabled_changed'
@@ -39,6 +46,8 @@ export type AuditAction =
 	| 'admission_import_batch.saved'
 	| 'admission_import_batch.integrity_failed'
 	| 'admission_import_batch.deleted'
+	| 'admission_import_batch.documents_viewed'
+	| 'admission_import_batch.file_opened'
 	| 'admission_planilla.student_updated'
 	| 'auth.sign_in_succeeded'
 	| 'auth.sign_in_failed'
@@ -65,7 +74,14 @@ const auditPolicies: Record<AuditAction, AuditPolicy> = {
 	'user.created': {},
 	'user.deleted': {},
 	'user_role.changed': {},
+	'user.password_reset': {},
+	'user.password_changed': {},
+	'user.password_change_failed': {},
 	'career.imported': {},
+	'career.created': {},
+	'career.updated': {},
+	'admission_modality.created': {},
+	'admission_modality.updated': {},
 	'admission_process.created': {},
 	'admission_process.dates_added': {},
 	'admission_process.enabled_changed': {},
@@ -73,6 +89,8 @@ const auditPolicies: Record<AuditAction, AuditPolicy> = {
 	'admission_import_batch.saved': {},
 	'admission_import_batch.integrity_failed': {},
 	'admission_import_batch.deleted': {},
+	'admission_import_batch.documents_viewed': {},
+	'admission_import_batch.file_opened': {},
 	'admission_planilla.student_updated': { retainFullValues: true },
 	'auth.sign_in_succeeded': {},
 	'auth.sign_in_failed': {},

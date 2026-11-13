@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { auditStudentDataView } from '$lib/server/audit';
 import {
+	buildLegacyPlanillaFields,
 	getTodayDateKey,
 	searchActiveAdmissionsForPlanilla
 } from '$lib/server/admisiones/planilla';
@@ -25,6 +26,10 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		today,
 		search,
-		admissions
+		// The same fields the detail page shows, for the "Generar planilla" check-and-generate modal.
+		admissions: admissions.map((admission) => ({
+			...admission,
+			planilla: buildLegacyPlanillaFields(admission)
+		}))
 	};
 };

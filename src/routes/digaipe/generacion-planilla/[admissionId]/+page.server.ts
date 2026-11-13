@@ -12,7 +12,6 @@ import {
 	getActiveAdmissionForPlanilla
 } from '$lib/server/admisiones/planilla';
 import { getAdmissionProcessing } from '$lib/server/admisiones/processing';
-import { db } from '$lib/server/db';
 import { students } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 

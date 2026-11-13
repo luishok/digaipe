@@ -1,4 +1,5 @@
 <script>
+    import { resolve } from '$app/paths';
     // Aquí puedes importar componentes futuros, como el logo de la institución
     // import Logo from '$lib/components/Logo.svelte';
 </script>
@@ -25,7 +26,7 @@
         
         <div class="actions">
             <!-- Actualiza los href hacia las rutas correspondientes de tu sistema -->
-            <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+            <a href={resolve('/login')} class="btn btn-primary">Iniciar Sesión</a>
         </div>
     </section>
 

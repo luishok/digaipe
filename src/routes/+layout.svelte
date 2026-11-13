@@ -18,7 +18,7 @@
 	<header class="site-header">
 		<a href={resolve('/')}><div class="logo"><img src={logo} alt="Logo" /></div></a>
 
-		<a  id="menu-icon" class="menu-icon">
+		<a id="menu-icon" class="menu-icon" aria-label="Menú">
 			<i class="fa fa-bars"></i>
 		</a>
 
@@ -51,7 +51,7 @@
 
                 {#if can(user, 'catalogs.view')}
                     <li class="menu-dropdown">
-                        <a href="#">Parametros</a>
+                        <a href={resolve('/digaipe/carreras')}>Parametros</a>
                         <ul>
                             <li><a href={resolve('/digaipe/carreras')}>Carreras</a></li>
                             <li><a href={resolve('/digaipe/modalidades-adm')}>Modalidades de Admisión</a></li>
@@ -61,6 +61,7 @@
 
                 {#if user}
                     <li><a href={resolve('/ayuda')}>Ayuda</a></li>
+                    <li><a href={resolve('/digaipe/cambiar-password')}>Cambiar contraseña</a></li>
                 {/if}
                 {#if can(user, 'users.manage') || can(user, 'audit.view')}
                     <li><a href={resolve('/digaipe/admin')}>Administración</a></li>

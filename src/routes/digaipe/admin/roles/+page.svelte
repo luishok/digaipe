@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { formatDate } from '$lib/dates';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import type { PageData, ActionData } from './$types';
 	import { parseRoles, ROLE_LABELS, ROLES } from '$lib/permissions';
@@ -20,8 +22,20 @@
 	}
 
 	// ── Dropdown creación ─────────────────────────────────────────────────
-	let createRoles  = $state<string[]>(form?.values?.roles ?? []);
+	// Only the initial value (roles kept after a failed submit without JavaScript), on purpose.
+	let createRoles  = $state<string[]>(untrack(() => form?.values?.roles ?? []));
 	let createOpen   = $state(false);
+
+	// enhance resets the form's inputs after a successful create, but not this state.
+	const submitCreate: SubmitFunction = () => {
+		pending = true;
+		return async ({ result, update }) => {
+			try {
+				await update();
+				if (result.type === 'success') createRoles = [];
+			} finally { pending = false; }
+		};
+	};
 
 	function toggleCreateRole(role: string) {
 		createRoles = createRoles.includes(role)
@@ -35,20 +49,22 @@
 	}
 
 	// ── Dropdown tabla (un dropdown por usuario) ──────────────────────────
-	let tableRolesMap = $state<Map<string, string[]>>(
-		new Map(data.users.map((u) => [u.id, parseRoles(u.role)]))
+	// Rebuilt from the server whenever `data` reloads (after create, setRole, paging...), so a
+	// new user's row shows the roles it was saved with. Local picks are a temporary override.
+	let tableRolesMap = $derived<Record<string, string[]>>(
+		Object.fromEntries(data.users.map((u) => [u.id, parseRoles(u.role)]))
 	);
 	let tableOpenId = $state<string | null>(null);
 
 	function getTableRoles(userId: string) {
-		return tableRolesMap.get(userId) ?? [];
+		return tableRolesMap[userId] ?? [];
 	}
 	function toggleTableRole(userId: string, role: string) {
 		const cur = getTableRoles(userId);
-		tableRolesMap = new Map(tableRolesMap).set(
-			userId,
-			cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role]
-		);
+		tableRolesMap = {
+			...tableRolesMap,
+			[userId]: cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role]
+		};
 	}
 	function tableLabel(userId: string) {
 		const roles = getTableRoles(userId);
@@ -192,7 +208,7 @@
 <svelte:head><title>Usuarios y roles | DIGAIPE</title></svelte:head>
 
 <div class="div-back-links">
-	<a href={resolve('/digaipe/admin')}>
+	<a aria-label="Volver" href={resolve('/digaipe/admin')}>
 		<svg id="back" width="40px" height="40px" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 490.66 490.64">
 			<path class="cls-1" d="M0,259.65c0-9.58,0-19.16,0-28.74.28-1.38.72-2.74.81-4.13,2.39-34.22,11.44-66.63,28-96.6C66.96,61.08,124.92,18.79,202.55,3.87c9.36-1.8,18.9-2.6,28.36-3.87,9.58,0,19.16,0,28.74,0,1.23.27,2.46.7,3.7.79,34.23,2.33,66.77,11.15,96.67,27.89,80.62,45.14,124.38,114.13,130.17,206.38,2.49,39.68-4.99,78.12-22.75,113.76-43.53,87.36-114.43,134.94-211.86,141.33-44.23,2.9-86.44-6.99-125.34-28.38C61.06,423.71,18.78,365.65,3.87,287.98,2.07,278.63,1.27,269.1,0,259.65ZM245.05,459.9c118.28.2,214.45-95.65,214.85-214.14.4-118.39-95.78-214.89-214.38-215.09-118.28-.2-214.45,95.65-214.85,214.14-.4,118.39,95.78,214.89,214.38,215.09Z"/>
 			<path class="cls-2" d="M190.26,229.95c18.19-18.18,35.35-35.32,52.5-52.47,3.84-3.84,7.86-7.52,11.4-11.62,7.34-8.5,3.39-21.66-7.34-24.6-6.69-1.83-12,.74-16.77,5.53-27.47,27.62-55.06,55.12-82.59,82.67-9.51,9.52-9.46,22.17.13,31.76,27.31,27.32,54.63,54.64,81.96,81.95,1.13,1.13,2.23,2.3,3.49,3.27,5.16,3.96,10.8,4.69,16.59,1.68,5.77-3,9.16-8.07,7.97-14.46-.76-4.08-3.04-8.48-5.95-11.46-18.84-19.31-38.03-38.27-57.11-57.36-1.16-1.16-2.27-2.36-4.07-4.24h6.4c50.45,0,100.89,0,151.34,0,1.76,0,3.52.06,5.27-.07,7.76-.57,13.82-6.57,14.37-14.16.55-7.59-4.61-14.5-12.19-16.05-2.16-.44-4.44-.36-6.67-.37-50.77-.02-101.53-.01-152.3-.01h-6.43Z"/>
@@ -214,17 +230,17 @@
 <!-- ── Formulario Agregar usuario ─────────────────────────────────────── -->
 <section class="report-card" aria-labelledby="create-user">
 	<h2 id="create-user" class="report-title">Agregar usuario</h2>
-	<form method="POST" action="?/create" use:enhance={submit}>
+	<form method="POST" action="?/create" use:enhance={submitCreate}>
 		<div class="kpi-grid">
 			<div class="input-group">
 				<label for="name">Nombre completo</label>
 				<input id="name" name="name" type="text" required maxlength="255"
-					autocomplete="name" value={form?.values?.name ?? ''} />
+					autocomplete="name" defaultValue={form?.values?.name ?? ''} />
 			</div>
 			<div class="input-group">
 				<label for="email">Correo electrónico</label>
 				<input id="email" name="email" type="email" required maxlength="255"
-					autocomplete="email" value={form?.values?.email ?? ''} />
+					autocomplete="email" defaultValue={form?.values?.email ?? ''} />
 			</div>
 			<div class="input-group">
 				<label for="password">Contraseña (8 a 128 caracteres)</label>
@@ -234,14 +250,15 @@
 
 			<!-- Multi-select roles -->
 			<div class="input-group">
-				<label id="create-roles-label">Roles (uno o más)</label>
+				<label id="create-roles-label" for="create-roles-trigger">Roles (uno o más)</label>
 
-				{#each createRoles as r}
+				{#each createRoles as r (r)}
 					<input type="hidden" name="roles" value={r} />
 				{/each}
 
 				<div class="ms-wrapper" role="group" aria-labelledby="create-roles-label">
 					<button
+						id="create-roles-trigger"
 						type="button"
 						class="ms-trigger"
 						class:open={createOpen}
@@ -311,7 +328,7 @@
 		</div>
 	</form>
 
-	<p><small>Su propia cuenta está protegida. Los cambios de rol cierran las sesiones del usuario afectado.</small></p>
+	<p><small>Su propia cuenta está protegida. Los cambios de rol y de contraseña cierran las sesiones del usuario afectado.</small></p>
 
 	<div class="table-container">
 		<table class="custom-table">
@@ -321,6 +338,7 @@
 					<th scope="col">Correo electrónico</th>
 					<th scope="col">Fecha de creación</th>
 					<th scope="col">Rol</th>
+					<th scope="col">Contraseña</th>
 					<th scope="col">Eliminar</th>
 				</tr>
 			</thead>
@@ -334,7 +352,7 @@
 						</td>
 						<td>{user.email}</td>
 						<td class="whitespace-nowrap">
-							{new Date(user.createdAt).toLocaleDateString('es-VE', { timeZone: 'UTC' })}
+							{formatDate(user.createdAt)}
 						</td>
 
 						<!-- Columna Rol -->
@@ -351,7 +369,7 @@
 									<input type="hidden" name="userId" value={user.id} />
 
 									<!-- Inputs hidden reactivos -->
-									{#each tableRoles as r}
+									{#each tableRoles as r (r)}
 										<input type="hidden" name="roles" value={r} />
 									{/each}
 
@@ -413,6 +431,30 @@
 							{/if}
 						</td>
 
+						<!-- Columna Contraseña -->
+						<td>
+							{#if isSelf}
+								<a href={resolve('/digaipe/cambiar-password')}>Cambiar mi contraseña</a>
+							{:else}
+								<details>
+									<summary>Restablecer contraseña</summary>
+									<form method="POST" action="?/resetPassword" use:enhance={submit}>
+										<input type="hidden" name="userId" value={user.id} />
+										<p>El usuario deberá cambiarla al iniciar sesión. Sus sesiones abiertas se cerrarán.</p>
+										<div class="input-group">
+											<label for={`reset-password-${user.id}`}>Contraseña temporal (8 a 128 caracteres)</label>
+											<input id={`reset-password-${user.id}`} name="password" type="password"
+												required minlength="8" maxlength="128" autocomplete="new-password"
+												disabled={pending} />
+										</div>
+										<button class="btn-submit mt-4" type="submit" disabled={pending}>
+											Restablecer
+										</button>
+									</form>
+								</details>
+							{/if}
+						</td>
+
 						<!-- Columna Eliminar -->
 						<td>
 							{#if isSelf}
@@ -437,7 +479,7 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="5">No se encontraron usuarios con los filtros seleccionados.</td></tr>
+					<tr><td colspan="6">No se encontraron usuarios con los filtros seleccionados.</td></tr>
 				{/each}
 			</tbody>
 		</table>

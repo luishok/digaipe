@@ -11,6 +11,7 @@ import {
 } from '$lib/server/db/schema';
 import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
 import { caracasDateKey } from './processing';
+import { formatDate, formatMonth } from '../../dates';
 import { searchCondition } from './search';
 import { parseReportMode, type ReportMode } from './report-mode';
 
@@ -614,13 +615,13 @@ function buildBreakdowns(rows: ReportRow[]): Record<string, Breakdown[]> {
 		const date = new Date(`${dateKey}T00:00:00Z`);
 		const day = date.getUTCDay() || 7;
 		date.setUTCDate(date.getUTCDate() - day + 1);
-		return `Semana del ${date.toISOString().slice(0, 10)}`;
+		return `Semana del ${formatDate(date.toISOString())}`;
 	};
 	const dimensions: Record<string, (row: ReportRow) => string> = {
 		Estado: (r) => r.status ?? 'Pendiente',
-		Diario: (r) => r.processingDate!,
+		Diario: (r) => formatDate(r.processingDate),
 		'Semanal ISO': (r) => isoWeek(r.processingDate!),
-		Mensual: (r) => r.processingDate!.slice(0, 7),
+		Mensual: (r) => formatMonth(r.processingDate),
 		Carrera: (r) => r.career,
 		Facultad: (r) => r.faculty,
 		Etapa: (r) => (r.stage === 2 ? 'Reasignación' : '1ª asignación'),

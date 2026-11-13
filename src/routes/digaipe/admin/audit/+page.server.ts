@@ -3,7 +3,7 @@ import { can } from '$lib/permissions';
 import { db } from '$lib/server/db';
 import { auditEvents } from '$lib/server/db/schema';
 import { redirect } from '@sveltejs/kit';
-import { and, count, desc, eq, gte, like, lte, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 const PAGE_SIZE = 100;

@@ -6,6 +6,7 @@ import {
 	writeAuditLog
 } from '$lib/server/audit';
 import { db } from '$lib/server/db';
+import { clearPasswordChange, requirePasswordChange } from '$lib/server/password-change';
 import { account, session, user } from '$lib/server/db/schema';
 import { fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import { and, count, desc, eq, like, sql } from 'drizzle-orm';
@@ -118,11 +119,13 @@ export const actions: Actions = {
 					providerId: 'credential',
 					password: hashedPassword
 				});
+				// The admin chose this password, so the user must replace it on first sign-in.
+				await requirePasswordChange(tx, userId, context.actorUserId);
 				await writeAuditLog(tx, context, {
 					action: 'user.created',
 					entityType: 'user',
 					entityId: userId,
-					after: { name, email, role }
+					after: { name, email, role, mustChangePassword: true }
 				});
 			});
 		} catch (error) {
@@ -171,6 +174,66 @@ export const actions: Actions = {
 			return fail(500, { message: 'No se pudo actualizar el rol. Intente nuevamente.' });
 		}
 	},
+	resetPassword: async (event): UserActionResult => {
+		if (!event.locals.user || !can(event.locals.user, 'users.manage'))
+			return fail(403, { message: 'No tiene permisos para administrar usuarios.' });
+		const context = auditContextFromEvent(event);
+		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
+		const data = await event.request.formData();
+		const userId = field(data, 'userId');
+		const password = field(data, 'password');
+		if (!userId) return fail(400, { message: 'Seleccione un usuario.' });
+		if (userId === event.locals.user.id)
+			return fail(400, {
+				message: 'Para su propia cuenta use la opción "Cambiar contraseña".'
+			});
+		const authContext = await auth.$context;
+		const { minPasswordLength, maxPasswordLength } = authContext.password.config;
+		if (password.length < minPasswordLength || password.length > maxPasswordLength) {
+			return fail(400, {
+				message: `La contraseña debe tener entre ${minPasswordLength} y ${maxPasswordLength} caracteres.`
+			});
+		}
+		const hashedPassword = await authContext.password.hash(password);
+		try {
+			return await auditedTransaction(context, async (tx) => {
+				const [target] = await tx
+					.select({ id: user.id })
+					.from(user)
+					.where(eq(user.id, userId))
+					.for('update');
+				if (!target) return fail(404, { message: 'Usuario no encontrado.' });
+				const credential = and(eq(account.userId, userId), eq(account.providerId, 'credential'));
+				const [existing] = await tx.select({ id: account.id }).from(account).where(credential);
+				if (existing) {
+					await tx.update(account).set({ password: hashedPassword }).where(credential);
+				} else {
+					await tx.insert(account).values({
+						id: randomUUID(),
+						userId,
+						accountId: userId,
+						providerId: 'credential',
+						password: hashedPassword
+					});
+				}
+				await requirePasswordChange(tx, userId, context.actorUserId);
+				// Anyone still signed in as this user (e.g. on a shared PC) is signed out.
+				await tx.delete(session).where(eq(session.userId, userId));
+				await writeAuditLog(tx, context, {
+					action: 'user.password_reset',
+					entityType: 'user',
+					entityId: userId,
+					after: { mustChangePassword: true, sessionsRevoked: true }
+				});
+				return {
+					success:
+						'Contraseña restablecida. El usuario deberá cambiarla al iniciar sesión.'
+				};
+			});
+		} catch {
+			return fail(500, { message: 'No se pudo restablecer la contraseña. Intente nuevamente.' });
+		}
+	},
 	delete: async (event): UserActionResult => {
 		if (!event.locals.user || !can(event.locals.user, 'users.manage'))
 			return fail(403, { message: 'No tiene permisos para administrar usuarios.' });
@@ -192,6 +255,7 @@ export const actions: Actions = {
 				if (!target) return fail(404, { message: 'Usuario no encontrado.' });
 				// Foreign keys preserve admission history; credential accounts and sessions cascade.
 				await tx.delete(user).where(eq(user.id, userId));
+				await clearPasswordChange(tx, userId); // no foreign key, so no cascade
 				await writeAuditLog(tx, context, {
 					action: 'user.deleted',
 					entityType: 'user',

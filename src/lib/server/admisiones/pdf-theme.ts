@@ -66,11 +66,7 @@ export function formatPct(ratio: number) {
 	return `${(ratio * 100).toFixed(1)}%`;
 }
 
-export function formatDate(iso: string | null | undefined) {
-	if (!iso) return '';
-	const [y, m, d] = iso.slice(0, 10).split('-');
-	return y && m && d ? `${d}/${m}/${y}` : iso;
-}
+export { formatDate } from '../../dates';
 
 /** Semantic colors for review statuses, shared by tables, funnel bars and legend. */
 export const statusColors: Record<string, RGB> = {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { can } from '$lib/permissions';
+	import { formatDate } from '$lib/dates';
 
 	let { data } = $props();
 
@@ -31,6 +32,7 @@
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" height="30px" width="30px" fill="#ffffff"><path d="M11.25,16.62h1.5V12.17l1.86,1.86l1.05-1.05L12,9.31L8.36,12.95l1.05,1.05l1.84-1.84v4.45ZM4.31,19.5q-0.76,0-1.28-0.52T2.5,17.69V6.31q0-0.76 0.52-1.28T4.31,4.5H9.8l2,2h7.89q0.76,0 1.28,0.52T21.5,8.31v9.38q0,0.76-0.52,1.28T19.69,19.5H4.31Zm0-1.5H19.69q0.13,0 0.22-0.09T20,17.69V8.31q0-0.13-0.09-0.22T19.69,8H11.18l-2-2H4.31Q4.17,6 4.09,6.09T4,6.31V17.69q0,0.13 0.09,0.22T4.31,18ZM4,18q0,0 0-0.09t0-0.22V6.31Q4,6.17 4,6.09T4,6V8Q4,8 4,8.09T4,8.31v9.38q0,0.13 0,0.22T4,18Z"/></svg>
 		</button>
 	{/if}
+	<a class="btn-secondary" href={resolve('/digaipe/admisiones/lotes')}>Documentos cargados</a>
 
 	<form method="GET">
 		<div class="container-inputs-admisiones">
@@ -133,10 +135,11 @@
 					<td>{admission.modalityCode} - {admission.modalityName}</td>
 					<td>{admission.ocreCode ?? ''}</td>
 					<td>{admission.periodoIngreso}</td>
-					<td>{new Date(admission.fechaAsignacion).toLocaleDateString()}</td>
+					<td>{formatDate(admission.fechaAsignacion)}</td>
 					<td>
 						{#if admission.batchId}
-							#{admission.batchId} {admission.sourceFileName ?? ''}
+							<a href={resolve(`/digaipe/admisiones/lotes/${admission.batchId}`)}
+								title="Ver los documentos de este lote">#{admission.batchId} {admission.sourceFileName ?? ''}</a>
 						{/if}
 					</td>
 				</tr>

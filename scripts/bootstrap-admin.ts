@@ -47,8 +47,8 @@ async function main() {
 		});
 
 		console.log('Bootstrap admin created:', created.user?.email ?? email);
-	} catch (error: any) {
-		const message = String(error?.message ?? error);
+	} catch (error: unknown) {
+		const message = String(error instanceof Error ? error.message : error);
 
 		// Make the script idempotent.
 		// Adjust this branch to the exact error shape your setup returns.

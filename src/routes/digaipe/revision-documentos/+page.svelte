@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
+	import { formatDate } from '$lib/dates';
 	import { page } from '$app/state';
 
 	let { data, form } = $props();
@@ -210,7 +212,7 @@
                     Proceso 
                     <select name="process">
                         <option value="">Todos</option>
-                        {#each data.processes as process}
+                        {#each data.processes as process (process.code)}
                             <option value={process.code} selected={data.filters.process === process.code}>
                                 {process.code}
                             </option>
@@ -222,7 +224,7 @@
             <!-- Botones de Acción -->
             <div class="filter-actions">
                 <button type="submit" class="btn-submit">Filtrar</button>
-                <a href="/digaipe/revision-documentos" class="btn-secondary">Limpiar</a>
+                <a href={resolve('/digaipe/revision-documentos')} class="btn-secondary">Limpiar</a>
             </div>
         </div>
     </fieldset>
@@ -260,7 +262,7 @@
                 </tr>
             </thead>
             <tbody>
-                {#each data.rows as row}
+                {#each data.rows as row (row.id)}
                     <tr>
                         {#if data.canReview}
                             <td class="td-checkbox">
@@ -272,7 +274,7 @@
                                 
                             </td>
                         {/if}
-                        <td class="whitespace-nowrap">{String(row.processingDate).slice(0, 10)}</td>
+                        <td class="whitespace-nowrap">{formatDate(row.processingDate)}</td>
                         <td>
                             <span class="status-badge status-{row.status?.toLowerCase()}">
                                 {row.status}

@@ -5,6 +5,7 @@ import { building } from '$app/environment';
 import { auth } from '$lib/server/auth';
 import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
 import { db } from '$lib/server/db';
+import { CHANGE_PASSWORD_ROUTE, mustChangePassword } from '$lib/server/password-change';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { randomUUID } from 'node:crypto';
 
@@ -72,13 +73,19 @@ const writeRules: Record<string, Permission | null> = {
 	'/digaipe/admin/roles POST create': 'users.manage',
 	'/digaipe/admin/roles POST setRole': 'users.manage',
 	'/digaipe/admin/roles POST delete': 'users.manage',
+	'/digaipe/admin/roles POST resetPassword': 'users.manage',
+	'/digaipe/cambiar-password POST default': null,
 	'/digaipe/admisiones/cargar POST preview': 'admissions.upload',
 	'/digaipe/admisiones/cargar POST save': 'admissions.upload',
 	'/digaipe/admisiones/cargar POST deleteDraft': 'admissions.deleteDraft',
 	'/digaipe/admisiones/cargar/[batchId] POST save': 'admissions.upload',
-	'/digaipe/carreras POST default': 'catalogs.import',
+	'/digaipe/carreras POST import': 'catalogs.import',
+	'/digaipe/carreras POST create': 'catalogs.import',
+	'/digaipe/carreras POST update': 'catalogs.import',
 	'/digaipe/generacion-planilla/[admissionId] POST updateStudent': 'students.edit',
 	'/digaipe/generacion-planilla/[admissionId]/pdf POST default': 'planillas.generate',
+	'/digaipe/modalidades-adm POST create': 'catalogs.import',
+	'/digaipe/modalidades-adm POST update': 'catalogs.import',
 	'/digaipe/procesos-adm POST create': 'processes.manage',
 	'/digaipe/procesos-adm POST saveDates': 'processes.manage',
 	'/digaipe/procesos-adm POST setEnabled': 'processes.toggle',
@@ -114,6 +121,21 @@ const handleAuthorization: Handle = async ({ event, resolve }) => {
 	const routeId = event.route.id;
 	if (!routeId || !isUnder(routeId, authenticatedRoutes)) return resolve(event);
 	if (!event.locals.user) redirect(303, '/login');
+
+	// An admin set this user's password: nothing but the change-password page and sign-out
+	// until they choose their own. Checked here, not in a layout, for the same reason as below.
+	if (await mustChangePassword(event.locals.user.id)) {
+		const allowed =
+			routeId === CHANGE_PASSWORD_ROUTE ||
+			(routeId === '/digaipe' &&
+				event.request.method === 'POST' &&
+				formActionName(event.url) === 'signOut');
+		if (!allowed) {
+			if (event.request.method !== 'GET' && event.request.method !== 'HEAD')
+				error(403, 'Debe cambiar su contraseña antes de continuar.');
+			redirect(303, CHANGE_PASSWORD_ROUTE);
+		}
+	}
 
 	const missing = missingPermission(event, routeId);
 	if (missing) {

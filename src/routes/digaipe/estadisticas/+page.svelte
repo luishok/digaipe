@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 	import { resolve } from '$app/paths';
+	import { formatDate } from '$lib/dates';
 	import type { ReportMode } from '$lib/server/admisiones/statistics';
 	import type { PageServerData } from './$types';
 	let { data }: { data: PageServerData } = $props();
@@ -68,6 +69,9 @@
 	const pct = (value: number) => `${(value * 100).toFixed(1)} %`;
 </script>
 
+<!-- Back/forward can restore this page from the browser cache mid-"Generando...". -->
+<svelte:window onpageshow={(event) => { if (event.persisted) busy = false; }} />
+
 <h1>Reportes y estadísticas</h1>
 
 <!-- 
@@ -79,7 +83,11 @@
 		method="GET"
 		action="/digaipe/estadisticas"
 		data-sveltekit-reload
-		onsubmit={() => (busy = true)}
+		onsubmit={(event) => {
+			// Only the preview navigates. PDF/CSV (formaction) answer with a download and the
+			// page never reloads, so marking them busy would disable the button for good.
+			if (!event.submitter?.hasAttribute('formaction')) busy = true;
+		}}
 		class="report-form"
 	>
 		<!-- SECCIÓN 1: Configuración Principal y Fechas -->
@@ -164,40 +172,40 @@
 
 				<div class="input-grid multi-select-grid">
 					<div class="input-group">
-						<label>Proceso</label>
-						<select name="filter_process" multiple class="multi-select">
+						<label for="filter_process">Proceso</label>
+						<select id="filter_process" name="filter_process" multiple class="multi-select">
 							{#each data.options.processes as value (value)}
 								<option {value} selected={has(data.spec?.filters.process, value)}>{value}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="input-group">
-						<label>Período</label>
-						<select name="filter_period" multiple class="multi-select">
+						<label for="filter_period">Período</label>
+						<select id="filter_period" name="filter_period" multiple class="multi-select">
 							{#each data.options.periods as value (value)}
 								<option {value} selected={has(data.spec?.filters.period, value)}>{value}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="input-group">
-						<label>Modalidad</label>
-						<select name="filter_modality" multiple class="multi-select">
+						<label for="filter_modality">Modalidad</label>
+						<select id="filter_modality" name="filter_modality" multiple class="multi-select">
 							{#each data.options.modalities as value (value)}
 								<option {value} selected={has(data.spec?.filters.modality, value)}>{value}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="input-group">
-						<label>Estado</label>
-						<select name="filter_status" multiple class="multi-select">
+						<label for="filter_status">Estado</label>
+						<select id="filter_status" name="filter_status" multiple class="multi-select">
 							{#each data.options.statuses as value (value)}
 								<option {value} selected={has(data.spec?.filters.status, value)}>{value}</option>
 							{/each}
 						</select>
 					</div>
 					<div class="input-group">
-						<label>Facultad</label>
-						<select name="filter_faculty" multiple class="multi-select">
+						<label for="filter_faculty">Facultad</label>
+						<select id="filter_faculty" name="filter_faculty" multiple class="multi-select">
 							{#each data.options.faculties as value (value)}
 								<option {value} selected={has(data.spec?.filters.faculty, value)}>{value}</option>
 							{/each}
@@ -253,8 +261,8 @@
 				</div>
 			{:else if reportMode === 'reconciliacion'}
 				<div class="input-group max-w-sm">
-					<label>Dimensión de filas para Matriz cruzada</label>
-					<select name="matrixDimension">
+					<label for="matrixDimension">Dimensión de filas para Matriz cruzada</label>
+					<select id="matrixDimension" name="matrixDimension">
 						<option value="carrera" selected={(data.spec?.matrixDimension ?? 'carrera') === 'carrera'}>Carrera</option>
 						<option value="facultad" selected={data.spec?.matrixDimension === 'facultad'}>Facultad</option>
 						<option value="modalidad" selected={data.spec?.matrixDimension === 'modalidad'}>Modalidad</option>
@@ -292,7 +300,7 @@
 				<div class="report-header">
 					<h2 class="report-title">Resultados del Reporte</h2>
 					<p class="report-filters">
-						{data.spec?.dateFrom} a {data.spec?.dateTo}
+						{formatDate(data.spec?.dateFrom)} a {formatDate(data.spec?.dateTo)}
 						· {data.spec?.dateBasis === 'digaipe' ? 'Fecha válida DIGAIPE' : 'Fecha de asignación origen'}
 						{#if data.appliedFilters}· {data.appliedFilters}{:else}· Sin filtros adicionales{/if}
 					</p>
@@ -332,7 +340,7 @@
 							<table>
 								<caption>Datos principales de admisiones</caption>
 								<thead><tr><th>#</th>{#if data.spec.includeStudentData}<th>Cédula</th><th>Estudiante</th>{/if}<th>Fecha asignación origen</th><th>Fecha válida DIGAIPE</th><th>Estado</th><th>Carrera</th><th>Proceso</th><th>Modalidad</th><th>Período</th></tr></thead>
-								<tbody>{#each data.report.rows as row, index (row.admissionId)}<tr><td>{index + 1}</td>{#if data.spec.includeStudentData}<td>{row.cedula}</td><td>{row.student}</td>{/if}<td>{row.assignmentDate}</td><td>{row.processingDate ?? ''}</td><td>{row.status ?? ''}</td><td>{row.career}</td><td>{row.process}</td><td>{row.modality} - {row.modalityName}</td><td>{row.period}</td></tr>{/each}</tbody>
+								<tbody>{#each data.report.rows as row, index (row.admissionId)}<tr><td>{index + 1}</td>{#if data.spec.includeStudentData}<td>{row.cedula}</td><td>{row.student}</td>{/if}<td>{formatDate(row.assignmentDate)}</td><td>{formatDate(row.processingDate)}</td><td>{row.status ?? ''}</td><td>{row.career}</td><td>{row.process}</td><td>{row.modality} - {row.modalityName}</td><td>{row.period}</td></tr>{/each}</tbody>
 							</table>
 						</div>
 						<div class='table_container mt-3'>
@@ -347,7 +355,7 @@
 							<table>
 								<caption>Consolidado de revisión</caption>
 								<thead><tr><th>Fecha válida</th><th>Estado</th><th>Carrera</th>{#if data.spec.includeStudentData}<th>Estudiante</th>{/if}<th>Cuenta</th></tr></thead>
-								<tbody>{#each data.report.pivot as date (date.date)}{#each date.statuses as status (status.label)}{#each status.careers as career (career.label)}<tr><td>{date.date}</td><td>{status.label}</td><th scope="row">{career.label}</th>{#if data.spec.includeStudentData}<td></td>{/if}<td>{career.count}</td></tr>{#if data.spec.includeStudentData}{#each career.students as student (student.label)}<tr><td></td><td></td><td></td><td>{student.label}</td><td>{student.count}</td></tr>{/each}{/if}{/each}<tr><td></td><th scope="row">Total {status.label}</th><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{status.count}</td></tr>{/each}<tr><th scope="row">Total fecha {date.date}</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{date.count}</td></tr>{/each}<tr><th scope="row">Total general</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{data.report.totalAdmissions}</td></tr></tbody>
+								<tbody>{#each data.report.pivot as date (date.date)}{#each date.statuses as status (status.label)}{#each status.careers as career (career.label)}<tr><td>{formatDate(date.date)}</td><td>{status.label}</td><th scope="row">{career.label}</th>{#if data.spec.includeStudentData}<td></td>{/if}<td>{career.count}</td></tr>{#if data.spec.includeStudentData}{#each career.students as student (student.label)}<tr><td></td><td></td><td></td><td>{student.label}</td><td>{student.count}</td></tr>{/each}{/if}{/each}<tr><td></td><th scope="row">Total {status.label}</th><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{status.count}</td></tr>{/each}<tr><th scope="row">Total fecha {formatDate(date.date)}</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{date.count}</td></tr>{/each}<tr><th scope="row">Total general</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{data.report.totalAdmissions}</td></tr></tbody>
 							</table>
 						</div>
 					{:else if data.spec?.reportMode === 'reconciliacion' && data.report.reconciliation}

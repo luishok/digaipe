@@ -1,7 +1,37 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { invalidateAll } from '$app/navigation';
+	import { can } from '$lib/permissions';
+	import { formatDate } from '$lib/dates';
 
 	let { data } = $props();
+
+	type Row = (typeof data.admissions)[number];
+	let planillaDialog = $state<HTMLDialogElement>();
+	let selected = $state<Row | null>(null);
+	let refreshOnReturn = false;
+
+	const pdfUrl = (id: number) => resolve(`/digaipe/generacion-planilla/${id}/pdf`);
+
+	function openPlanilla(event: MouseEvent, admission: Row) {
+		(event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
+		selected = admission;
+		planillaDialog?.showModal();
+	}
+
+	// The PDF opens in a new tab and registers the processing there. Close the modal only after
+	// the browser has started that submission (removing the form now would cancel it), then
+	// refresh the list so the row shows its new status.
+	function generated() {
+		refreshOnReturn = true;
+		setTimeout(() => planillaDialog?.close(), 0);
+		setTimeout(() => invalidateAll(), 1500);
+	}
+	function refreshIfReturning() {
+		if (!refreshOnReturn) return;
+		refreshOnReturn = false;
+		invalidateAll();
+	}
 </script>
 <style>
 	/* Contenedor tipo Card centrado */
@@ -110,6 +140,45 @@
 </style>
 
 
+<svelte:window onfocus={refreshIfReturning} />
+
+<dialog bind:this={planillaDialog} aria-labelledby="planilla-dialog-title" onclose={() => (selected = null)}>
+	{#if selected}
+		<h2 id="planilla-dialog-title">Generar planilla</h2>
+		<p>
+			Revise los datos. La planilla se genera con ellos y la admisión pasa a revisión de documentos
+			(estado <b>pendiente</b>).
+		</p>
+		<dl>
+			<dt>Cédula</dt><dd>{selected.cedula}</dd>
+			<dt>Estudiante</dt><dd>{selected.planilla.propio}</dd>
+			<dt>Programa</dt><dd>{selected.planilla.prog}</dd>
+			<dt>Modalidad</dt><dd>{selected.planilla.mod}</dd>
+			<dt>Período de ingreso</dt><dd>{selected.periodoIngreso}</dd>
+			<dt>Proceso</dt><dd>{selected.processCode}</dd>
+			<dt>Fecha de asignación</dt><dd>{formatDate(selected.fechaAsignacion)}</dd>
+			<dt>Fecha de matrícula</dt><dd>{selected.planilla.fechaMat}</dd>
+			<dt>N.º de planilla</dt><dd>{selected.planilla.planilla}</dd>
+			<dt>Teléfono</dt><dd>{selected.telefono ?? '—'}</dd>
+			<dt>Correo</dt><dd>{selected.correo ?? '—'}</dd>
+		</dl>
+		<p>
+			¿Algún dato está mal?
+			<a href={resolve(`/digaipe/generacion-planilla/${selected.id}`)}>Corregir en el detalle</a>
+		</p>
+		<form method="POST" action={pdfUrl(selected.id)} target="_blank" onsubmit={generated}>
+			<label>
+				<input type="checkbox" name="confirmado" required />
+				Verifiqué que los datos son correctos
+			</label>
+			<div class="button-group">
+				<button type="submit" class="btn-primary">Generar planilla PDF</button>
+				<button type="button" class="btn-outline" onclick={() => planillaDialog?.close()}>Cancelar</button>
+			</div>
+		</form>
+	{/if}
+</dialog>
+
 <h1>Generacion de planilla</h1>
 
 <p>Admisiones con proceso activo para <b>{data.today}</b></p>
@@ -171,7 +240,26 @@
 					<td>{admission.modalityCode} - {admission.modalityName}</td>
 					<td>{admission.periodoIngreso}</td>
 					<td>
-						<a href={resolve(`/digaipe/generacion-planilla/${admission.id}`)}>Seleccionar</a>
+						<details>
+							<summary>Acciones</summary>
+							<ul>
+								{#if can(data.user, 'planillas.generate') && !admission.processingStatus}
+									<li>
+										<button type="button" onclick={(event) => openPlanilla(event, admission)}>
+											Generar planilla
+										</button>
+									</li>
+								{/if}
+								{#if admission.processingStatus}
+									<li>
+										<a href={pdfUrl(admission.id)} target="_blank" rel="noreferrer">Reimprimir PDF</a>
+									</li>
+								{/if}
+								<li>
+									<a href={resolve(`/digaipe/generacion-planilla/${admission.id}`)}>Ver detalle</a>
+								</li>
+							</ul>
+						</details>
 					</td>
 				</tr>
 			{/each}

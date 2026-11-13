@@ -3,18 +3,11 @@
 	import graphIcon from '$lib/assets/icons/digaipe-graph.svg';
 	import listIcon from '$lib/assets/icons/digaipe-list.svg';
 	import personPlusIcon from '$lib/assets/icons/digaipe-person-plus.svg';
+	import { resolve } from '$app/paths';
+	import { formatDate } from '$lib/dates';
 	import { can, parseRoles } from '$lib/permissions';
 
 	let { data } = $props();
-
-	// Datos simulados o extraídos de data. Puedes pasarlos desde tu +page.server.ts
-	const ultimosAspirantes = data.ultimosAspirantes ?? [
-		{ id: 1, nombre: 'Ana Pérez', cedula: 'V-30.123.456', carrera: 'Ing. de Sistemas', fecha: 'Hace 10 mins' },
-		{ id: 2, nombre: 'Carlos Silva', cedula: 'V-29.876.543', carrera: 'Medicina', fecha: 'Hace 25 mins' },
-		{ id: 3, nombre: 'Mariana Gómez', cedula: 'V-31.456.789', carrera: 'Contaduría', fecha: 'Hace 1 hora' }
-	];
-
-	const documentosPendientesCount = data.documentosPendientesCount ?? 12;
 </script>
 
 <div class="container">
@@ -36,32 +29,34 @@
 			<div class="pulse-column">
 				
 				<!-- Tarjeta de Actividad Reciente / Últimos Aspirantes -->
+				{#if can(data.user, 'admissions.view')}
 				<div class="info-card">
 					<div class="info-card-header">
 						<h2>📋 Últimos Aspirantes Registrados</h2>
 						<span class="live-badge">En vivo</span>
 					</div>
 					<div class="aspirantes-list">
-						{#if ultimosAspirantes.length === 0}
+						{#if data.ultimosAspirantes.length === 0}
 							<p class="empty-text">No hay registros recientes.</p>
 						{:else}
 							<ul>
-								{#each ultimosAspirantes as asp}
+								{#each data.ultimosAspirantes as asp (asp.id)}
 									<li class="aspirante-item">
 										<div class="aspirante-info">
 											<strong>{asp.nombre}</strong>
 											<small>{asp.cedula} • {asp.carrera}</small>
 										</div>
-										<span class="aspirante-time">{asp.fecha}</span>
+										<span class="aspirante-time">{formatDate(asp.fechaAsignacion)}</span>
 									</li>
 								{/each}
 							</ul>
 						{/if}
 					</div>
 					<div class="info-card-footer">
-						<a href="/digaipe/admisiones" class="text-link">Ver todos los aspirantes &rarr;</a>
+						<a href={resolve('/digaipe/admisiones')} class="text-link">Ver todos los aspirantes &rarr;</a>
 					</div>
 				</div>
+				{/if}
 
 				<!-- Alerta o Aviso del Departamento -->
 				<div class="alert-box">
@@ -78,7 +73,7 @@
 				<div class="cards-grid">
 
 					{#if can(data.user, 'planillas.view')}
-					<a href="/digaipe/generacion-planilla"><div class="card">
+					<a href={resolve('/digaipe/generacion-planilla')}><div class="card">
 						<div class="card-body">
 							<img src={docIcon} alt="Planillas" class="card-icon" />
 							<h3 class="card-title">Generación de Planillas</h3>
@@ -88,7 +83,7 @@
 					</a>
 					{/if}
 					{#if can(data.user, 'statistics.view')}
-					<a href="/digaipe/estadisticas">
+					<a href={resolve('/digaipe/estadisticas')}>
 						<div class="card">
 							<div class="card-body">
 								<img src={graphIcon} alt="Estadísticas" class="card-icon" />
@@ -100,7 +95,7 @@
 					{/if}
 
 					{#if can(data.user, 'admissions.view')}
-					<a href="/digaipe/admisiones">
+					<a href={resolve('/digaipe/admisiones')}>
 						<div class="card">
 							<div class="card-body">
 								<img src={personPlusIcon} alt="Admisiones" class="card-icon" />
@@ -113,7 +108,7 @@
 
 					
 
-					<a href="/ayuda">
+					<a href={resolve('/ayuda')}>
 						<div class="card">
 							<div class="card-body">
 								<img src={listIcon} alt="Ayuda" class="card-icon" />

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { formatDate } from '$lib/dates';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -8,21 +9,10 @@
 		return JSON.stringify(value, null, 2) ?? '';
 	}
 
-	function pageUrl(page: number) {
-		const params = new URLSearchParams();
-		for (const [key, value] of Object.entries(data.filters)) {
-			if (value) params.set(key, value);
-		}
-		params.set('page', String(page));
-		return `/digaipe/admin/audit?${params.toString()}`;
-	}
-
-	function exportUrl() {
-		const params = new URLSearchParams();
-		for (const [key, value] of Object.entries(data.filters)) {
-			if (value) params.set(key, value);
-		}
-		return `/digaipe/admin/audit/export?${params.toString()}`;
+	// Query strings for the pagination and export links (the links themselves use resolve()).
+	function filterQuery(extra: Record<string, string> = {}) {
+		const entries = Object.entries({ ...data.filters, ...extra }).filter(([, value]) => value);
+		return entries.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&');
 	}
 </script>
 
@@ -120,7 +110,7 @@
 
 <!-- Botón volver -->
 <div class="div-back-links">
-	<a href={resolve('/digaipe/admin')}>
+	<a aria-label="Volver" href={resolve('/digaipe/admin')}>
 		<svg id="back" width="40px" height="40px" data-name="Capa 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 490.66 490.64">
 			<path class="cls-1" d="M0,259.65c0-9.58,0-19.16,0-28.74.28-1.38.72-2.74.81-4.13,2.39-34.22,11.44-66.63,28-96.6C66.96,61.08,124.92,18.79,202.55,3.87c9.36-1.8,18.9-2.6,28.36-3.87,9.58,0,19.16,0,28.74,0,1.23.27,2.46.7,3.7.79,34.23,2.33,66.77,11.15,96.67,27.89,80.62,45.14,124.38,114.13,130.17,206.38,2.49,39.68-4.99,78.12-22.75,113.76-43.53,87.36-114.43,134.94-211.86,141.33-44.23,2.9-86.44-6.99-125.34-28.38C61.06,423.71,18.78,365.65,3.87,287.98,2.07,278.63,1.27,269.1,0,259.65ZM245.05,459.9c118.28.2,214.45-95.65,214.85-214.14.4-118.39-95.78-214.89-214.38-215.09-118.28-.2-214.45,95.65-214.85,214.14-.4,118.39,95.78,214.89,214.38,215.09Z"/>
 			<path class="cls-2" d="M190.26,229.95c18.19-18.18,35.35-35.32,52.5-52.47,3.84-3.84,7.86-7.52,11.4-11.62,7.34-8.5,3.39-21.66-7.34-24.6-6.69-1.83-12,.74-16.77,5.53-27.47,27.62-55.06,55.12-82.59,82.67-9.51,9.52-9.46,22.17.13,31.76,27.31,27.32,54.63,54.64,81.96,81.95,1.13,1.13,2.23,2.3,3.49,3.27,5.16,3.96,10.8,4.69,16.59,1.68,5.77-3,9.16-8.07,7.97-14.46-.76-4.08-3.04-8.48-5.95-11.46-18.84-19.31-38.03-38.27-57.11-57.36-1.16-1.16-2.27-2.36-4.07-4.24h6.4c50.45,0,100.89,0,151.34,0,1.76,0,3.52.06,5.27-.07,7.76-.57,13.82-6.57,14.37-14.16.55-7.59-4.61-14.5-12.19-16.05-2.16-.44-4.44-.36-6.67-.37-50.77-.02-101.53-.01-152.3-.01h-6.43Z"/>
@@ -179,7 +169,7 @@
 		</div>
 		<div class="export-bar">
 			{#if data.filters.from && data.filters.to}
-				<a href={exportUrl()} class="btn-secondary">
+				<a href={resolve(`/digaipe/admin/audit/export?${filterQuery()}`)} class="btn-secondary">
 					<i class="fa fa-download"></i> Exportar (máx. 10.000)
 				</a>
 			{:else}
@@ -192,11 +182,11 @@
 	{#if data.totalPages > 1}
 		<div class="pagination" style="margin-bottom: 1rem;">
 			{#if data.page > 1}
-				<a href={pageUrl(data.page - 1)}>← Anterior</a>
+				<a href={resolve(`/digaipe/admin/audit?${filterQuery({ page: String(data.page - 1) })}`)}>← Anterior</a>
 			{/if}
 			<span class="page-info">Página {data.page} de {data.totalPages}</span>
 			{#if data.page < data.totalPages}
-				<a href={pageUrl(data.page + 1)}>Siguiente →</a>
+				<a href={resolve(`/digaipe/admin/audit?${filterQuery({ page: String(data.page + 1) })}`)}>Siguiente →</a>
 			{/if}
 		</div>
 	{/if}
@@ -222,13 +212,13 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each data.logs as log}
+					{#each data.logs as log (log.sequence)}
 						<tr>
 							<td class="col-seq font-mono">{log.sequence}</td>
 
 							<td class="col-date">
 								<div class="cell-stack">
-									<span class="primary">{log.occurredAt.toISOString().slice(0, 10)}</span>
+									<span class="primary">{formatDate(log.occurredAt)}</span>
 									<span class="secondary">{log.occurredAt.toISOString().slice(11, 19)} UTC</span>
 								</div>
 							</td>
@@ -306,11 +296,11 @@
 		{#if data.totalPages > 1}
 			<div class="pagination" style="margin-top: 1rem;">
 				{#if data.page > 1}
-					<a href={pageUrl(data.page - 1)}>← Anterior</a>
+					<a href={resolve(`/digaipe/admin/audit?${filterQuery({ page: String(data.page - 1) })}`)}>← Anterior</a>
 				{/if}
 				<span class="page-info">Página {data.page} de {data.totalPages}</span>
 				{#if data.page < data.totalPages}
-					<a href={pageUrl(data.page + 1)}>Siguiente →</a>
+					<a href={resolve(`/digaipe/admin/audit?${filterQuery({ page: String(data.page + 1) })}`)}>Siguiente →</a>
 				{/if}
 			</div>
 		{/if}
