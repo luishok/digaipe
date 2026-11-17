@@ -80,15 +80,18 @@
 				<button class='btn-secondary' style='padding: 0.5em 1.5em;' type="button" onclick={() => openCareerDialog(null)}>Agregar Carrera</button>
 			</div>
 
-			<dialog bind:this={careerDialog} aria-labelledby="career-dialog-title">
+			<dialog bind:this={careerDialog} aria-labelledby="career-dialog-title" class="career-dialog">
 				<div class="modal-actions">
-					<button type="button" onclick={() => careerDialog?.close()} class="close-button">X</button>
+					<button type="button" onclick={() => careerDialog?.close()} class="close-button" aria-label="Cerrar modal">✕</button>
 				</div>
-				<h3 id="career-dialog-title">{editing ? 'Modificar Carrera' : 'Agregar Carrera'}</h3>
+				<div class="modal-header">
+					<h3 id="career-dialog-title">{editing ? 'Modificar Carrera' : 'Agregar Carrera'}</h3>
+				</div>
 				{#key editing}
 					<form
 						method="POST"
 						action={editing ? '?/update' : '?/create'}
+						class="career-form"
 						use:enhance={() => {
 							return async ({ result, update }) => {
 								await update();
@@ -102,67 +105,100 @@
 						{#if editing}
 							<input type="hidden" name="id" value={editing.id} />
 						{/if}
-						<label>
-							Programa Académico
+						<div class="form-group">
+							<label for="c-programa">Programa Académico</label>
 							<input
+								id="c-programa"
 								name="programa_academico"
 								value={editing?.programa_academico ?? ''}
 								required
 								maxlength="255"
+								placeholder="Ej. Ingeniería de Sistemas"
 							/>
-						</label>
-						<label>
-							Facultad o Núcleo
-							<input name="facultad" value={editing?.facultad ?? ''} required maxlength="255" />
-						</label>
-						<label>
-							Núcleo (letra)
+						</div>
+						<div class="form-group">
+							<label for="c-facultad">Facultad o Núcleo</label>
 							<input
-								name="nucleo"
-								value={editing?.nucleo ?? ''}
+								id="c-facultad"
+								name="facultad"
+								value={editing?.facultad ?? ''}
 								required
-								maxlength="1"
-								pattern="[A-Za-z]"
-								readonly={codesLocked}
+								maxlength="255"
+								placeholder="Ej. Facultad de Ingeniería"
 							/>
-						</label>
-						<label>
-							Código OFAE
-							<input
-								name="ofae"
-								value={editing?.ofae ?? ''}
-								required
-								maxlength="4"
-								pattern={'[A-Za-z0-9]{1,4}'}
-								readonly={codesLocked}
-							/>
-						</label>
+						</div>
+						<div class="form-row">
+							<div class="form-group">
+								<label for="c-nucleo">Núcleo (letra)</label>
+								<input
+									id="c-nucleo"
+									name="nucleo"
+									value={editing?.nucleo ?? ''}
+									required
+									maxlength="1"
+									pattern="[A-Za-z]"
+									readonly={codesLocked}
+									placeholder="Ej. U"
+								/>
+							</div>
+							<div class="form-group">
+								<label for="c-ofae">Código OFAE</label>
+								<input
+									id="c-ofae"
+									name="ofae"
+									value={editing?.ofae ?? ''}
+									required
+									maxlength="4"
+									pattern={'[A-Za-z0-9]{1,4}'}
+									readonly={codesLocked}
+									placeholder="Ej. 101"
+								/>
+							</div>
+						</div>
 						{#if codesLocked}
-							<p>
+							<p class="lock-notice">
 								El núcleo y el OFAE no se pueden cambiar: {editing?.admissionCount} admisión(es) usan
 								esta carrera.
 							</p>
 						{/if}
-						<label>
-							Código OPSU
-							<input name="codigo" type="number" min="0" step="1" value={editing?.codigo ?? ''} />
-						</label>
-						<label>
-							Código OCRE
-							<input name="ocre" type="number" min="0" step="1" value={editing?.ocre ?? ''} />
-						</label>
-						<button type="submit">{editing ? 'Guardar Cambios' : 'Agregar'}</button>
+						<div class="form-row">
+							<div class="form-group">
+								<label for="c-codigo">Código OPSU</label>
+								<input
+									id="c-codigo"
+									name="codigo"
+									type="number"
+									min="0"
+									step="1"
+									value={editing?.codigo ?? ''}
+									placeholder="Opcional"
+								/>
+							</div>
+							<div class="form-group">
+								<label for="c-ocre">Código OCRE</label>
+								<input
+									id="c-ocre"
+									name="ocre"
+									type="number"
+									min="0"
+									step="1"
+									value={editing?.ocre ?? ''}
+									placeholder="Opcional"
+								/>
+							</div>
+						</div>
+						<button type="submit" class="btn-submit">{editing ? 'Guardar Cambios' : 'Agregar Carrera'}</button>
 					</form>
 				{/key}
 				{#if singleResult?.error}
-					<p role="alert">{singleResult.message}</p>
+					<p role="alert" class="modal-error">{singleResult.message}</p>
 				{/if}
 			</dialog>
 
 			<!-- Usamos bind:this para conectar el HTML con la variable de arriba -->
 			<dialog bind:this={modalElement}>
 				<div class="modal-actions">
-					<button onclick={closeModal} class="close-button">X</button>
+					<button type="button" onclick={closeModal} class="close-button" aria-label="Cerrar modal">✕</button>
 				</div>
 				<div class="import_careers">
 					<h3>Subir Archivo CSV</h3>
@@ -211,7 +247,7 @@
 							</div>
 						</label>
 
-						<button type="submit">Procesar y Guardar</button>
+						<button type="submit" class="btn-submit">Procesar y Guardar</button>
 					</form>
 
 					{#if form?.action === 'import' && !form.error}
@@ -274,19 +310,23 @@
 		margin-bottom: 20px;
 		gap: 5%;
 	}
-	/* modal */
+
+	/* Modal dialog base */
 	dialog {
-		position: relative;
-		border: none;
-		border-radius: 8px;
-		padding: 20px;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-		text-align: center;
-		left: 50%;
+		position: fixed;
 		top: 50%;
-		height: 50vh;
+		left: 50%;
 		transform: translate(-50%, -50%);
-		width: 500px;
+		border: none;
+		border-radius: 12px;
+		padding: 28px 24px;
+		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+		background-color: #ffffff;
+		width: 90%;
+		max-width: 520px;
+		max-height: 85vh;
+		overflow-y: auto;
+		margin: 0;
 	}
 
 	/* Animación y fondo oscuro */
@@ -298,38 +338,163 @@
 	.modal-actions {
 		display: flex;
 		justify-content: flex-end;
-		margin-bottom: 20px;
 		position: absolute;
-		right: 20px;
+		top: 16px;
+		right: 16px;
 	}
+
+	.close-button {
+		margin: 0;
+		padding: 0;
+		border-radius: 50%;
+		width: 32px;
+		height: 32px;
+		font-size: 14px;
+		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f1f5f9;
+		color: #64748b;
+		border: 1px solid #e2e8f0;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.close-button:hover {
+		background-color: #e2e8f0;
+		color: #0f172a;
+	}
+
+	.modal-header {
+		text-align: center;
+		margin-bottom: 20px;
+	}
+
+	.modal-header h3 {
+		font-size: 1.35rem;
+		font-weight: 700;
+		color: var(--ula-blue, #0033a0);
+		margin: 0;
+	}
+
+	/* Estilos del formulario de Agregar/Modificar Carrera */
+	.career-form {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		text-align: left;
+	}
+
+	.form-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.form-group label {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: #334155;
+	}
+
+	.form-group input {
+		width: 100%;
+		padding: 10px 14px;
+		border: 1px solid #cbd5e1;
+		border-radius: 8px;
+		font-size: 0.95rem;
+		font-family: inherit;
+		color: #1e293b;
+		background-color: #f8fafc;
+		transition: all 0.2s ease;
+		box-sizing: border-box;
+	}
+
+	.form-group input:focus {
+		outline: none;
+		border-color: var(--ula-blue, #0033a0);
+		background-color: #ffffff;
+		box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.15);
+	}
+
+	.form-group input:read-only {
+		background-color: #f1f5f9;
+		color: #64748b;
+		cursor: not-allowed;
+		border-color: #e2e8f0;
+	}
+
+	.btn-submit {
+		width: 100%;
+		padding: 12px;
+		background-color: var(--ula-blue, #0033a0);
+		color: #ffffff;
+		border: none;
+		border-radius: 8px;
+		font-weight: 600;
+		font-size: 1rem;
+		cursor: pointer;
+		transition: background-color 0.2s ease, transform 0.1s ease;
+		margin-top: 8px;
+	}
+
+	.btn-submit:hover {
+		background-color: var(--ula-dark, #002470);
+	}
+
+	.btn-submit:active {
+		transform: scale(0.99);
+	}
+
+	.lock-notice {
+		background-color: #eff6ff;
+		border-left: 4px solid var(--ula-blue, #0033a0);
+		padding: 8px 12px;
+		border-radius: 4px;
+		font-size: 0.85rem;
+		color: #1e40af;
+		margin: 0;
+	}
+
+	.modal-error {
+		color: #dc2626;
+		background-color: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 6px;
+		padding: 8px 12px;
+		font-size: 0.875rem;
+		text-align: center;
+		margin-top: 12px;
+	}
+
+	/* Estilos para el modal de Importar CSV */
 	.import_careers {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 20px;
-		height: 100%;
 	}
+
+	.import_careers h3 {
+		font-size: 1.35rem;
+		font-weight: 700;
+		color: var(--ula-blue, #0033a0);
+		margin: 0;
+		text-align: center;
+	}
+
 	.modal-form {
 		display: flex;
 		flex-direction: column;
-		height: 70%;
-	}
-	.modal-form input[type='file'] {
-		padding: 10px;
-		border: 1px solid #ccc;
-		border-radius: 4px;
-		margin: auto 0;
-	}
-	.modal-form button {
-		margin-top: auto;
-	}
-	.close-button {
-		margin: 0;
-		padding: 10px;
-		border-radius: 50%;
-		width: 30px;
-		height: 30px;
-		font-size: 12px;
+		width: 100%;
+		gap: 16px;
 	}
 
 	/* Escondemos el input feo */
@@ -348,11 +513,10 @@
 		cursor: pointer;
 		transition: all 0.3s ease;
 		background-color: #f8fafc;
-		margin-bottom: 20px;
 	}
 
 	.custom-file-upload:hover {
-		border-color: #3b82f6;
+		border-color: var(--ula-blue, #0033a0);
 		background-color: #eff6ff;
 	}
 
@@ -384,27 +548,5 @@
 
 	.file-ready {
 		color: #166534;
-	}
-
-	/* Botón de guardar con estilo más "SaaS" */
-	.btn-save {
-		width: 100%;
-		padding: 12px;
-		background-color: #1e293b;
-		color: white;
-		border: none;
-		border-radius: 8px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	.btn-save:hover:not(:disabled) {
-		background-color: #0f172a;
-	}
-
-	.btn-save:disabled {
-		background-color: #cbd5e1;
-		cursor: not-allowed;
 	}
 </style>

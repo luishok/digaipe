@@ -639,6 +639,10 @@ input[type='password'] {
 }
 
 /* Manejo de Labels e Inputs */
+.filter-card .label-input {
+    width: auto;
+}
+
 .filter-card .label-input label {
     display: flex;
     flex-direction: column;
@@ -646,14 +650,21 @@ input[type='password'] {
     font-size: 0.85rem;
     font-weight: 600;
     color: #475569;
+    margin: 0;
 }
 
 /* Estilos de controles (inputs y selects) */
+.filter-card input[type='text'],
 .filter-card input[type='date'], 
-.filter-card select, .filter-card input[type='search'] {
-    min-width: 220px;
+.filter-card input[type='datetime-local'],
+.filter-card input[type='search'],
+.filter-card input[type='email'],
+.filter-card input[type='number'],
+.filter-card input:not([type]),
+.filter-card select {
+    min-width: 200px;
     height: 38px;
-    padding: 0 10px;
+    padding: 0 12px;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     background-color: #fff;
@@ -661,16 +672,26 @@ input[type='password'] {
     color: #0f172a;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
 }
 
 .filter-card input[type='date'] {
     min-width: 150px;
 }
 
-.filter-card input[type='date']:focus, 
+.filter-card input[type='datetime-local'] {
+    min-width: 190px;
+}
+
+.filter-card input:hover,
+.filter-card select:hover {
+    border-color: #94a3b8;
+}
+
+.filter-card input:focus, 
 .filter-card select:focus {
     border-color: var(--ula-blue, #2563eb);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 51, 153, 0.15);
 }
 
 /* Estilos para Rangos Rápidos */
@@ -753,12 +774,78 @@ input[type='password'] {
 
 
 
-.filter-actions{
-	  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 1.5rem;
+.filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 1.25rem;
+}
+
+.filter-card .filter-row-flex .filter-actions {
+    margin-top: 0;
+    align-self: flex-end;
+}
+
+.filter-actions .btn-submit,
+.filter-actions button[type='submit'],
+.filter-card .filter-actions .btn-submit,
+.filter-card .filter-actions button[type='submit'] {
+    height: 38px;
+    padding: 0 22px;
+    background-color: var(--ula-blue, #003399);
+    color: #ffffff;
+    border: 1px solid var(--ula-blue, #003399);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    white-space: nowrap;
+    align-self: auto;
+}
+
+.filter-actions .btn-submit:hover,
+.filter-actions button[type='submit']:hover,
+.filter-card .filter-actions .btn-submit:hover,
+.filter-card .filter-actions button[type='submit']:hover {
+    background-color: var(--ula-dark, #002266);
+    border-color: var(--ula-dark, #002266);
+}
+
+.filter-actions .btn-secondary,
+.filter-card .filter-actions .btn-secondary {
+    height: 38px;
+    padding: 0 18px;
+    background-color: #ffffff;
+    color: var(--ula-blue, #003399);
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    box-sizing: border-box;
+    align-self: auto;
+    white-space: nowrap;
+}
+
+.filter-actions .btn-secondary:hover,
+.filter-card .filter-actions .btn-secondary:hover {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    color: var(--ula-dark, #002266);
 }
 .filter-card .text-search{
 	text-align: -webkit-center;

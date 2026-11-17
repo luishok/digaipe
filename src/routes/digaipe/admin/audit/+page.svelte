@@ -106,6 +106,20 @@
 	.cell-stack .primary   { font-weight: 600; color: #1e293b; }
 	.cell-stack .secondary { color: #64748b; font-size: 0.75rem; }
 	.cell-stack .tertiary  { font-family: monospace; color: #94a3b8; font-size: 0.7rem; word-break: break-all; }
+
+	/* Filtros de Auditoría */
+	.filter-card legend {
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: var(--ula-blue, #003399);
+		padding: 0 0.5rem;
+	}
+	.filter-actions-inline {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		align-self: flex-end;
+	}
 </style>
 
 <!-- Botón volver -->
@@ -128,34 +142,51 @@
 
 		<div class="filter-row-flex">
 			<div class="label-input">
-				<label>Acción <input name="action" value={data.filters.action} placeholder="ej. user.login" /></label>
+				<label for="audit-action">Acción
+					<input id="audit-action" name="action" type="text" value={data.filters.action} placeholder="ej. user.login" />
+				</label>
 			</div>
 			<div class="label-input">
-				<label>Origen <input name="source" value={data.filters.source} placeholder="ej. web" /></label>
+				<label for="audit-source">Origen
+					<input id="audit-source" name="source" type="text" value={data.filters.source} placeholder="ej. web" />
+				</label>
 			</div>
 			<div class="label-input">
-				<label>ID del usuario <input name="actor" value={data.filters.actorUserId} placeholder="UUID" /></label>
+				<label for="audit-actor">ID del usuario
+					<input id="audit-actor" name="actor" type="text" value={data.filters.actorUserId} placeholder="UUID de usuario" />
+				</label>
+			</div>
+			<div class="label-input">
+				<label for="audit-entity-type">Tipo de entidad
+					<input id="audit-entity-type" name="entityType" type="text" value={data.filters.entityType} placeholder="ej. admission" />
+				</label>
 			</div>
 		</div>
 
 		<div class="filter-row-flex">
 			<div class="label-input">
-				<label>Tipo de entidad <input name="entityType" value={data.filters.entityType} placeholder="ej. admission" /></label>
+				<label for="audit-entity-id">ID de entidad
+					<input id="audit-entity-id" name="entityId" type="text" value={data.filters.entityId} placeholder="ej. 123" />
+				</label>
 			</div>
 			<div class="label-input">
-				<label>ID de entidad <input name="entityId" value={data.filters.entityId} /></label>
+				<label for="audit-from">Desde
+					<input id="audit-from" name="from" type="datetime-local" value={data.filters.from} />
+				</label>
 			</div>
 			<div class="label-input">
-				<label>Desde <input name="from" type="datetime-local" value={data.filters.from} /></label>
+				<label for="audit-to">Hasta
+					<input id="audit-to" name="to" type="datetime-local" value={data.filters.to} />
+				</label>
 			</div>
-			<div class="label-input">
-				<label>Hasta <input name="to" type="datetime-local" value={data.filters.to} /></label>
+			<div class="filter-actions filter-actions-inline">
+				<button type="submit" class="btn-submit">
+					<i class="fa fa-search"></i> Buscar
+				</button>
+				<a href={resolve('/digaipe/admin/audit')} class="btn-secondary">
+					Limpiar
+				</a>
 			</div>
-		</div>
-
-		<div class="filter-actions">
-			<button type="submit" class="btn-submit">Buscar</button>
-			<a href={resolve('/digaipe/admin/audit')} class="btn-secondary">Limpiar</a>
 		</div>
 	</fieldset>
 </form>

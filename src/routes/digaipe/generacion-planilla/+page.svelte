@@ -123,6 +123,154 @@
 		background-color: #f8f9fa;
 	}
 
+	/* Modal dialog */
+	dialog {
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		border: none;
+		border-radius: 12px;
+		padding: 28px 24px;
+		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+		background-color: #ffffff;
+		width: 90%;
+		max-width: 580px;
+		max-height: 85vh;
+		overflow-y: auto;
+		margin: 0;
+	}
+
+	dialog::backdrop {
+		background-color: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(3px);
+	}
+
+	.modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		position: absolute;
+		top: 16px;
+		right: 16px;
+	}
+
+	.close-button {
+		margin: 0;
+		padding: 0;
+		border-radius: 50%;
+		width: 32px;
+		height: 32px;
+		font-size: 14px;
+		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f1f5f9;
+		color: #64748b;
+		border: 1px solid #e2e8f0;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.close-button:hover {
+		background-color: #e2e8f0;
+		color: #0f172a;
+	}
+
+	.planilla-dialog-title {
+		text-align: center;
+		margin-bottom: 8px;
+	}
+
+	.planilla-dialog-title h2 {
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: var(--ula-blue, #003399);
+		margin: 0;
+	}
+
+	.modal-desc {
+		font-size: 0.9rem;
+		color: #64748b;
+		text-align: center;
+		margin-bottom: 16px;
+		line-height: 1.4;
+	}
+
+	.info-grid {
+		display: grid;
+		grid-template-columns: 140px 1fr;
+		gap: 8px 12px;
+		background-color: #f8fafc;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		padding: 14px 16px;
+		margin: 0 0 14px 0;
+		font-size: 0.9rem;
+		text-align: left;
+	}
+
+	.info-grid dt {
+		font-weight: 600;
+		color: #475569;
+	}
+
+	.info-grid dd {
+		margin: 0;
+		color: #0f172a;
+		font-weight: 500;
+		word-break: break-word;
+	}
+
+	.edit-notice {
+		font-size: 0.85rem;
+		color: #64748b;
+		margin-bottom: 16px;
+		text-align: center;
+	}
+
+	.edit-notice a {
+		color: var(--ula-blue, #003399);
+		font-weight: 600;
+		text-decoration: underline;
+	}
+
+	.confirm-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-weight: 600;
+		font-size: 0.9rem;
+		color: #166534;
+		cursor: pointer;
+		padding: 10px 14px;
+		background-color: #f0fdf4;
+		border: 1px solid #bbf7d0;
+		border-radius: 8px;
+		margin-bottom: 16px;
+	}
+
+	.confirm-checkbox input[type="checkbox"] {
+		width: 18px;
+		height: 18px;
+		cursor: pointer;
+		accent-color: #16a34a;
+	}
+
+	.modal-button-group {
+		display: flex;
+		gap: 12px;
+		justify-content: flex-end;
+	}
+
+	.modal-button-group .btn-primary,
+	.modal-button-group .btn-outline {
+		height: 42px;
+		border-radius: 8px;
+		font-weight: 600;
+		padding: 0 20px;
+	}
+
 	/* Ajuste responsivo para pantallas pequeñas */
 	@media (max-width: 500px) {
 		.search-form {
@@ -136,6 +284,10 @@
 		.btn-primary, .btn-outline {
 			flex: 1;
 		}
+		.info-grid {
+			grid-template-columns: 1fr;
+			gap: 4px;
+		}
 	}
 </style>
 
@@ -144,12 +296,17 @@
 
 <dialog bind:this={planillaDialog} aria-labelledby="planilla-dialog-title" onclose={() => (selected = null)}>
 	{#if selected}
-		<h2 id="planilla-dialog-title">Generar planilla</h2>
-		<p>
+		<div class="modal-actions">
+			<button type="button" onclick={() => planillaDialog?.close()} class="close-button" aria-label="Cerrar modal">✕</button>
+		</div>
+		<div class="planilla-dialog-title">
+			<h2 id="planilla-dialog-title">Generar planilla</h2>
+		</div>
+		<p class="modal-desc">
 			Revise los datos. La planilla se genera con ellos y la admisión pasa a revisión de documentos
 			(estado <b>pendiente</b>).
 		</p>
-		<dl>
+		<dl class="info-grid">
 			<dt>Cédula</dt><dd>{selected.cedula}</dd>
 			<dt>Estudiante</dt><dd>{selected.planilla.propio}</dd>
 			<dt>Programa</dt><dd>{selected.planilla.prog}</dd>
@@ -162,18 +319,18 @@
 			<dt>Teléfono</dt><dd>{selected.telefono ?? '—'}</dd>
 			<dt>Correo</dt><dd>{selected.correo ?? '—'}</dd>
 		</dl>
-		<p>
+		<p class="edit-notice">
 			¿Algún dato está mal?
 			<a href={resolve(`/digaipe/generacion-planilla/${selected.id}`)}>Corregir en el detalle</a>
 		</p>
 		<form method="POST" action={pdfUrl(selected.id)} target="_blank" onsubmit={generated}>
-			<label>
+			<label class="confirm-checkbox">
 				<input type="checkbox" name="confirmado" required />
-				Verifiqué que los datos son correctos
+				<span>Verifiqué que los datos son correctos</span>
 			</label>
-			<div class="button-group">
-				<button type="submit" class="btn-primary">Generar planilla PDF</button>
+			<div class="modal-button-group">
 				<button type="button" class="btn-outline" onclick={() => planillaDialog?.close()}>Cancelar</button>
+				<button type="submit" class="btn-primary">Generar planilla PDF</button>
 			</div>
 		</form>
 	{/if}
