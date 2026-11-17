@@ -1,12 +1,46 @@
 import { redirect } from '@sveltejs/kit';
-import type { Actions } from './$types';
-import type { PageServerLoad } from './$types';
-import { desc, eq, isNotNull } from 'drizzle-orm';
-import { can } from '$lib/permissions';
+import type { Actions, PageServerLoad } from './$types';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { auth } from '$lib/server/auth';
-import { auditStudentDataView } from '$lib/server/audit';
 import { db } from '$lib/server/db';
-import { admissions, careers, students } from '$lib/server/db/schema';
+import { APActiveDates, proceso_admission } from '$lib/server/db/schema';
+import { caracasDateKey } from '$lib/server/admisiones/processing';
+import { formatDate } from '$lib/dates';
+
+function formatProcessCode(code: string, rawDate: Date | string) {
+	let dateKey = '';
+	if (typeof rawDate === 'string') {
+		dateKey = rawDate.slice(0, 10);
+	} else if (rawDate instanceof Date) {
+		const y = rawDate.getUTCFullYear();
+		const m = String(rawDate.getUTCMonth() + 1).padStart(2, '0');
+		const d = String(rawDate.getUTCDate()).padStart(2, '0');
+		dateKey = `${y}-${m}-${d}`;
+	} else {
+		dateKey = String(rawDate ?? '');
+	}
+
+	const parts = dateKey.split('-');
+	let shortDate = dateKey;
+	if (parts.length === 3) {
+		const [year, month, day] = parts;
+		shortDate = `${year.slice(-2)}-${month}-${day}`;
+	}
+
+	const cleanCode = (code ?? '').trim();
+	const prefix = cleanCode.startsWith('.')
+		? cleanCode
+		: cleanCode.startsWith('UA')
+			? `.${cleanCode}`
+			: cleanCode;
+	const fullCode = `${prefix}/${shortDate}`;
+
+	return {
+		fullCode,
+		dateKey,
+		formattedDate: formatDate(dateKey)
+	};
+}
 
 export const load: PageServerLoad = async (event) => {
 	if (!event.locals.user) {
@@ -14,40 +48,74 @@ export const load: PageServerLoad = async (event) => {
 	}
 	const user = event.locals.user;
 
-	// "Últimos aspirantes registrados": the most recently saved admissions, only for users who
-	// may see admissions. Names and cédulas are student data, so the view is audited.
-	let ultimosAspirantes: {
-		id: number;
-		nombre: string;
-		cedula: string;
-		carrera: string | null;
-		fechaAsignacion: Date;
-	}[] = [];
-	if (can(user, 'admissions.view')) {
-		ultimosAspirantes = await db
+	const today = caracasDateKey();
+
+	// Buscar las fechas activas de los procesos habilitados
+	// Primero buscamos las fechas de hoy y futuras (>= today)
+	const upcomingRows = await db
+		.select({
+			id: proceso_admission.id,
+			code: proceso_admission.code,
+			activeDate: APActiveDates.activeDate
+		})
+		.from(APActiveDates)
+		.innerJoin(proceso_admission, eq(APActiveDates.codeId, proceso_admission.id))
+		.where(
+			and(
+				eq(proceso_admission.isEnabled, true),
+				sql`${APActiveDates.activeDate} >= ${today}`
+			)
+		)
+		.orderBy(asc(APActiveDates.activeDate))
+		.limit(5);
+
+	let displayRows = upcomingRows;
+
+	// Si no hay fechas futuras en la base de datos (por ejemplo, en desarrollo o datos históricos),
+	// mostramos los últimos procesos programados para que la sección muestre información relevante.
+	if (displayRows.length === 0) {
+		displayRows = await db
 			.select({
-				id: admissions.id,
-				nombre: students.apellidos_nombres,
-				cedula: students.cedula,
-				carrera: careers.todo,
-				fechaAsignacion: admissions.fechaAsignacion
+				id: proceso_admission.id,
+				code: proceso_admission.code,
+				activeDate: APActiveDates.activeDate
 			})
-			.from(admissions)
-			.innerJoin(students, eq(admissions.studentId, students.id))
-			.innerJoin(careers, eq(admissions.careerId, careers.id))
-			.where(isNotNull(admissions.importBatchId))
-			.orderBy(desc(admissions.id))
-			.limit(3);
-		if (ultimosAspirantes.length) {
-			await auditStudentDataView(event, {
-				page: '/digaipe',
-				recordType: 'admission',
-				recordIds: ultimosAspirantes.map((row) => row.id)
-			});
-		}
+			.from(APActiveDates)
+			.innerJoin(proceso_admission, eq(APActiveDates.codeId, proceso_admission.id))
+			.where(eq(proceso_admission.isEnabled, true))
+			.orderBy(desc(APActiveDates.activeDate))
+			.limit(5);
+		displayRows.reverse();
 	}
 
-	return { user, ultimosAspirantes };
+	const proximosProcesos = displayRows.map((row) => {
+		const { fullCode, dateKey, formattedDate } = formatProcessCode(row.code, row.activeDate);
+		const isToday = dateKey === today;
+		const isUpcoming = dateKey > today;
+		let daysLeftText = 'Programado';
+		if (isToday) {
+			daysLeftText = 'Hoy';
+		} else if (isUpcoming) {
+			const diffDays = Math.ceil(
+				(new Date(`${dateKey}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) /
+					(1000 * 60 * 60 * 24)
+			);
+			daysLeftText = diffDays === 1 ? 'Mañana' : `En ${diffDays} días`;
+		}
+
+		return {
+			id: row.id,
+			processCode: row.code,
+			fullCode,
+			dateKey,
+			formattedDate,
+			isToday,
+			isUpcoming,
+			daysLeftText
+		};
+	});
+
+	return { user, proximosProcesos };
 };
 
 export const actions: Actions = {

@@ -301,6 +301,7 @@
 		display: flex;
 		gap: 2rem;
 		height: max-content;
+		max-height: 70vh;
 	}
 	.process-container p {
 		margin: 0;

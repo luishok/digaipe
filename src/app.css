@@ -446,7 +446,8 @@ input[type='search'],
 select,
 input[type='file'],
 input[type='email'],
-input[type='tel'] {
+input[type='tel'],
+input[type='password'] {
 	width: 50%;
 	padding: 10px 14px;
 	font-size: 15px;

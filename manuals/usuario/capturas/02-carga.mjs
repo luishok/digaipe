@@ -41,7 +41,7 @@ try {
 		await ir(page, '/digaipe/admisiones/cargar');
 		await page.setInputFiles('#file-xlsx', `${DATOS}/${xlsx}`);
 		await page.setInputFiles('#estadistica-pdf', `${DATOS}/PRUEBA estadistica firmada.pdf`);
-		await page.setInputFiles('#manifest-pdf', `${DATOS}/PRUEBA manifiesto.pdf`);
+		await page.setInputFiles('#manifest-pdf', `${DATOS}/PRUEBA lista_de_admitidos.pdf`);
 		await page.waitForTimeout(300);
 		if (nombre === 'cargar-con-error') await foto(page, 'cargar-archivos-listos', { completa: true });
 		await Promise.all([page.waitForLoadState('networkidle'), page.click('form[action="?/preview"] button[type=submit]')]);

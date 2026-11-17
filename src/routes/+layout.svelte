@@ -61,7 +61,7 @@
 
                 {#if user}
                     <li><a href={resolve('/ayuda')}>Ayuda</a></li>
-                    <li><a href={resolve('/digaipe/cambiar-password')}>Cambiar contraseña</a></li>
+                    
                 {/if}
                 {#if can(user, 'users.manage') || can(user, 'audit.view')}
                     <li><a href={resolve('/digaipe/admin')}>Administración</a></li>

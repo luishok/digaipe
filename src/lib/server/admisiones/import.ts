@@ -319,7 +319,7 @@ export async function createDraftBatch(
 ) {
 	const sourceFile = await validateFile(formData.get('sourceFile'), '.xlsx', 'de admisiones');
 	const estadisticaFile = await validateFile(formData.get('estadisticaFile'), '.pdf', 'estadistica');
-	const manifestFile = await validateFile(formData.get('manifestFile'), '.pdf', 'manifiesto');
+	const manifestFile = await validateFile(formData.get('manifestFile'), '.pdf', 'lista de admitidos');
 
 	const uploadDirectory = path.join(ADMISSION_UPLOAD_ROOT, randomUUID());
 	try {
@@ -344,7 +344,7 @@ async function storeDraftBatch(
 	const [source, estadistica, manifest] = await Promise.all([
 		writeUploadFile(files.sourceFile, uploadDirectory, 'admisiones.xlsx'),
 		writeUploadFile(files.estadisticaFile, uploadDirectory, 'estadistica.pdf'),
-		writeUploadFile(files.manifestFile, uploadDirectory, 'manifiesto.pdf')
+		writeUploadFile(files.manifestFile, uploadDirectory, 'lista_de_admitidos.pdf')
 	]);
 	const preview = await previewAdmissionFile(source.bytes);
 

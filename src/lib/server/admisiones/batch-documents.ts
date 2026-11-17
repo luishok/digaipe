@@ -1,5 +1,5 @@
 // Read access to the files of admission upload batches (the Excel listing, the signed
-// estadística and the manifiesto). Route permission (admissions.view) is enforced in
+// estadística and the admision list). Route permission (admissions.view) is enforced in
 // hooks.server.ts; this module adds which batches a user may see: every saved batch, and
 // drafts only to whoever uploaded them (as on the upload page).
 import { and, desc, eq, or, type SQL } from 'drizzle-orm';
@@ -18,7 +18,7 @@ export const BATCH_FILE_INFO: Record<
 		viewable: false // shown as a table on the batch page; browsers cannot open .xlsx
 	},
 	estadistica: { label: 'Estadística firmada (PDF)', contentType: 'application/pdf', extension: 'pdf', viewable: true },
-	manifest: { label: 'Manifiesto (PDF)', contentType: 'application/pdf', extension: 'pdf', viewable: true }
+	manifest: { label: 'Lista de Admitidos (PDF)', contentType: 'application/pdf', extension: 'pdf', viewable: true }
 };
 
 const visibleTo = (userId: string): SQL =>

@@ -33,7 +33,7 @@
 	<ul>
 		<li>Admisiones: {data.batch.sourceFileName}</li>
 		<li>Estadistica: {data.batch.estadisticaFileName}</li>
-		<li>Manifiesto: {data.batch.manifestFileName}</li>
+		<li>Lista de Admitidos: {data.batch.manifestFileName}</li>
 	</ul>
 
 	<p>

@@ -76,5 +76,5 @@ function pdf(texto) {
 	return out;
 }
 writeFileSync(path.join(dir, 'PRUEBA estadistica firmada.pdf'), pdf('Estadistica firmada - DOCUMENTO DE PRUEBA'));
-writeFileSync(path.join(dir, 'PRUEBA manifiesto.pdf'), pdf('Manifiesto - DOCUMENTO DE PRUEBA'));
+writeFileSync(path.join(dir, 'PRUEBA lista_de_admitidos.pdf'), pdf('Lista de Admitidos - DOCUMENTO DE PRUEBA'));
 console.log('Archivos de prueba generados en', dir);

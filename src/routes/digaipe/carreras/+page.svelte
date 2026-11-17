@@ -74,10 +74,10 @@
 <div class="header-carreras">
 	{#if data.user}
 		{#if can(data.user, 'catalogs.import')}
-			<div>
+			<div style='display: flex; flex-direction: column; gap: 1em; justify-content: center;'>
 				<!-- Cambiamos el id por un evento onclick -->
 				<button onclick={openModal} class="btn-primary">Subir Archivo</button>
-				<button type="button" onclick={() => openCareerDialog(null)}>Agregar Carrera</button>
+				<button class='btn-secondary' style='padding: 0.5em 1.5em;' type="button" onclick={() => openCareerDialog(null)}>Agregar Carrera</button>
 			</div>
 
 			<dialog bind:this={careerDialog} aria-labelledby="career-dialog-title">

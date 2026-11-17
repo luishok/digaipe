@@ -4,7 +4,6 @@
 	import listIcon from '$lib/assets/icons/digaipe-list.svg';
 	import personPlusIcon from '$lib/assets/icons/digaipe-person-plus.svg';
 	import { resolve } from '$app/paths';
-	import { formatDate } from '$lib/dates';
 	import { can, parseRoles } from '$lib/permissions';
 
 	let { data } = $props();
@@ -28,35 +27,43 @@
 			<!-- COLUMNA IZQUIERDA: El Pulso del Sistema (Actividad reciente y Alertas) -->
 			<div class="pulse-column">
 				
-				<!-- Tarjeta de Actividad Reciente / Últimos Aspirantes -->
-				{#if can(data.user, 'admissions.view')}
+				<!-- Tarjeta de Próximos Procesos de Admisión -->
 				<div class="info-card">
 					<div class="info-card-header">
-						<h2>📋 Últimos Aspirantes Registrados</h2>
-						<span class="live-badge">En vivo</span>
+						<h2>📅 Próximos Procesos de Admisión</h2>
+						<span class="live-badge">Cronograma</span>
 					</div>
-					<div class="aspirantes-list">
-						{#if data.ultimosAspirantes.length === 0}
-							<p class="empty-text">No hay registros recientes.</p>
+					<div class="procesos-list">
+						{#if data.proximosProcesos.length === 0}
+							<p class="empty-text">No hay procesos de admisión programados próximamente.</p>
 						{:else}
 							<ul>
-								{#each data.ultimosAspirantes as asp (asp.id)}
-									<li class="aspirante-item">
-										<div class="aspirante-info">
-											<strong>{asp.nombre}</strong>
-											<small>{asp.cedula} • {asp.carrera}</small>
+								{#each data.proximosProcesos as proc (proc.fullCode)}
+									<li class="proceso-item">
+										<div class="proceso-left">
+											<span class="proceso-code">{proc.fullCode}</span>
+											<span class="proceso-date">Fecha: {proc.formattedDate}</span>
 										</div>
-										<span class="aspirante-time">{formatDate(asp.fechaAsignacion)}</span>
+										<div class="proceso-status">
+											{#if proc.isToday}
+												<span class="badge-status badge-today">Hoy</span>
+											{:else if proc.isUpcoming}
+												<span class="badge-status badge-upcoming">{proc.daysLeftText}</span>
+											{:else}
+												<span class="badge-status badge-scheduled">Programado</span>
+											{/if}
+										</div>
 									</li>
 								{/each}
 							</ul>
 						{/if}
 					</div>
-					<div class="info-card-footer">
-						<a href={resolve('/digaipe/admisiones')} class="text-link">Ver todos los aspirantes &rarr;</a>
-					</div>
+					{#if can(data.user, 'processes.view')}
+						<div class="info-card-footer">
+							<a href={resolve('/digaipe/procesos-adm')} class="text-link">Ver todos los procesos &rarr;</a>
+						</div>
+					{/if}
 				</div>
-				{/if}
 
 				<!-- Alerta o Aviso del Departamento -->
 				<div class="alert-box">
@@ -106,12 +113,11 @@
 					</a>
 					{/if}
 
-					
-
 					<a href={resolve('/ayuda')}>
 						<div class="card">
 							<div class="card-body">
-								<img src={listIcon} alt="Ayuda" class="card-icon" />
+								<!-- <img src={listIcon} alt="Ayuda" class="card-icon" /> -->
+								 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" height="45px" width="45px" style='margin-bottom:15px;' fill="#000"><path d="M25.33,34.5q0.46-0.47 0.46-1.13t-0.46-1.13T24.2,31.77t-1.14,0.47t-0.47,1.13t0.47,1.13t1.14,0.47t1.13-0.47Zm-2.51-6.4h2.28q0.02-1.22 0.38-2.2t1.85-2.24q1.49-1.32 2.12-2.49t0.63-2.58q0-2.47-1.62-3.99t-4.18-1.52q-2.22,0-3.93,1.14t-2.52,2.98l2.09,0.81q0.57-1.34 1.62-2.09t2.59-0.75q1.83,0 2.87,1t1.03,2.47q0,1.08-0.61,2.01t-1.77,1.92q-1.46,1.3-2.15,2.57T22.82,28.1ZM24,43q-3.91,0-7.37-1.5t-6.05-4.09T6.5,31.37T5,24q0-3.94 1.5-7.41t4.09-6.03T16.63,6.5T24,5q3.94,0 7.41,1.5t6.03,4.06t4.06,6.03T43,24q0,3.91-1.5,7.37t-4.06,6.05T31.41,41.5T24,43Zm-0-2.27q6.98,0 11.86-4.89T40.73,24q0-6.98-4.87-11.86T24,7.27q-6.95,0-11.84,4.87T7.27,24q0,6.95 4.89,11.84T24,40.73ZM24,24Z"/></svg>
 								<h3 class="card-title">Ayuda</h3>
 							</div>
 							<span  class="card-btn">Continuar</span>
@@ -208,54 +214,101 @@
 	}
 
 	.live-badge {
-		background-color: #e2f8f0;
-		color: #0d9488;
+		background-color: #e0f2fe;
+		color: #0369a1;
 		font-size: 11px;
 		font-weight: 600;
 		padding: 3px 8px;
 		border-radius: 20px;
 	}
 
-	.aspirantes-list ul {
+	.procesos-list ul {
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 10px;
+		max-height: 250px;
+		overflow-y: auto;
 	}
 
-	.aspirante-item {
+	.proceso-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 8px 10px;
+		padding: 10px 14px;
 		background: #f8fafc;
+		border: 1px solid #e2e8f0;
 		border-radius: 8px;
-		transition: background 0.2s;
+		transition: background 0.2s, border-color 0.2s;
 	}
 
-	.aspirante-item:hover {
+	.proceso-item:hover {
 		background: #f1f5f9;
+		border-color: #cbd5e1;
 	}
 
-	.aspirante-info {
+	.proceso-left {
 		display: flex;
 		flex-direction: column;
+		gap: 4px;
 	}
 
-	.aspirante-info strong {
-		font-size: 13px;
-		color: #334155;
+	.proceso-code {
+		font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 14px;
+		font-weight: 700;
+		color: var(--ula-blue);
+		background: #eef2ff;
+		padding: 3px 8px;
+		border-radius: 6px;
+		border: 1px solid #c7d2fe;
+		display: inline-block;
+		width: fit-content;
 	}
 
-	.aspirante-info small {
-		font-size: 11px;
+	.proceso-date {
+		font-size: 12px;
 		color: #64748b;
+		font-weight: 500;
 	}
 
-	.aspirante-time {
+	.proceso-status {
+		display: flex;
+		align-items: center;
+	}
+
+	.badge-status {
 		font-size: 11px;
-		color: #94a3b8;
-		font-weight: 500;
+		font-weight: 600;
+		padding: 4px 10px;
+		border-radius: 12px;
+		display: inline-block;
+		white-space: nowrap;
+	}
+
+	.badge-today {
+		background-color: #dcfce7;
+		color: #15803d;
+		border: 1px solid #bbf7d0;
+	}
+
+	.badge-upcoming {
+		background-color: #e0f2fe;
+		color: #0369a1;
+		border: 1px solid #bae6fd;
+	}
+
+	.badge-scheduled {
+		background-color: #f1f5f9;
+		color: #475569;
+		border: 1px solid #e2e8f0;
+	}
+
+	.empty-text {
+		font-size: 13px;
+		color: #64748b;
+		padding: 10px 0;
+		text-align: center;
 	}
 
 	.info-card-footer {

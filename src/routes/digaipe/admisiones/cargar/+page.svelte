@@ -107,7 +107,7 @@
 					class="custom-file-upload {estadisticaFileName ? 'has-file' : ''}"
 					for="estadistica-pdf"
 				>
-					Estadistica firmada PDF
+					Estadisticas firmadas PDF
 
 					<input
 						id="estadistica-pdf"
@@ -161,7 +161,7 @@
 
 			<div class="label-input">
 				<label class="custom-file-upload {manifestFileName ? 'has-file' : ''}" for="manifest-pdf">
-					Manifiesto PDF
+					Lista de Admitidos PDF
 
 					<input
 						id="manifest-pdf"
@@ -227,8 +227,8 @@
     <h3>Archivos cargados</h3>
     <ul>
         <li>Admisiones: {form.files.sourceFileName}</li>
-        <li>Estadistica: {form.files.estadisticaFileName}</li>
-        <li>Manifiesto: {form.files.manifestFileName}</li>
+        <li>Lista de Admitidos: {form.files.estadisticaFileName}</li>
+        <li>Estadistica: {form.files.manifestFileName}</li>
     </ul>
 
     {#if form?.batchId}
