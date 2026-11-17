@@ -13,10 +13,20 @@
 
 	const pdfUrl = (id: number) => resolve(`/digaipe/generacion-planilla/${id}/pdf`);
 
-	function openPlanilla(event: MouseEvent, admission: Row) {
-		(event.currentTarget as HTMLElement).closest('details')?.removeAttribute('open');
+	function openPlanilla(admission: Row, event?: MouseEvent) {
+		if (event) {
+			(event.currentTarget as HTMLElement)?.closest('details')?.removeAttribute('open');
+		}
 		selected = admission;
 		planillaDialog?.showModal();
+	}
+
+	function onRowClick(event: MouseEvent, admission: Row) {
+		const target = event.target as HTMLElement;
+		if (target.closest('button, a, details, summary, input, select, textarea, label')) {
+			return;
+		}
+		openPlanilla(admission);
 	}
 
 	// The PDF opens in a new tab and registers the processing there. Close the modal only after
@@ -153,6 +163,50 @@
 		top: 16px;
 		right: 16px;
 	}
+	.table_container {
+		width: 100%;
+		max-width: 100%;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		margin: 1rem 0;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		background-color: #ffffff;
+		box-sizing: border-box;
+	}
+
+	.table_container table {
+		width: 100%;
+		min-width: 520px;
+		border-collapse: collapse;
+		text-align: left;
+	}
+
+	.table_container th {
+		padding: 12px 16px;
+		background-color: #f8fafc;
+		border-bottom: 2px solid #e2e8f0;
+		font-weight: 600;
+		color: #475569;
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		white-space: nowrap;
+	}
+
+	.table_container td {
+		padding: 14px 16px;
+		border-bottom: 1px solid #f1f5f9;
+		font-size: 0.9rem;
+		color: #1e293b;
+		vertical-align: middle;
+	}
+
+	.cedula-cell {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		align-items: flex-start;
+	}
 
 	.close-button {
 		margin: 0;
@@ -271,19 +325,77 @@
 		padding: 0 20px;
 	}
 
-	/* Ajuste responsivo para pantallas pequeñas */
-	@media (max-width: 500px) {
+	a.modal-action-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		color: #ffffff !important;
+		box-sizing: border-box;
+	}
+
+	a.modal-action-btn:hover {
+		color: #ffffff !important;
+		text-decoration: none;
+		background-color: #002266;
+	}
+
+	.clickable-row {
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+	}
+
+	.clickable-row:hover,
+	.clickable-row:hover td {
+		background-color: #f1f5f9;
+	}
+
+	/* Ajuste responsivo para pantallas pequeñas y móviles */
+	@media (max-width: 640px) {
+		.search-card {
+			padding: 16px;
+			margin: 16px auto;
+		}
+
 		.search-form {
 			flex-direction: column;
 			align-items: stretch;
+			gap: 12px;
 		}
+
 		.button-group {
 			width: 100%;
-			justify-content: space-between;
+			display: flex;
+			gap: 8px;
 		}
-		.btn-primary, .btn-outline {
+
+		.btn-primary,
+		.btn-outline {
 			flex: 1;
+			text-align: center;
 		}
+
+		.table_container {
+			border-radius: 6px;
+			margin: 0.75rem 0;
+		}
+
+		.table_container th {
+			padding: 10px 10px;
+			font-size: 0.75rem;
+		}
+
+		.table_container td {
+			padding: 10px 10px;
+			font-size: 0.85rem;
+		}
+
+		dialog {
+			width: 95%;
+			padding: 20px 16px;
+			max-height: 90vh;
+		}
+
 		.info-grid {
 			grid-template-columns: 1fr;
 			gap: 4px;
@@ -300,11 +412,15 @@
 			<button type="button" onclick={() => planillaDialog?.close()} class="close-button" aria-label="Cerrar modal">✕</button>
 		</div>
 		<div class="planilla-dialog-title">
-			<h2 id="planilla-dialog-title">Generar planilla</h2>
+			<h2 id="planilla-dialog-title">{selected.processingStatus ? 'Reimprimir planilla' : 'Generar planilla'}</h2>
 		</div>
 		<p class="modal-desc">
-			Revise los datos. La planilla se genera con ellos y la admisión pasa a revisión de documentos
-			(estado <b>pendiente</b>).
+			{#if selected.processingStatus}
+				Esta planilla ya fue generada previamente (estado actual: <b>{selected.processingStatus}</b>).
+			{:else}
+				Revise los datos. La planilla se genera con ellos y la admisión pasa a revisión de documentos
+				(estado <b>pendiente</b>).
+			{/if}
 		</p>
 		<dl class="info-grid">
 			<dt>Cédula</dt><dd>{selected.cedula}</dd>
@@ -318,21 +434,48 @@
 			<dt>N.º de planilla</dt><dd>{selected.planilla.planilla}</dd>
 			<dt>Teléfono</dt><dd>{selected.telefono ?? '—'}</dd>
 			<dt>Correo</dt><dd>{selected.correo ?? '—'}</dd>
+			{#if selected.processingStatus}
+				<dt>Estado</dt><dd><span class="status-badge status-{selected.processingStatus === 'en proceso' ? 'en-proceso' : selected.processingStatus}">{selected.processingStatus}</span></dd>
+			{/if}
 		</dl>
 		<p class="edit-notice">
 			¿Algún dato está mal?
 			<a href={resolve(`/digaipe/generacion-planilla/${selected.id}`)}>Corregir en el detalle</a>
 		</p>
-		<form method="POST" action={pdfUrl(selected.id)} target="_blank" onsubmit={generated}>
-			<label class="confirm-checkbox">
-				<input type="checkbox" name="confirmado" required />
-				<span>Verifiqué que los datos son correctos</span>
-			</label>
+
+		{#if selected.processingStatus}
 			<div class="modal-button-group">
-				<button type="button" class="btn-outline" onclick={() => planillaDialog?.close()}>Cancelar</button>
-				<button type="submit" class="btn-primary">Generar planilla PDF</button>
+			
+				<!-- <button type="button" class="btn-outline" onclick={() => planillaDialog?.close()}>Cerrar</button> -->
+				<a
+					href={resolve(`/digaipe/generacion-planilla/${selected.id}`)}
+					target="_blank"
+					class="btn-outline"
+				>
+					Detalles
+				</a>
+				<a
+					href={pdfUrl(selected.id)}
+					target="_blank"
+					rel="noreferrer"
+					class="btn-primary modal-action-btn"
+					onclick={() => planillaDialog?.close()}
+				>
+					Reimprimir
+				</a>
 			</div>
-		</form>
+		{:else}
+			<form method="POST" action={pdfUrl(selected.id)} target="_blank" onsubmit={generated}>
+				<label class="confirm-checkbox">
+					<input type="checkbox" name="confirmado" required />
+					<span>Verifiqué que los datos son correctos</span>
+				</label>
+				<div class="modal-button-group">
+					<button type="button" class="btn-outline" onclick={() => planillaDialog?.close()}>Cancelar</button>
+					<button type="submit" class="btn-primary">Generar planilla PDF</button>
+				</div>
+			</form>
+		{/if}
 	{/if}
 </dialog>
 
@@ -364,62 +507,37 @@
 {#if data.admissions.length === 0}
 	<p>No hay admisiones disponibles para generar planilla hoy.</p>
 {:else}
-	<table class="table_container">
-		<thead>
-			<tr>
-				<th>Cedula</th>
-				<th>Estudiante</th>
-				<th>Telefono</th>
-				<th>Correo</th>
-				<th>Genero</th>
-				<th>Carrera</th>
-				<th>Proceso</th>
-				<th>Modalidad</th>
-				<th>Periodo</th>
-				<th>Accion</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each data.admissions as admission (admission.id)}
+	<div class="table_container">
+		<table>
+			<thead>
 				<tr>
-					<td>
-						{admission.cedula}
-						{#if admission.processingStatus === 'pendiente' || admission.processingStatus === 'en proceso' || admission.processingStatus === 'devuelto' || admission.processingStatus === 'matriculado'}
-							<span class="status-badge status-{admission.processingStatus === 'en proceso' ? 'en-proceso' : admission.processingStatus}">{admission.processingStatus}</span>
-						{/if}
-					</td>
-					<td>{admission.apellidosNombres}</td>
-					<td>{admission.telefono ?? ''}</td>
-					<td>{admission.correo ?? ''}</td>
-					<td>{admission.genero ?? ''}</td>
-					<td>{admission.careerName}</td>
-					<td>{admission.processCode}</td>
-					<td>{admission.modalityCode} - {admission.modalityName}</td>
-					<td>{admission.periodoIngreso}</td>
-					<td>
-						<details>
-							<summary>Acciones</summary>
-							<ul>
-								{#if can(data.user, 'planillas.generate') && !admission.processingStatus}
-									<li>
-										<button type="button" onclick={(event) => openPlanilla(event, admission)}>
-											Generar planilla
-										</button>
-									</li>
-								{/if}
-								{#if admission.processingStatus}
-									<li>
-										<a href={pdfUrl(admission.id)} target="_blank" rel="noreferrer">Reimprimir PDF</a>
-									</li>
-								{/if}
-								<li>
-									<a href={resolve(`/digaipe/generacion-planilla/${admission.id}`)}>Ver detalle</a>
-								</li>
-							</ul>
-						</details>
-					</td>
+					<th>Cédula</th>
+					<th>Estudiante</th>
+					<th>Teléfono</th>
+					<th>Correo</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each data.admissions as admission (admission.id)}
+					<tr
+						class="clickable-row"
+						onclick={(event) => onRowClick(event, admission)}
+						title="Haga clic para ver o generar planilla"
+					>
+						<td>
+							<div class="cedula-cell">
+								<span>{admission.cedula}</span>
+								{#if admission.processingStatus === 'pendiente' || admission.processingStatus === 'en proceso' || admission.processingStatus === 'devuelto' || admission.processingStatus === 'matriculado'}
+									<span class="status-badge status-{admission.processingStatus === 'en proceso' ? 'en-proceso' : admission.processingStatus}">{admission.processingStatus}</span>
+								{/if}
+							</div>
+						</td>
+						<td>{admission.apellidosNombres}</td>
+						<td>{admission.telefono ?? ''}</td>
+						<td>{admission.correo ?? ''}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 {/if}
