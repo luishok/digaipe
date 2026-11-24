@@ -2,9 +2,13 @@ import type { PageServerLoad } from './$types';
 import { auditStudentDataView } from '$lib/server/audit';
 import { searchCondition } from '$lib/server/admisiones/search';
 import { db } from '$lib/server/db';
+import { admissionOutcome } from '$lib/admission-outcomes';
+import { admissionOutcomeSql, alternativeCountSql, selectionScope } from '$lib/server/admisiones/enrollment';
 import {
 	admissionImportBatches,
 	admissions,
+	admissionSelections,
+	admissionProcessings,
 	careers,
 	mod_admission,
 	ocre_types,
@@ -29,13 +33,14 @@ export const load: PageServerLoad = async (event) => {
 		period: getFilter(url, 'period'),
 		modality: getFilter(url, 'modality'),
 		career: getFilter(url, 'career'),
+		outcome: getFilter(url, 'outcome'),
 		dateFrom: getFilter(url, 'dateFrom'),
 		dateTo: getFilter(url, 'dateTo')
 	};
 
 	const conditions = [];
 	const searchFilter = searchCondition(filters.search, {
-		cedula: students.cedula,
+		cedula: students.identityKey,
 		text: [students.apellidos_nombres, students.telefono, students.correo]
 	});
 	if (searchFilter) conditions.push(searchFilter);
@@ -43,6 +48,8 @@ export const load: PageServerLoad = async (event) => {
 	if (filters.period) conditions.push(eq(admissions.periodoIngreso, filters.period));
 	if (filters.modality) conditions.push(eq(mod_admission.code, filters.modality));
 	if (filters.career) conditions.push(eq(admissions.opcion, filters.career));
+	if (['matriculado', 'no_matriculado', 'pendiente'].includes(filters.outcome))
+		conditions.push(eq(admissionOutcomeSql(), filters.outcome));
 
 	const dateFrom = dateFilterValue(filters.dateFrom);
 	const dateTo = dateFilterValue(filters.dateTo);
@@ -54,6 +61,11 @@ export const load: PageServerLoad = async (event) => {
 	const query = db
 		.select({
 			id: admissions.id,
+			admissionId: admissions.id,
+			selectedAdmissionId: admissionSelections.admissionId,
+			closedAt: proceso_admission.closedAt,
+			processingStatus: admissionProcessings.status,
+			alternativeCount: alternativeCountSql(),
 			cedula: students.cedula,
 			apellidosNombres: students.apellidos_nombres,
 			telefono: students.telefono,
@@ -78,6 +90,8 @@ export const load: PageServerLoad = async (event) => {
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 		.leftJoin(ocre_types, eq(admissions.ocreTypeId, ocre_types.id))
 		.leftJoin(admissionImportBatches, eq(admissions.importBatchId, admissionImportBatches.id))
+		.leftJoin(admissionSelections, selectionScope())
+		.leftJoin(admissionProcessings, eq(admissionProcessings.admissionId, admissions.id))
 		.orderBy(desc(admissions.fechaAsignacion), desc(admissions.id))
 		.limit(50);
 
@@ -114,7 +128,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	return {
-		admissions: rows,
+		admissions: rows.map((row) => ({ ...row, ...admissionOutcome(row) })),
 		filters,
 		filterOptions: {
 			processes,

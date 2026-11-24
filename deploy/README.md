@@ -258,6 +258,10 @@ docker compose exec db mysql -h 127.0.0.1 --ssl-mode=REQUIRED -u digaipe_lectura
 
 ## Operación
 
+Para la actualización que admite modalidades alternativas y cierre de procesos, consulte
+[`docs/admission-outcomes.md`](../docs/admission-outcomes.md). Requiere app y setup de la misma
+versión y un ensayo previo sobre una copia del respaldo; no reconstruye la base existente.
+
 | Tarea | Comando (desde `deploy/`) |
 |---|---|
 | Ver estado | `docker compose ps` |

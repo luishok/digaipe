@@ -221,6 +221,10 @@
 					<label for="planilla">Planilla</label>
 					<input type="text" id="planilla" value={planillaFields.planilla} readonly />
 				</div>
+				<div class="label-input">
+					<label for="admission-reference">Referencia de admisión</label>
+					<input id="admission-reference" value={planillaFields.admissionReference} readonly />
+				</div>
 
 				<div class="label-input">
 					<label for="mod">Modalidad (Mod)</label>

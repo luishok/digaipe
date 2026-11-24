@@ -7,6 +7,7 @@ test('accepts every report mode that the statistics page can submit', () => {
 	assert.equal(parseReportMode('consolidado'), 'consolidado');
 	assert.equal(parseReportMode('estadisticas'), 'estadisticas');
 	assert.equal(parseReportMode('reconciliacion'), 'reconciliacion');
+	assert.equal(parseReportMode('matricula'), 'matricula');
 });
 
 test('rejects unknown report modes instead of falling back to general', () => {

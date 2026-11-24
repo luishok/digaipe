@@ -22,7 +22,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/build ./build
 # The PDF template and crest are read from ./static at runtime.
 COPY static ./static
-RUN mkdir -p var/uploads && chown -R node:node var
+RUN mkdir -p var/uploads && chown -R node:node var var/uploads
 USER node
 EXPOSE 3000
 CMD ["node", "build"]

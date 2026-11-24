@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { can } from '$lib/permissions';
 	import { formatDate } from '$lib/dates';
+	import { enrollmentLabels } from '$lib/admission-outcomes';
 
 	let { data } = $props();
 
@@ -14,6 +15,7 @@
 		'Opcion',
 		'Proceso',
 		'Modalidad',
+		'Resultado',
 		'OCRE',
 		'Periodo',
 		'Fecha',
@@ -85,6 +87,13 @@
 		</div>
 		<div class="container-inputs-admisiones" style="margin-top:1em;">
 			<div class="label-input">
+				<label for="outcome">Resultado de matrícula</label>
+				<select name="outcome" id="outcome">
+					<option value="">Todos</option>
+					{#each Object.entries(enrollmentLabels) as [value, label] (value)}<option {value} selected={data.filters.outcome === value}>{label}</option>{/each}
+				</select>
+			</div>
+			<div class="label-input">
 				<label for="select-process"> Proceso </label>
 				<select id="select-process" name="process">
 					<option value="">Todos</option>
@@ -134,7 +143,8 @@
 					<td>{admission.careerName}</td>
 					<td>{admission.opcion}</td>
 					<td>{admission.processCode}</td>
-					<td>{admission.modalityCode} - {admission.modalityName}</td>
+					<td>{admission.modalityCode} - {admission.modalityName}{#if admission.alternativeCount > 1}<p>{admission.alternativeCount} modalidades alternativas</p>{/if}</td>
+					<td><span class="status-badge status-{admission.outcome}">{enrollmentLabels[admission.outcome]}</span><p>{admission.reason}</p></td>
 					<td>{admission.ocreCode ?? ''}</td>
 					<td>{admission.periodoIngreso}</td>
 					<td>{formatDate(admission.fechaAsignacion)}</td>

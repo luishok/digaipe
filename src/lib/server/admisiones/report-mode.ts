@@ -1,4 +1,4 @@
-export const REPORT_MODES = ['general', 'consolidado', 'estadisticas', 'reconciliacion'] as const;
+export const REPORT_MODES = ['general', 'consolidado', 'estadisticas', 'reconciliacion', 'matricula'] as const;
 
 export type ReportMode = (typeof REPORT_MODES)[number];
 

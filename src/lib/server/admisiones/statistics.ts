@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db';
 import {
 	admissionProcessings,
+	admissionSelections,
 	admissions,
 	auditEvents,
 	careers,
@@ -9,11 +10,15 @@ import {
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
-import { and, asc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
 import { caracasDateKey } from './processing';
 import { formatDate, formatMonth } from '../../dates';
-import { searchCondition } from './search';
+import { searchCondition, parseSearch } from './search';
 import { parseReportMode, type ReportMode } from './report-mode';
+import { enrollmentReportFromRows, type EnrollmentReport } from '$lib/admission-outcomes';
+import { getEnrollmentReport, selectionScope } from './enrollment';
+import { collapseReconciliationOffers } from './reconciliation';
+import { normalizeStudentIdentity } from '$lib/student-identity';
 
 export type { ReportMode } from './report-mode';
 export type DateBasis = 'asignacion' | 'digaipe';
@@ -63,6 +68,8 @@ export type StatisticsSpec = {
 
 export type ReportRow = {
 	admissionId: number;
+	offerIds: number[];
+	offerCount: number;
 	studentId: number;
 	cedula: string;
 	student: string;
@@ -106,6 +113,7 @@ export type OverduePendiente = { cedula: string; student: string; career: string
 
 export type Reconciliation = {
 	asignados: number;
+	ofertas: number;
 	noProcesados: number;
 	procesados: number;
 	byStatus: { pendiente: number; matriculado: number; devuelto: number };
@@ -136,10 +144,12 @@ export type StatisticsReport = {
 	spec: StatisticsSpec;
 	rows: ReportRow[];
 	totalAdmissions: number;
+	totalOffers: number;
 	totalUniqueStudents: number;
 	pivot: PivotDate[];
 	breakdowns: Record<string, Breakdown[]>;
 	reconciliation?: Reconciliation;
+	enrollment?: EnrollmentReport;
 };
 
 export type StatisticsOptions = {
@@ -151,7 +161,6 @@ export type StatisticsOptions = {
 	faculties: string[];
 };
 
-const statuses = new Set<ReviewStatus>(['pendiente', 'matriculado', 'devuelto']);
 const matrixDimensions = new Set<MatrixDimension>(['carrera', 'facultad', 'modalidad']);
 
 function param(url: URL, key: string) {
@@ -172,9 +181,6 @@ function validDate(value: string) {
 		/^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
 	);
 }
-function dateValue(value: string) {
-	return new Date(`${value}T00:00:00`);
-}
 function dateOnly(value: Date | string | null) {
 	if (!value) return null;
 	return typeof value === 'string' ? value.slice(0, 10) : value.toISOString().slice(0, 10);
@@ -191,7 +197,8 @@ export function parseStatisticsSpec(url: URL): { spec: StatisticsSpec | null; er
 	const dateBasis = param(url, 'dateBasis') || 'asignacion';
 	const matrixDimension = (param(url, 'matrixDimension') || 'carrera') as MatrixDimension;
 	const errors: string[] = [];
-	if (!dateFrom || !dateTo) errors.push('Seleccione las fechas Desde y Hasta.');
+	if (reportMode !== 'matricula' && (!dateFrom || !dateTo)) errors.push('Seleccione las fechas Desde y Hasta.');
+	if (reportMode === 'matricula' && !multiParam(url, 'filter_process').length) errors.push('Seleccione al menos un proceso para consultar su resultado completo de matrícula.');
 	if (dateFrom && !validDate(dateFrom)) errors.push('La fecha Desde no es válida.');
 	if (dateTo && !validDate(dateTo)) errors.push('La fecha Hasta no es válida.');
 	if (dateFrom && dateTo && dateFrom > dateTo)
@@ -238,25 +245,10 @@ function filterConditions(spec: StatisticsSpec): SQL[] {
 		conditions.push(inArray(careers.programa_academico, spec.filters.career));
 	if (spec.filters.faculty.length) conditions.push(inArray(careers.facultad, spec.filters.faculty));
 	const search = searchCondition(spec.filters.search, {
-		cedula: students.cedula,
+		cedula: students.identityKey,
 		text: [students.apellidos_nombres, careers.programa_academico]
 	});
 	if (search) conditions.push(search);
-	return conditions;
-}
-
-function conditionsFor(spec: StatisticsSpec): SQL[] {
-	const dateColumn =
-		spec.dateBasis === 'digaipe' || spec.reportMode !== 'general'
-			? admissionProcessings.processingDate
-			: admissions.fechaAsignacion;
-	const conditions: SQL[] = [
-		gte(dateColumn, dateValue(spec.dateFrom)),
-		lte(dateColumn, dateValue(spec.dateTo)),
-		...filterConditions(spec)
-	];
-	const statusFilter = spec.filters.status.filter((value) => statuses.has(value as ReviewStatus));
-	if (statusFilter.length) conditions.push(inArray(admissionProcessings.status, statusFilter));
 	return conditions;
 }
 
@@ -287,24 +279,49 @@ export async function loadStatisticsOptions(): Promise<StatisticsOptions> {
 }
 
 export async function buildStatisticsReport(spec: StatisticsSpec): Promise<StatisticsReport> {
+	if (spec.reportMode === 'matricula') {
+		const full = await getEnrollmentReport(db, spec.filters.process);
+		const f = spec.filters;
+		const fold = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+		const tokens = parseSearch(f.search);
+		// Resolve the selected offer BEFORE applying filters. A modality filter must never
+		// turn an already-enrolled assignment into an apparently unfilled one.
+		const rows = full.rows.filter((row) =>
+			(!f.period.length || f.period.includes(row.period))
+			&& (!f.career.length || f.career.includes(row.career))
+			&& (!f.faculty.length || f.faculty.includes(row.faculty))
+			&& (!f.status.length || f.status.includes(row.outcome))
+			&& (!f.modality.length || (row.selectedAdmissionId !== null ? f.modality.includes(row.modality)
+				: row.modalities.some((m) => f.modality.includes(m.split(' - ')[0]))))
+			&& tokens.every((token) => token.kind === 'word'
+				? fold(`${row.cedula} ${row.student} ${row.career}`).includes(fold(token.value))
+				: ((!token.prefix || normalizeStudentIdentity(row.cedula)?.startsWith(token.prefix)) && normalizeStudentIdentity(row.cedula)?.includes(token.digits))
+					|| (!token.prefix && fold(`${row.student} ${row.career}`).includes(token.digits))));
+		const enrollment = enrollmentReportFromRows(rows, full.generatedAt);
+		return { spec, rows: [], totalAdmissions: enrollment.totals.assigned, totalOffers: enrollment.totals.offers,
+			totalUniqueStudents: new Set(rows.map((r) => r.studentId)).size, pivot: [], breakdowns: {}, enrollment };
+	}
 	if (spec.reportMode === 'reconciliacion') {
 		const { reconciliation, uniqueStudents } = await buildReconciliation(spec);
 		return {
 			spec,
 			rows: [],
 			totalAdmissions: reconciliation.asignados,
+			totalOffers: reconciliation.ofertas,
 			totalUniqueStudents: uniqueStudents,
 			pivot: [],
 			breakdowns: {},
 			reconciliation
 		};
 	}
-	const isProcessedReport =
-		spec.reportMode !== 'general' || spec.dateBasis === 'digaipe' || spec.filters.status.length > 0;
 	const query = db
 		.select({
 			admissionId: admissions.id,
 			studentId: admissions.studentId,
+			careerId: admissions.careerId,
+			processId: admissions.procesoId,
+			selectedAdmissionId: admissionSelections.admissionId,
+			processingId: admissionProcessings.id,
 			cedula: students.cedula,
 			student: students.apellidos_nombres,
 			gender: students.genero,
@@ -331,33 +348,47 @@ export async function buildStatisticsReport(spec: StatisticsSpec): Promise<Stati
 		.innerJoin(careers, eq(admissions.careerId, careers.id))
 		.innerJoin(proceso_admission, eq(admissions.procesoId, proceso_admission.id))
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
-		.leftJoin(ocre_types, eq(admissions.ocreTypeId, ocre_types.id));
-	const withProcessing = isProcessedReport
-		? query.innerJoin(admissionProcessings, eq(admissionProcessings.admissionId, admissions.id))
-		: query.leftJoin(admissionProcessings, eq(admissionProcessings.admissionId, admissions.id));
-	const sourceRows = await withProcessing
-		.where(and(...conditionsFor(spec)))
+		.leftJoin(ocre_types, eq(admissions.ocreTypeId, ocre_types.id))
+		.leftJoin(admissionProcessings, eq(admissionProcessings.admissionId, admissions.id))
+		.leftJoin(admissionSelections, selectionScope());
+	const sourceRows = await query
+		.where(and(...filterConditions({ ...spec, filters: { ...spec.filters, modality: [], period: [] } })))
 		.orderBy(asc(admissions.id));
-	const rows: ReportRow[] = sourceRows.map((row) => ({
+	const offers = sourceRows.map((row) => ({
 		...row,
 		assignmentDate: dateOnly(row.assignmentDate)!,
 		processingDate: dateOnly(row.processingDate)
 	}));
+	const rows: ReportRow[] = collapseReconciliationOffers(offers).filter((row) => {
+		const date = spec.dateBasis === 'digaipe' ? row.processingDate : row.assignmentDate;
+		return date !== null && date >= spec.dateFrom && date <= spec.dateTo
+			&& (spec.reportMode === 'general' || row.processingDate !== null)
+			&& (!spec.filters.period.length || spec.filters.period.includes(row.period))
+			&& (!spec.filters.status.length || (row.status !== null && spec.filters.status.includes(row.status)))
+			&& (!spec.filters.modality.length || (row.selectedAdmissionId !== null
+				? spec.filters.modality.includes(row.modality)
+				: row.offeredModalities.some((code) => spec.filters.modality.includes(code))));
+	}).map((row) => ({ ...row, modalityName: row.modality === 'Varias modalidades' ? row.offeredModalities.join(' / ') : row.modalityName }));
 	const processedRows = rows.filter((row) => row.processingDate);
-	const pivot = buildPivot(processedRows, spec.includeStudentData);
+	const pivot = buildPivot(processedRows, spec.includeStudentData, spec.dateBasis);
 	return {
 		spec,
 		rows,
 		totalAdmissions: rows.length,
+		totalOffers: rows.reduce((total, row) => total + row.offerCount, 0),
 		totalUniqueStudents: new Set(rows.map((row) => row.studentId)).size,
 		pivot,
-		breakdowns: buildBreakdowns(processedRows)
+		breakdowns: buildBreakdowns(processedRows, spec.dateBasis)
 	};
 }
 
 type ReconRow = {
 	admissionId: number;
 	studentId: number;
+	period: string;
+	careerId: number;
+	processId: number;
+	selectedAdmissionId: number | null;
 	processingId: number | null;
 	status: string | null;
 	assignmentDate: string;
@@ -386,14 +417,16 @@ function bucketize(days: number[]): AgingBucket[] {
 export async function buildReconciliation(
 	spec: StatisticsSpec
 ): Promise<{ reconciliation: Reconciliation; uniqueStudents: number }> {
-	const dateColumn =
-		spec.dateBasis === 'digaipe' ? admissionProcessings.processingDate : admissions.fechaAsignacion;
 	const sourceRows = await db
 		.select({
 			admissionId: admissions.id,
 			studentId: admissions.studentId,
+			careerId: admissions.careerId,
+			processId: admissions.procesoId,
+			selectedAdmissionId: admissionSelections.admissionId,
 			processingId: admissionProcessings.id,
 			status: admissionProcessings.status,
+			period: admissions.periodoIngreso,
 			assignmentDate: admissions.fechaAsignacion,
 			processingDate: admissionProcessings.processingDate,
 			cedula: students.cedula,
@@ -408,22 +441,23 @@ export async function buildReconciliation(
 		.innerJoin(proceso_admission, eq(admissions.procesoId, proceso_admission.id))
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 		.leftJoin(admissionProcessings, eq(admissionProcessings.admissionId, admissions.id))
-		.where(
-			and(
-				// Honor the "Base de fecha" toggle, like the other reports:
-				//  · asignacion → cohort assigned in the range (includes never-processed rows)
-				//  · digaipe    → throughput: rows PROCESSED in the range (NULL processingDate drops out)
-				gte(dateColumn, dateValue(spec.dateFrom)),
-				lte(dateColumn, dateValue(spec.dateTo)),
-				...filterConditions(spec)
-			)
-		);
-	const rows: ReconRow[] = sourceRows.map((row) => ({
+		.leftJoin(admissionSelections, selectionScope())
+		.where(and(...filterConditions({ ...spec, filters: { ...spec.filters, modality: [], period: [] } })));
+	const offers: ReconRow[] = sourceRows.map((row) => ({
 		...row,
 		processingId: row.processingId ?? null,
 		assignmentDate: dateOnly(row.assignmentDate)!,
 		processingDate: dateOnly(row.processingDate)
 	}));
+	const rows = collapseReconciliationOffers(offers).filter((row) => {
+		const date = spec.dateBasis === 'digaipe' ? row.processingDate : row.assignmentDate;
+		return date !== null && date >= spec.dateFrom && date <= spec.dateTo
+			&& (!spec.filters.period.length || spec.filters.period.includes(row.period))
+			&& (!spec.filters.modality.length || (row.selectedAdmissionId !== null
+				? spec.filters.modality.includes(row.modality)
+				: row.offeredModalities.some((value) => spec.filters.modality.includes(value))))
+			&& (!spec.filters.status.length || (row.status !== null && spec.filters.status.includes(row.status)));
+	});
 	const today = caracasDateKey();
 
 	const asignados = rows.length;
@@ -437,7 +471,7 @@ export async function buildReconciliation(
 	// Only the processings in this report matter, so scope the ledger scan to them (uses
 	// audit_events_entity_idx) instead of reading every 'devuelto' event ever recorded.
 	const everDevueltaGlobal = new Set<number>();
-	const processingIds = procesados.map((r) => String(r.processingId));
+	const processingIds = procesados.flatMap((r) => r.processingIds.map(String));
 	for (let i = 0; i < processingIds.length; i += 1000) {
 		const devueltoEvents = await db
 			.selectDistinct({ entityId: auditEvents.entityId })
@@ -458,7 +492,7 @@ export async function buildReconciliation(
 	let reingresadasMatriculadas = 0;
 	let reingresadasPendientes = 0;
 	for (const r of procesados) {
-		const wasDevuelta = r.status === 'devuelto' || everDevueltaGlobal.has(r.processingId!);
+		const wasDevuelta = r.status === 'devuelto' || r.processingIds.some((id) => everDevueltaGlobal.has(id));
 		if (!wasDevuelta) continue;
 		everDevueltas++;
 		if (r.status === 'devuelto') sinRetornar++;
@@ -540,6 +574,7 @@ export async function buildReconciliation(
 
 	const reconciliation: Reconciliation = {
 		asignados,
+		ofertas: rows.reduce((total, row) => total + row.offerCount, 0),
 		noProcesados,
 		procesados: procesados.length,
 		byStatus,
@@ -564,13 +599,13 @@ export async function buildReconciliation(
 	return { reconciliation, uniqueStudents: new Set(rows.map((r) => r.studentId)).size };
 }
 
-function buildPivot(rows: ReportRow[], includeStudents: boolean): PivotDate[] {
+function buildPivot(rows: ReportRow[], includeStudents: boolean, basis: DateBasis): PivotDate[] {
 	const dates = new Map<
 		string,
 		Map<string, Map<string, { count: number; students: Map<string, number> }>>
 	>();
 	for (const row of rows) {
-		const date = row.processingDate!;
+		const date = basis === 'digaipe' ? row.processingDate! : row.assignmentDate;
 		const status = row.status ?? 'pendiente';
 		const career = row.career;
 		const statusMap = dates.get(date) ?? new Map();
@@ -610,18 +645,19 @@ function buildPivot(rows: ReportRow[], includeStudents: boolean): PivotDate[] {
 		}));
 }
 
-function buildBreakdowns(rows: ReportRow[]): Record<string, Breakdown[]> {
+function buildBreakdowns(rows: ReportRow[], basis: DateBasis): Record<string, Breakdown[]> {
 	const isoWeek = (dateKey: string) => {
 		const date = new Date(`${dateKey}T00:00:00Z`);
 		const day = date.getUTCDay() || 7;
 		date.setUTCDate(date.getUTCDate() - day + 1);
 		return `Semana del ${formatDate(date.toISOString())}`;
 	};
+	const date = (row: ReportRow) => basis === 'digaipe' ? row.processingDate! : row.assignmentDate;
 	const dimensions: Record<string, (row: ReportRow) => string> = {
 		Estado: (r) => r.status ?? 'Pendiente',
-		Diario: (r) => formatDate(r.processingDate),
-		'Semanal ISO': (r) => isoWeek(r.processingDate!),
-		Mensual: (r) => formatMonth(r.processingDate),
+		Diario: (r) => formatDate(date(r)),
+		'Semanal ISO': (r) => isoWeek(date(r)),
+		Mensual: (r) => formatMonth(date(r)),
 		Carrera: (r) => r.career,
 		Facultad: (r) => r.faculty,
 		Etapa: (r) => (r.stage === 2 ? 'Reasignación' : '1ª asignación'),

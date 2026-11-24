@@ -62,6 +62,7 @@ async function grantApp(connection: mysql.Connection, database: string, tables: 
 		await connection.query(`GRANT ${privileges} ON ${db}.${connection.escapeId(name)} TO ?@?`, [user, HOST]);
 	}
 	await connection.query(`GRANT EXECUTE ON PROCEDURE ${db}.\`append_audit_event\` TO ?@?`, [user, HOST]);
+	await connection.query(`GRANT EXECUTE ON PROCEDURE ${db}.\`acquire_audit_lock\` TO ?@?`, [user, HOST]);
 	console.log(`Granted ${user} access to ${tables.length} table(s) in ${database}.`);
 }
 

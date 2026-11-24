@@ -3,6 +3,8 @@ import { auditContextFromEvent, auditedTransaction, writeAuditLog } from '$lib/s
 import { db } from '$lib/server/db';
 import { APActiveDates, proceso_admission } from '$lib/server/db/schema';
 import { can } from '$lib/permissions';
+import { AdmissionConflict, closeAdmissionProcess, reopenAdmissionProcess, lockOpenProcesses } from '$lib/server/admisiones/enrollment';
+import { admissionProcessClosures } from '$lib/server/db/schema';
 import { fail, type Actions } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
@@ -92,6 +94,7 @@ export const actions: Actions = {
 		if (!dates.length) return fail(400, { error: 'No se indicaron fechas válidas.' });
 
 		const addedDates = await auditedTransaction(auditContext, async (tx) => {
+				await lockOpenProcesses(tx, [processId]);
 				const [process] = await tx
 					.select({
 						id: proceso_admission.id,
@@ -147,17 +150,51 @@ export const actions: Actions = {
 				return newDates;
 			})
 			.catch((error) => {
+				if (error instanceof AdmissionConflict) return error;
 				if (error instanceof Error && error.message === 'PROCESS_NOT_FOUND') return null;
 				throw error;
 			});
 
 		if (addedDates === null) return fail(404, { error: 'Proceso no encontrado.' });
+		if (addedDates instanceof AdmissionConflict) return fail(409, { error: addedDates.message });
 		return { processId, saved: true, added: addedDates.length };
 	},
 
 	// Admin only: shut a process down when something is wrong with it, or turn it back on.
 	// While disabled, no planilla can be generated and no document reviewed for it, whatever
 	// its dates say (planilla.ts and processing.ts both require isEnabled).
+	close: async (event) => {
+		if (!can(event.locals.user, 'processes.toggle')) return fail(403, { error: 'Solo un administrador puede cerrar procesos.' });
+		const form = await event.request.formData();
+		const id = Number(form.get('processId'));
+		const reason = String(form.get('reason') ?? '').trim();
+		if (!Number.isInteger(id) || id <= 0 || !reason || reason.length > 500) return fail(400, { error: 'Seleccione un proceso e indique un motivo de hasta 500 caracteres.' });
+		const context = auditContextFromEvent(event);
+		if (!context) return fail(401, { error: 'Debe iniciar sesión.' });
+		try {
+			const result = await closeAdmissionProcess(id, reason, context);
+			return { message: `Proceso cerrado. Informe oficial versión ${result.version} guardado.` };
+		} catch (cause) {
+			if (cause instanceof AdmissionConflict) return fail(409, { error: cause.message });
+			throw cause;
+		}
+	},
+	reopen: async (event) => {
+		if (!can(event.locals.user, 'processes.toggle')) return fail(403, { error: 'Solo un administrador puede reabrir procesos.' });
+		const form = await event.request.formData();
+		const id = Number(form.get('processId'));
+		const reason = String(form.get('reason') ?? '').trim();
+		if (!Number.isInteger(id) || id <= 0 || !reason || reason.length > 500) return fail(400, { error: 'Seleccione un proceso e indique un motivo de hasta 500 caracteres.' });
+		const context = auditContextFromEvent(event);
+		if (!context) return fail(401, { error: 'Debe iniciar sesión.' });
+		try {
+			await reopenAdmissionProcess(id, reason, context);
+			return { message: 'Proceso reabierto. Los informes anteriores se conservan. Las fechas activas y la habilitación siguen aplicando.' };
+		} catch (cause) {
+			if (cause instanceof AdmissionConflict) return fail(409, { error: cause.message });
+			throw cause;
+		}
+	},
 	setEnabled: async (event) => {
 		if (!event.locals.user) return fail(401, { error: 'Debe iniciar sesion.' });
 		// hooks.server.ts already requires this; checked again so the action is safe on its own.
@@ -188,13 +225,15 @@ export const actions: Actions = {
 				.select({
 					id: proceso_admission.id,
 					code: proceso_admission.code,
-					isEnabled: proceso_admission.isEnabled
+					isEnabled: proceso_admission.isEnabled,
+					closedAt: proceso_admission.closedAt
 				})
 				.from(proceso_admission)
 				.where(eq(proceso_admission.id, processId))
 				.for('update');
 
 			if (!process) return 'not_found' as const;
+			if (process.closedAt) return 'closed' as const;
 			if (process.isEnabled === enabled) return 'unchanged' as const;
 
 			await tx
@@ -214,6 +253,7 @@ export const actions: Actions = {
 		});
 
 		if (outcome === 'not_found') return fail(404, { error: 'Proceso no encontrado.' });
+		if (outcome === 'closed') return fail(409, { error: 'Debe reabrir el proceso antes de activarlo o desactivarlo.' });
 		return { processId, toggled: true, enabled };
 	}
 };
@@ -224,6 +264,7 @@ export const load: PageServerLoad = async () => {
 			id: proceso_admission.id,
 			code: proceso_admission.code,
 			isEnabled: proceso_admission.isEnabled,
+			closedAt: proceso_admission.closedAt,
 			activeDate: APActiveDates.activeDate
 		})
 		.from(proceso_admission)
@@ -233,14 +274,14 @@ export const load: PageServerLoad = async () => {
 		rows.reduce(
 			(acc, row) => {
 				if (!acc[row.id]) {
-					acc[row.id] = { id: row.id, code: row.code, isEnabled: row.isEnabled, dates: [] };
+					acc[row.id] = { id: row.id, code: row.code, isEnabled: row.isEnabled, closedAt: row.closedAt, dates: [] };
 				}
 				if (row.activeDate) {
 					acc[row.id].dates.push(toDateKey(row.activeDate));
 				}
 				return acc;
 			},
-			{} as Record<number, { id: number; code: string; isEnabled: boolean; dates: string[] }>
+			{} as Record<number, { id: number; code: string; isEnabled: boolean; closedAt: Date | null; dates: string[] }>
 		)
 	);
 
@@ -248,6 +289,8 @@ export const load: PageServerLoad = async () => {
 
 	return {
 		today,
+		closures: await db.select({ id: admissionProcessClosures.id, processId: admissionProcessClosures.procesoId,
+			version: admissionProcessClosures.version, closedAt: admissionProcessClosures.closedAt }).from(admissionProcessClosures),
 		all_admission_proc: result.map((process) => {
 			const dates = [...process.dates].sort();
 			return {

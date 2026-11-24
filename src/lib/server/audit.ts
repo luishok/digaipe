@@ -42,6 +42,9 @@ export type AuditAction =
 	| 'admission_process.created'
 	| 'admission_process.dates_added'
 	| 'admission_process.enabled_changed'
+	| 'admission_process.closed'
+	| 'admission_process.reopened'
+	| 'admission_process.closure_viewed'
 	| 'admission_import_batch.created'
 	| 'admission_import_batch.saved'
 	| 'admission_import_batch.integrity_failed'
@@ -85,6 +88,9 @@ const auditPolicies: Record<AuditAction, AuditPolicy> = {
 	'admission_process.created': {},
 	'admission_process.dates_added': {},
 	'admission_process.enabled_changed': {},
+	'admission_process.closed': {},
+	'admission_process.reopened': {},
+	'admission_process.closure_viewed': {},
 	'admission_import_batch.created': {},
 	'admission_import_batch.saved': {},
 	'admission_import_batch.integrity_failed': {},
@@ -163,6 +169,12 @@ export async function auditedTransaction<T>(
 	return db.transaction(async (tx) => {
 		await setAuditDatabaseContext(tx, context);
 		try {
+			// All trigger-audited mutations already serialize on this row at their first write.
+			// Take it before business locks, so a bulk import/review cannot hold the chain
+			// while waiting for a row locked by another transaction waiting for the chain.
+			// The definer procedure owns the locking read; the app retains SELECT-only
+			// access to the ledger tables (FOR UPDATE otherwise requires UPDATE privileges).
+			await tx.execute(sql`CALL acquire_audit_lock()`);
 			return await operation(tx);
 		} finally {
 			await clearAuditDatabaseContext(tx);

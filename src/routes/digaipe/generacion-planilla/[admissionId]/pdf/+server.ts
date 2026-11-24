@@ -7,6 +7,7 @@ import { fillDigaipePDF } from '$lib/server/planillas/admision-digaipe';
 import { auditContextFromEvent, writeAuditLog } from '$lib/server/audit';
 import { db } from '$lib/server/db';
 import { ensureAdmissionProcessing } from '$lib/server/admisiones/processing';
+import { AdmissionConflict } from '$lib/server/admisiones/enrollment';
 
 function parseAdmissionId(value: string) {
 	const admissionId = Number(value);
@@ -30,8 +31,13 @@ async function pdfResponse(event: Parameters<RequestHandler>[0], registerProcess
 	let createdProcessing = false;
 	if (registerProcessing) {
 		const processingDate = admission.activeDate.toISOString().slice(0, 10);
-		const result = await ensureAdmissionProcessing(admission.id, locals.user.id, processingDate, auditContext);
-		createdProcessing = result.created;
+		try {
+			const result = await ensureAdmissionProcessing(admission.id, locals.user.id, processingDate, auditContext);
+			createdProcessing = result.created;
+		} catch (cause) {
+			if (cause instanceof AdmissionConflict) error(409, cause.message);
+			throw cause;
+		}
 	}
 	// Generating creates the processing (audited there); every PDF served, first print or
 	// reprint, is recorded here.
@@ -45,6 +51,7 @@ async function pdfResponse(event: Parameters<RequestHandler>[0], registerProcess
 
 	const pdfBytes = await fillDigaipePDF({
 		numeroRegistro: planillaFields.planilla,
+		admissionReference: planillaFields.admissionReference,
 		programaAcademico: planillaFields.prog,
 		periodoIngreso: admission.periodoIngreso,
 		modalidad: planillaFields.mod,

@@ -1,47 +1,29 @@
-import {
-	auditContextFromEvent,
-	auditedTransaction,
-	auditStudentDataView,
-	writeAuditLog
-} from '$lib/server/audit';
-import {
-	caracasDateKey,
-	dateValue,
-	processIsActiveOnDate,
-	type ProcessingStatus
-} from '$lib/server/admisiones/processing';
+import { auditContextFromEvent, auditStudentDataView } from '$lib/server/audit';
+import { caracasDateKey, dateValue } from '$lib/server/admisiones/processing';
+import { AdmissionConflict, selectionScope } from '$lib/server/admisiones/enrollment';
+import { reviewAdmissions, unlockAdmission } from '$lib/server/admisiones/review';
+import { admissionOutcome } from '$lib/admission-outcomes';
 import { db } from '$lib/server/db';
 import { searchCondition } from '$lib/server/admisiones/search';
 import {
 	admissionProcessings,
+	admissionSelections,
 	admissions,
 	careers,
+	mod_admission,
 	proceso_admission,
 	students
 } from '$lib/server/db/schema';
-import { and, asc, eq, gte, inArray, lte, type SQL } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, type SQL } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
 import { can } from '$lib/permissions';
 import type { Actions, PageServerLoad } from './$types';
-
-const statuses = new Set<ProcessingStatus>(['pendiente', 'matriculado', 'devuelto']);
 
 function clean(value: FormDataEntryValue | null, limit = 500) {
 	return String(value ?? '')
 		.trim()
 		.slice(0, limit);
 }
-
-// Thrown inside a review/unlock transaction to roll it back and answer with this status.
-class ReviewRejected extends Error {
-	constructor(
-		readonly status: 404 | 409,
-		message: string
-	) {
-		super(message);
-	}
-}
-
 function validDate(value: string) {
 	return (
 		/^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
@@ -61,15 +43,13 @@ export const load: PageServerLoad = async (event) => {
 		conditions.push(gte(admissionProcessings.processingDate, dateValue(dateFrom)));
 	if (validDate(dateTo))
 		conditions.push(lte(admissionProcessings.processingDate, dateValue(dateTo)));
-	if (statuses.has(status as ProcessingStatus))
-		conditions.push(eq(admissionProcessings.status, status));
 	if (process) conditions.push(eq(proceso_admission.code, process));
 	const searchFilter = searchCondition(search, {
-		cedula: students.cedula,
+		cedula: students.identityKey,
 		text: [students.apellidos_nombres, careers.programa_academico]
 	});
 	if (searchFilter) conditions.push(searchFilter);
-	const [rows, processes] = await Promise.all([
+	const [source, processes] = await Promise.all([
 		db
 			.select({
 				id: admissionProcessings.id,
@@ -81,13 +61,18 @@ export const load: PageServerLoad = async (event) => {
 				student: students.apellidos_nombres,
 				career: careers.todo,
 				processId: proceso_admission.id,
-				processCode: proceso_admission.code
+				processCode: proceso_admission.code,
+				closedAt: proceso_admission.closedAt,
+				selectedAdmissionId: admissionSelections.admissionId,
+				modality: mod_admission.name
 			})
 			.from(admissionProcessings)
 			.innerJoin(admissions, eq(admissionProcessings.admissionId, admissions.id))
 			.innerJoin(students, eq(admissions.studentId, students.id))
 			.innerJoin(careers, eq(admissions.careerId, careers.id))
+			.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 			.innerJoin(proceso_admission, eq(admissions.procesoId, proceso_admission.id))
+			.leftJoin(admissionSelections, selectionScope())
 			.where(conditions.length ? and(...conditions) : undefined)
 			.orderBy(
 				asc(admissionProcessings.processingDate),
@@ -99,6 +84,26 @@ export const load: PageServerLoad = async (event) => {
 			.from(proceso_admission)
 			.orderBy(asc(proceso_admission.code))
 	]);
+	const rows = source
+		.map((row) => {
+			const effective = admissionOutcome({ ...row, processingStatus: row.status });
+			return {
+				...row,
+				...effective,
+				canAct: !row.closedAt && row.selectedAdmissionId === null,
+				canUnlockRow:
+					!row.closedAt &&
+					row.status !== 'pendiente' &&
+					(row.selectedAdmissionId === null || row.selectedAdmissionId === row.admissionId)
+			};
+		})
+		.filter(
+			(row) =>
+				!status ||
+				(status === 'no_matriculado'
+					? row.outcome === status
+					: row.outcome !== 'no_matriculado' && row.status === status)
+		);
 	await auditStudentDataView(event, {
 		page: '/digaipe/revision-documentos',
 		recordType: 'admission_processing',
@@ -124,92 +129,26 @@ export const actions: Actions = {
 			...new Set(
 				form
 					.getAll('processingId')
-					.map((value) => Number(value))
+					.map(Number)
 					.filter((id) => Number.isInteger(id) && id > 0)
 			)
 		];
-		const status = clean(form.get('status')) as ProcessingStatus;
+		const status = clean(form.get('status'));
 		const reason = clean(form.get('reason'));
 		if (!ids.length) return fail(400, { message: 'Seleccione al menos una admisión.' });
 		if (status !== 'matriculado' && status !== 'devuelto')
 			return fail(400, { message: 'Seleccione un estado final válido.' });
 		if (status === 'devuelto' && !reason)
 			return fail(400, { message: 'Debe indicar el motivo de devolución.' });
-		const auditContext = auditContextFromEvent(event);
-		if (!auditContext) return fail(401, { message: 'Debe iniciar sesión.' });
-
-		const today = caracasDateKey();
-		let reviewed: number;
+		const context = auditContextFromEvent(event);
+		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
 		try {
-			reviewed = await auditedTransaction(auditContext, async (tx) => {
-				// Lock the selected processings (in id order, so concurrent reviews cannot deadlock)
-				// before checking their statuses: two reviewers acting on the same admissions can
-				// no longer both pass the check and overwrite each other's decision.
-				await tx
-					.select({ id: admissionProcessings.id })
-					.from(admissionProcessings)
-					.where(inArray(admissionProcessings.id, ids))
-					.orderBy(asc(admissionProcessings.id))
-					.for('update');
-				const selected = await tx
-					.select({
-						id: admissionProcessings.id,
-						admissionId: admissions.id,
-						status: admissionProcessings.status,
-						processingDate: admissionProcessings.processingDate,
-						processId: proceso_admission.id
-					})
-					.from(admissionProcessings)
-					.innerJoin(admissions, eq(admissionProcessings.admissionId, admissions.id))
-					.innerJoin(proceso_admission, eq(admissions.procesoId, proceso_admission.id))
-					.where(inArray(admissionProcessings.id, ids));
-				if (selected.length !== ids.length)
-					throw new ReviewRejected(404, 'Una admisión seleccionada ya no existe.');
-				for (const row of selected) {
-					if (row.status === 'pendiente') continue;
-					const processingDate = row.processingDate.toISOString().slice(0, 10);
-					if (
-						row.status === 'devuelto' &&
-						status === 'matriculado' &&
-						processingDate === today &&
-						(await processIsActiveOnDate(row.processId, today))
-					)
-						continue;
-					throw new ReviewRejected(
-						409,
-						'Solo se pueden revisar pendientes. Un Devuelto puede matricularse el mismo día mientras el proceso esté activo; los demás cambios requieren desbloqueo administrativo.'
-					);
-				}
-
-				for (const row of selected) {
-					await tx
-						.update(admissionProcessings)
-						.set({
-							status,
-							reviewedAt: new Date(),
-							reviewedByUserId: event.locals.user!.id,
-							returnReason: status === 'devuelto' ? reason : null
-						})
-						.where(eq(admissionProcessings.id, row.id));
-					await writeAuditLog(tx, auditContext, {
-						action: 'admission_document.reviewed',
-						entityType: 'admission_processing',
-						entityId: row.id,
-						before: { status: row.status },
-						after: { status },
-						metadata: {
-							admissionId: row.admissionId,
-							reason: status === 'devuelto' ? reason : null
-						}
-					});
-				}
-				return selected.length;
-			});
+			const count = await reviewAdmissions(ids, status, reason, context);
+			return { message: `${count} admisión(es) actualizada(s).` };
 		} catch (cause) {
-			if (cause instanceof ReviewRejected) return fail(cause.status, { message: cause.message });
+			if (cause instanceof AdmissionConflict) return fail(409, { message: cause.message });
 			throw cause;
 		}
-		return { message: `${reviewed} admisión(es) actualizada(s).` };
 	},
 	unlock: async (event) => {
 		if (!can(event.locals.user, 'documents.unlock'))
@@ -219,46 +158,17 @@ export const actions: Actions = {
 		const reason = clean(form.get(`unlockReason_${id}`));
 		if (!Number.isInteger(id) || id <= 0 || !reason)
 			return fail(400, { message: 'Seleccione una admisión e indique el motivo del desbloqueo.' });
-		const auditContext = auditContextFromEvent(event);
-		if (!auditContext) return fail(401, { message: 'Debe iniciar sesión.' });
+		const context = auditContextFromEvent(event);
+		if (!context) return fail(401, { message: 'Debe iniciar sesión.' });
 		try {
-			await auditedTransaction(auditContext, async (tx) => {
-				const [row] = await tx
-					.select({
-						id: admissionProcessings.id,
-						admissionId: admissionProcessings.admissionId,
-						status: admissionProcessings.status
-					})
-					.from(admissionProcessings)
-					.where(eq(admissionProcessings.id, id))
-					.for('update');
-				if (!row) throw new ReviewRejected(404, 'La admisión no existe.');
-				if (row.status === 'pendiente')
-					throw new ReviewRejected(409, 'La admisión ya está pendiente.');
-				await tx
-					.update(admissionProcessings)
-					.set({
-						status: 'pendiente',
-						reviewedAt: null,
-						reviewedByUserId: null,
-						unlockedAt: new Date(),
-						unlockedByUserId: event.locals.user!.id,
-						unlockReason: reason
-					})
-					.where(eq(admissionProcessings.id, id));
-				await writeAuditLog(tx, auditContext, {
-					action: 'admission_document.unlocked',
-					entityType: 'admission_processing',
-					entityId: id,
-					before: { status: row.status },
-					after: { status: 'pendiente' },
-					metadata: { admissionId: row.admissionId, reason }
-				});
-			});
+			await unlockAdmission(id, reason, context);
 		} catch (cause) {
-			if (cause instanceof ReviewRejected) return fail(cause.status, { message: cause.message });
+			if (cause instanceof AdmissionConflict) return fail(409, { message: cause.message });
 			throw cause;
 		}
-		return { message: 'Admisión desbloqueada y devuelta a Pendiente.' };
+		return {
+			message:
+				'Admisión desbloqueada y devuelta a Pendiente. Si tenía matrícula, se anuló la selección de modalidad.'
+		};
 	}
 };

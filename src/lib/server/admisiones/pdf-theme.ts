@@ -58,6 +58,56 @@ function fit(value: string, font: PDFFont, size: number, maxWidth: number) {
 	return `${text}…`;
 }
 
+/**
+ * Word-wrap text into lines no wider than maxWidth. Words wider than a line are broken after
+ * '-' or '/' (process codes, "AR - …"), else by character. Beyond maxLines the last line is
+ * trimmed with an ellipsis.
+ */
+export function wrapText(
+	value: string,
+	font: PDFFont,
+	size: number,
+	maxWidth: number,
+	maxLines = Infinity
+) {
+	if (maxWidth <= 0) return [''];
+	const width = (s: string) => font.widthOfTextAtSize(s, size);
+	const pieces: string[] = [];
+	for (const word of safe(value).split(/\s+/).filter(Boolean)) {
+		if (width(word) <= maxWidth) {
+			pieces.push(word);
+			continue;
+		}
+		let rest = word;
+		while (rest && width(rest) > maxWidth) {
+			let cut = rest.length - 1;
+			while (cut > 1 && width(rest.slice(0, cut)) > maxWidth) cut--;
+			const soft = Math.max(rest.lastIndexOf('-', cut - 1), rest.lastIndexOf('/', cut - 1));
+			if (soft > 0) cut = soft + 1;
+			pieces.push(rest.slice(0, cut));
+			rest = rest.slice(cut);
+		}
+		if (rest) pieces.push(rest);
+	}
+	const lines: string[] = [];
+	for (const piece of pieces) {
+		const last = lines.at(-1);
+		if (last !== undefined && width(`${last} ${piece}`) <= maxWidth)
+			lines[lines.length - 1] = `${last} ${piece}`;
+		else lines.push(piece);
+	}
+	if (!lines.length) return [''];
+	if (lines.length <= maxLines) return lines;
+	const kept = lines.slice(0, maxLines);
+	kept[maxLines - 1] = fit(
+		`${kept[maxLines - 1]} ${lines.slice(maxLines).join(' ')}`,
+		font,
+		size,
+		maxWidth
+	);
+	return kept;
+}
+
 export function formatCount(value: number) {
 	return value.toLocaleString('es-VE');
 }
@@ -88,6 +138,8 @@ export interface Column {
 	mono?: boolean;
 	/** Draw a proportional bar behind the value (value / column max). */
 	bar?: boolean;
+	/** Wrap long values onto up to 3 lines (the row grows) instead of trimming with an ellipsis. */
+	wrap?: boolean;
 }
 
 export interface Row {
@@ -343,18 +395,21 @@ export class ReportDoc {
 		this.sectionHeading(title);
 	}
 
-	/** A single line of muted (or bold) text. */
+	/** Muted (or bold) text, wrapped onto as many lines as it needs. */
 	note(text: string, opts: { strong?: boolean } = {}) {
-		this.ensure(15);
 		const font = opts.strong ? this.fonts.bold : this.fonts.regular;
-		this.page.drawText(fit(text, font, 8.5, this.contentWidth), {
-			x: this.marginX,
-			y: this.y - 10,
-			size: 8.5,
-			font,
-			color: opts.strong ? palette.ink : palette.muted
+		const lines = wrapText(text, font, 8.5, this.contentWidth);
+		lines.forEach((line, i) => {
+			this.ensure(i === lines.length - 1 ? 15 : 11);
+			this.page.drawText(line, {
+				x: this.marginX,
+				y: this.y - 10,
+				size: 8.5,
+				font,
+				color: opts.strong ? palette.ink : palette.muted
+			});
+			this.y -= i === lines.length - 1 ? 15 : 11;
 		});
-		this.y -= 15;
 	}
 
 	/** Horizontal legend of colored swatches. */
@@ -420,7 +475,7 @@ export class ReportDoc {
 	table(opts: TableOptions) {
 		const { columns } = opts;
 		const size = opts.fontSize ?? 7.5;
-		const rowH = size + 8;
+		const baseRowH = size + 8;
 		const headH = size + 9;
 		const totalW = columns.reduce((s, c) => s + c.width, 0);
 		const baselineIn = (top: number, h: number) => top - h + (h - size * 0.7) / 2;
@@ -457,12 +512,32 @@ export class ReportDoc {
 		};
 
 		// Keep the heading with its header row and at least one body row.
-		this.ensure((opts.title ? 23 : 0) + headH + rowH);
+		this.ensure((opts.title ? 23 : 0) + headH + baseRowH);
 		if (opts.title) this.sectionHeading(opts.title);
 		drawHead();
 
+		const lineH = size + 2;
+		const fontFor = (row: Row, col: Column) =>
+			row.strong
+				? col.mono
+					? this.fonts.monoBold
+					: this.fonts.bold
+				: col.mono
+					? this.fonts.mono
+					: this.fonts.regular;
+
 		let zebraIdx = 0;
 		for (const row of opts.rows) {
+			// Each cell as its lines; only `wrap` columns may take more than one.
+			const cellLines = columns.map((col, i) => {
+				const raw = row.cells[i];
+				const text = raw === undefined || raw === null ? '' : String(raw);
+				const font = fontFor(row, col);
+				const room = col.width - PAD * 2 - (i === 0 ? (row.indent ?? 0) : 0);
+				return col.wrap ? wrapText(text, font, size, room, 3) : [fit(text, font, size, room)];
+			});
+			const lineCount = Math.max(1, ...cellLines.map((lines) => lines.length));
+			const rowH = baseRowH + (lineCount - 1) * lineH;
 			if (this.y - rowH < this.marginBottom) {
 				this.newPage();
 				if (opts.title) this.sectionHeading(`${opts.title} (cont.)`);
@@ -500,19 +575,22 @@ export class ReportDoc {
 							color: palette.accentSoft
 						});
 				}
-				const text = raw === undefined || raw === null ? '' : String(raw);
-				const font = row.strong
-					? col.mono
-						? this.fonts.monoBold
-						: this.fonts.bold
-					: col.mono
-						? this.fonts.mono
-						: this.fonts.regular;
+				const font = fontFor(row, col);
 				const indent = i === 0 ? (row.indent ?? 0) : 0;
-				const t = fit(text, font, size, col.width - PAD * 2 - indent);
-				const w = font.widthOfTextAtSize(t, size);
-				const tx = col.align === 'right' ? x + col.width - PAD - w : x + PAD + indent;
-				this.page.drawText(t, { x: tx, y: baselineIn(top, rowH), size, font, color: palette.ink });
+				const lines = cellLines[i];
+				// Centre the cell's block of lines vertically in the (possibly taller) row.
+				const firstBaseline = baselineIn(top, rowH) + ((lines.length - 1) / 2) * lineH;
+				lines.forEach((t, k) => {
+					const w = font.widthOfTextAtSize(t, size);
+					const tx = col.align === 'right' ? x + col.width - PAD - w : x + PAD + indent;
+					this.page.drawText(t, {
+						x: tx,
+						y: firstBaseline - k * lineH,
+						size,
+						font,
+						color: palette.ink
+					});
+				});
 				x += col.width;
 			});
 			this.page.drawLine({

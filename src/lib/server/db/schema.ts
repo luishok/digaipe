@@ -50,7 +50,10 @@ export const mod_admission = mysqlTable('admission_modalities', {
 export const proceso_admission = mysqlTable('admission_processes', {
 	id: serial('id').primaryKey(),
 	code: varchar('num_asignacion', { length: 100 }).notNull().unique(),
-	isEnabled: boolean('is_enabled').notNull().default(true)
+	isEnabled: boolean('is_enabled').notNull().default(true),
+	closedAt: timestamp('closed_at', { fsp: 3 }),
+	closedByUserId: varchar('closed_by_user_id', { length: 36 }).references(() => user.id),
+	closureReason: varchar('closure_reason', { length: 500 })
 });
 
 export const APActiveDates = mysqlTable(
@@ -144,9 +147,18 @@ export const ocre_types = mysqlTable('ocre_types', {
 });
 
 // ── Students ───────────────────────────────────────────────────────────────
+const compactStudentCedula = sql`upper(replace(replace(replace(replace(replace(replace(replace(cedula, ' ', ''), '-', ''), '.', ''), char(9), ''), char(10), ''), char(13), ''), char(194,160 using utf8mb4), ''))`;
+const studentCedulaDigits = sql`substring(${compactStudentCedula}, 2)`;
+const studentCedulaNonDigits = sql`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(${studentCedulaDigits},'0',''),'1',''),'2',''),'3',''),'4',''),'5',''),'6',''),'7',''),'8',''),'9','')`;
+
 export const students = mysqlTable('students', {
 	id: serial('id').primaryKey(),
 	cedula: varchar('cedula', { length: 12 }).notNull().unique(), // 'V013118120'
+	// Preserve the original cédula, but enforce identity independently of its formatting.
+	identityKey: varchar('identity_key', { length: 10 })
+		.generatedAlwaysAs((): SQL => sql`case when ascii(left(${compactStudentCedula}, 1)) in (69,86) and char_length(${studentCedulaDigits}) between 1 and 9 and char_length(${studentCedulaNonDigits}) = 0 and trim(leading '0' from ${studentCedulaDigits}) <> '' then concat(left(${compactStudentCedula}, 1), lpad(${studentCedulaDigits}, 9, '0')) else null end`, { mode: 'stored' })
+		.notNull()
+		.unique('students_identity_key_unique'),
 	apellidos_nombres: varchar('apellidos_nombres', { length: 255 }).notNull(),
 	telefono: varchar('telefono', { length: 60 }),
 	correo: varchar('correo', { length: 255 }),
@@ -227,8 +239,13 @@ export const admissions = mysqlTable(
 		proceso: int('proceso').notNull() // 1 = first assignment, 2 = reassignment
 	},
 	(table) => ({
-		// A student should not be assigned to the same career twice in the same process
-		uniq: unique().on(table.studentId, table.careerId, table.procesoId),
+		// Modalities are alternative offers for the same student/career/process assignment.
+		uniq: unique('admissions_assignment_modality_unique').on(
+			table.studentId, table.careerId, table.procesoId, table.modalityId
+		),
+		selectionScope: unique('admissions_selection_scope_unique').on(
+			table.id, table.studentId, table.careerId, table.procesoId
+		),
 		fechaAsignacionIdx: index('admissions_fecha_asignacion_idx').on(table.fechaAsignacion),
 		periodoFechaIdx: index('admissions_periodo_fecha_idx').on(
 			table.periodoIngreso,
@@ -236,6 +253,34 @@ export const admissions = mysqlTable(
 		)
 	})
 );
+
+export const admissionSelections = mysqlTable('admission_selections', {
+	studentId: bigint('student_id', { mode: 'number', unsigned: true }).notNull(),
+	careerId: bigint('career_id', { mode: 'number', unsigned: true }).notNull(),
+	procesoId: bigint('proceso_id', { mode: 'number', unsigned: true }).notNull(),
+	admissionId: bigint('admission_id', { mode: 'number', unsigned: true }).notNull(),
+	// Legacy reviews may not have an actor/date. Preserve that absence during backfill.
+	selectedAt: timestamp('selected_at', { fsp: 3 }),
+	selectedByUserId: varchar('selected_by_user_id', { length: 36 }).references(() => user.id)
+}, (table) => [
+	primaryKey({ columns: [table.studentId, table.careerId, table.procesoId] }),
+	foreignKey({ name: 'admission_selections_scope_fk',
+		columns: [table.admissionId, table.studentId, table.careerId, table.procesoId],
+		foreignColumns: [admissions.id, admissions.studentId, admissions.careerId, admissions.procesoId]
+	}),
+	index('admission_selections_process_idx').on(table.procesoId)
+]);
+
+export const admissionProcessClosures = mysqlTable('admission_process_closures', {
+	id: serial('id').primaryKey(),
+	procesoId: bigint('proceso_id', { mode: 'number', unsigned: true }).notNull().references(() => proceso_admission.id),
+	version: int('version').notNull(),
+	closedAt: timestamp('closed_at', { fsp: 3 }).notNull(),
+	closedByUserId: varchar('closed_by_user_id', { length: 36 }).notNull().references(() => user.id),
+	reason: varchar('reason', { length: 500 }).notNull(),
+	report: json('report').$type<import('../../admission-outcomes').EnrollmentReport>().notNull(),
+	sha256: char('sha256', { length: 64 }).notNull()
+}, (table) => [unique('admission_process_closures_version_unique').on(table.procesoId, table.version)]);
 
 export const admissionProcessings = mysqlTable(
 	'admission_processings',

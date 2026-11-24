@@ -1,6 +1,7 @@
 ﻿<script lang="ts">
 	import { resolve } from '$app/paths';
 	import { formatDate } from '$lib/dates';
+	import EnrollmentReport from '$lib/components/EnrollmentReport.svelte';
 	import type { ReportMode } from '$lib/server/admisiones/statistics';
 	import type { PageServerData } from './$types';
 	let { data }: { data: PageServerData } = $props();
@@ -104,11 +105,12 @@
 						<option value="consolidado">Consolidado de revisión</option>
 						<option value="estadisticas">Estadísticas</option>
 						<option value="reconciliacion">Reconciliación (embudo)</option>
+						<option value="matricula">Matriculados / no matriculados por proceso</option>
 					</select>
 				</div>
 				<div class="input-group">
 					<label for="dateBasis">Base de fecha</label>
-					<select name="dateBasis" id="dateBasis">
+					<select name="dateBasis" id="dateBasis" disabled={reportMode === 'matricula'}>
 						<option value="asignacion" selected={(data.spec?.dateBasis ?? 'asignacion') === 'asignacion'}>Fecha de asignación origen</option>
 						<option value="digaipe" selected={data.spec?.dateBasis === 'digaipe'}>Fecha válida DIGAIPE</option>
 					</select>
@@ -124,14 +126,17 @@
 			</div>
 			</div>
 
+			{#if reportMode === 'matricula'}
+				<p>Seleccione uno o más procesos en los filtros. Esta consulta actual incluye todas sus asignaciones, incluso sin planilla; no se limita por fechas de procesamiento. Los informes oficiales se guardan al cerrar cada proceso.</p>
+			{/if}
 			<hr class="divider" />
 
 			<div class="input-grid dates-grid">
 				<div class="input-group">
-					<label>Desde <input type="date" name="dateFrom" bind:value={dateFrom} required /></label>
+					<label>Desde <input type="date" name="dateFrom" bind:value={dateFrom} required={reportMode !== 'matricula'} disabled={reportMode === 'matricula'} /></label>
 				</div>
 				<div class="input-group">
-					<label>Hasta <input type="date" name="dateTo" bind:value={dateTo} required /></label>
+					<label>Hasta <input type="date" name="dateTo" bind:value={dateTo} required={reportMode !== 'matricula'} disabled={reportMode === 'matricula'} /></label>
 				</div>
 				<div class="input-group quick-ranges">
 					<span class="label-text">Rangos rápidos:</span>
@@ -146,7 +151,7 @@
 		</section>
 
 		<!-- SECCIÓN 2: Filtros Avanzados (Ocultos por defecto para limpiar la vista) -->
-		<details class="form-card accordion-card" open={data.hasAdvancedFilters}>
+		<details class="form-card accordion-card" open={data.hasAdvancedFilters || reportMode === 'matricula'}>
 			<summary class="card-header accordion-summary">
 				<h2>2. Filtros Avanzados (Opcional)</h2>
 				<span class="accordion-icon">▼</span>
@@ -173,7 +178,7 @@
 				<div class="input-grid multi-select-grid">
 					<div class="input-group">
 						<label for="filter_process">Proceso</label>
-						<select id="filter_process" name="filter_process" multiple class="multi-select">
+						<select id="filter_process" name="filter_process" multiple class="multi-select" required={reportMode === 'matricula'}>
 							{#each data.options.processes as value (value)}
 								<option {value} selected={has(data.spec?.filters.process, value)}>{value}</option>
 							{/each}
@@ -198,8 +203,8 @@
 					<div class="input-group">
 						<label for="filter_status">Estado</label>
 						<select id="filter_status" name="filter_status" multiple class="multi-select">
-							{#each data.options.statuses as value (value)}
-								<option {value} selected={has(data.spec?.filters.status, value)}>{value}</option>
+							{#each reportMode === 'matricula' ? ['matriculado', 'no_matriculado', 'pendiente'] : data.options.statuses as value (value)}
+								<option {value} selected={has(data.spec?.filters.status, value)}>{value === 'no_matriculado' ? 'No matriculado' : value}</option>
 							{/each}
 						</select>
 					</div>
@@ -285,6 +290,15 @@
 		</div>
 	</form>
 
+	{#if data.closures.length}
+		<details class="form-card">
+			<summary>Informes oficiales de cierre</summary>
+			<p>Las versiones anteriores se conservan aunque se reabra un proceso.</p>
+			<ul>{#each data.closures as closure (closure.id)}
+				<li><a href={resolve(`/digaipe/estadisticas/cierres/${closure.id}`)}>{closure.process} · versión {closure.version} · {formatDate(closure.closedAt)}</a></li>
+			{/each}</ul>
+		</details>
+	{/if}
 	<!-- Resultados -->
 	<div class="results-area">
 		{#if data.errors.length}
@@ -300,15 +314,19 @@
 				<div class="report-header">
 					<h2 class="report-title">Resultados del Reporte</h2>
 					<p class="report-filters">
+						{#if data.spec?.reportMode === 'matricula'}Proceso completo · {data.appliedFilters}
+						{:else}
 						{formatDate(data.spec?.dateFrom)} a {formatDate(data.spec?.dateTo)}
 						· {data.spec?.dateBasis === 'digaipe' ? 'Fecha válida DIGAIPE' : 'Fecha de asignación origen'}
 						{#if data.appliedFilters}· {data.appliedFilters}{:else}· Sin filtros adicionales{/if}
+						{/if}
 					</p>
 					<div class="kpi-grid">
 						<div class="kpi-card">
-							<span class="kpi-label">{data.spec?.reportMode === 'reconciliacion' ? 'Asignados' : 'Admisiones'}</span>
+							<span class="kpi-label">Asignaciones</span>
 							<span class="kpi-value-estadistica">{data.report.totalAdmissions.toLocaleString()}</span>
 						</div>
+						<div class="kpi-card"><span class="kpi-label">Ofertas (modalidades)</span><span class="kpi-value-estadistica">{data.report.totalOffers.toLocaleString()}</span></div>
 						<div class="kpi-card">
 							<span class="kpi-label">Estudiantes únicos</span>
 							<span class="kpi-value-estadistica">{data.report.totalUniqueStudents.toLocaleString()}</span>
@@ -335,7 +353,9 @@
 
 				<!-- TABLAS DE RESULTADOS (Tu código original aquí) -->
 				<div class="tables-wrapper">
-					{#if data.spec?.reportMode === 'general'}
+					{#if data.spec?.reportMode === 'matricula' && data.report.enrollment}
+						<EnrollmentReport report={data.report.enrollment} includeStudents={data.spec.includeStudentData} />
+					{:else if data.spec?.reportMode === 'general'}
 						<div class='table_container'>
 							<table>
 								<caption>Datos principales de admisiones</caption>
@@ -354,12 +374,13 @@
 						<div class='table_container'>
 							<table>
 								<caption>Consolidado de revisión</caption>
-								<thead><tr><th>Fecha válida</th><th>Estado</th><th>Carrera</th>{#if data.spec.includeStudentData}<th>Estudiante</th>{/if}<th>Cuenta</th></tr></thead>
+								<thead><tr><th>{data.spec.dateBasis === 'digaipe' ? 'Fecha válida' : 'Fecha asignación'}</th><th>Estado</th><th>Carrera</th>{#if data.spec.includeStudentData}<th>Estudiante</th>{/if}<th>Cuenta</th></tr></thead>
 								<tbody>{#each data.report.pivot as date (date.date)}{#each date.statuses as status (status.label)}{#each status.careers as career (career.label)}<tr><td>{formatDate(date.date)}</td><td>{status.label}</td><th scope="row">{career.label}</th>{#if data.spec.includeStudentData}<td></td>{/if}<td>{career.count}</td></tr>{#if data.spec.includeStudentData}{#each career.students as student (student.label)}<tr><td></td><td></td><td></td><td>{student.label}</td><td>{student.count}</td></tr>{/each}{/if}{/each}<tr><td></td><th scope="row">Total {status.label}</th><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{status.count}</td></tr>{/each}<tr><th scope="row">Total fecha {formatDate(date.date)}</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{date.count}</td></tr>{/each}<tr><th scope="row">Total general</th><td></td><td></td>{#if data.spec.includeStudentData}<td></td>{/if}<td>{data.report.totalAdmissions}</td></tr></tbody>
 							</table>
 						</div>
 					{:else if data.spec?.reportMode === 'reconciliacion' && data.report.reconciliation}
 						{@const r = data.report.reconciliation}
+						<p>Una asignación por estudiante, carrera y proceso. Las modalidades descartadas no cuentan como no procesados. Sin matrícula, las asignaciones con varias modalidades aparecen en «Varias modalidades».</p>
 						<div class="grid-2-col mt-3">
 							<div class='table_container'>
 								<table>
@@ -367,6 +388,7 @@
 									<thead><tr><th>Etapa</th><th>Cantidad</th></tr></thead>
 									<tbody>
 										<tr><th scope="row">Asignados</th><td>{r.asignados}</td></tr>
+										<tr><th scope="row">Ofertas (incluye modalidades alternativas)</th><td>{r.ofertas}</td></tr>
 										<tr><th scope="row">No procesados</th><td>{r.noProcesados}</td></tr>
 										<tr><th scope="row">Procesados</th><td>{r.procesados}</td></tr>
 										<tr><th scope="row">Pendiente</th><td>{r.byStatus.pendiente}</td></tr>
@@ -445,7 +467,7 @@
 								<caption>Indicadores principales</caption>
 								<thead><tr><th>Indicador</th><th>Cuenta</th></tr></thead>
 								<tbody>
-									<tr><th scope="row">Admisiones procesadas</th><td>{data.report.totalAdmissions}</td></tr>
+									<tr><th scope="row">Asignaciones procesadas</th><td>{data.report.totalAdmissions}</td></tr>
 									<tr><th scope="row">Estudiantes únicos</th><td>{data.report.totalUniqueStudents}</td></tr>
 									{#each data.report.statusCounts as row (row.label)}<tr><th scope="row">{row.label}</th><td>{row.count}</td></tr>{/each}
 								</tbody>

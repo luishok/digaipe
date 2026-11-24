@@ -5,6 +5,19 @@
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** Business calendar day in Caracas, independent of the host machine's time zone. */
+export function caracasDateKey(date = new Date()) {
+	const values = new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit'
+	}).formatToParts(date);
+	const value = (type: string) => values.find((part) => part.type === type)?.value ?? '';
+	return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
+export function dateValue(dateKey: string) {
+	return new Date(`${dateKey}T00:00:00`);
+}
+
 /**
  * A calendar date: an ISO date key ('2026-03-05', or anything starting with one) or a Date
  * read from a DATE column. Dates use their UTC parts, the same way the rest of the code turns

@@ -4,6 +4,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 type DigaipePlanillaData = {
 	numeroRegistro?: string | number | null;
+	admissionReference?: string;
 	programaAcademico?: string | null;
 	periodoIngreso?: string | null;
 	modalidad?: string | null;
@@ -28,7 +29,6 @@ export async function fillDigaipePDF(student: DigaipePlanillaData) {
 	const pdfDoc = await PDFDocument.load(pdfBytes);
 	const form = pdfDoc.getForm();
 	const page = pdfDoc.getPages()[0];
-	console.log(student);
 	form.getTextField('Planilla').setText(text(student.numeroRegistro));
 	form.getTextField('Prog').setText(text(student.programaAcademico));
 	form.getTextField('Periodo_ingreso').setText(text(student.periodoIngreso));
@@ -39,6 +39,9 @@ export async function fillDigaipePDF(student: DigaipePlanillaData) {
 	form.flatten();
 
 	const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+	if (student.admissionReference) page.drawText(`Referencia de admisión: ${student.admissionReference}`, {
+		x: 24, y: 12, size: 8, font, color: rgb(0.2, 0.2, 0.2)
+	});
 
 	(student.checks ?? []).forEach((checked, index) => {
 		if (!checked) return;

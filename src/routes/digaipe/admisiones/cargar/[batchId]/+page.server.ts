@@ -109,7 +109,7 @@ export const actions: Actions = {
 
 			const result = await saveAdmissionBatch(batchId, auditContext);
 			return {
-				message: `Se guardaron ${result.rowCount} admisiones.`,
+				message: `Se guardaron ${result.insertedCount} admisiones. Se omitieron ${result.skippedCount} ya existentes.`,
 				...result
 			};
 		} catch (saveError) {

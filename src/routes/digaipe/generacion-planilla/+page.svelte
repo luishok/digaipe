@@ -414,6 +414,7 @@
 		<div class="planilla-dialog-title">
 			<h2 id="planilla-dialog-title">{selected.processingStatus ? 'Reimprimir planilla' : 'Generar planilla'}</h2>
 		</div>
+		{#if selected.alternativeCount > 1}<p role="status">Este estudiante tiene {selected.alternativeCount} modalidades para esta carrera y proceso. Verifique la modalidad elegida; solo podrá matricularse por una.</p>{/if}
 		<p class="modal-desc">
 			{#if selected.processingStatus}
 				Esta planilla ya fue generada previamente (estado actual: <b>{selected.processingStatus}</b>).
@@ -432,6 +433,7 @@
 			<dt>Fecha de asignación</dt><dd>{formatDate(selected.fechaAsignacion)}</dd>
 			<dt>Fecha de matrícula</dt><dd>{selected.planilla.fechaMat}</dd>
 			<dt>N.º de planilla</dt><dd>{selected.planilla.planilla}</dd>
+			<dt>Referencia de admisión</dt><dd>{selected.planilla.admissionReference}</dd>
 			<dt>Teléfono</dt><dd>{selected.telefono ?? '—'}</dd>
 			<dt>Correo</dt><dd>{selected.correo ?? '—'}</dd>
 			{#if selected.processingStatus}

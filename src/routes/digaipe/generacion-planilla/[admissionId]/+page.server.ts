@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { AdmissionConflict, assertAdmissionUsable } from '$lib/server/admisiones/enrollment';
 import {
 	auditContextFromEvent,
 	auditedTransaction,
@@ -70,7 +71,8 @@ export const actions: Actions = {
 		if (!validEmail(correo)) return fail(400, { message: 'El correo no tiene un formato valido.' });
 		if (!auditContext) return fail(401, { message: 'Debe iniciar sesion.' });
 
-		await auditedTransaction(auditContext, async (tx) => {
+		try { await auditedTransaction(auditContext, async (tx) => {
+			await assertAdmissionUsable(tx, admissionId);
 			await tx
 				.update(students)
 				.set({
@@ -99,7 +101,10 @@ export const actions: Actions = {
 				},
 				metadata: { admissionId }
 			});
-		});
+		}); } catch (cause) {
+			if (cause instanceof AdmissionConflict) return fail(409, { message: cause.message });
+			throw cause;
+		}
 
 		return { message: 'Datos del estudiante actualizados.' };
 	}

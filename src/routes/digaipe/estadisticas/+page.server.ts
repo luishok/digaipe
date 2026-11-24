@@ -7,6 +7,9 @@ import {
 import { filtersSummary, GENERAL_COLUMNS } from '$lib/server/admisiones/statistics-export';
 import type { PageServerLoad } from './$types';
 import { auditStudentDataView } from '$lib/server/audit';
+import { db } from '$lib/server/db';
+import { admissionProcessClosures, proceso_admission } from '$lib/server/db/schema';
+import { desc, eq } from 'drizzle-orm';
 
 /**
  * The on-screen preview renders every row twice (two tables); past a few hundred rows the
@@ -26,7 +29,7 @@ export const load: PageServerLoad = async (event) => {
 		await auditStudentDataView(event, {
 			page: '/digaipe/estadisticas',
 			recordType: 'admission',
-			recordIds: fullReport.rows.map((row) => row.admissionId),
+			recordIds: fullReport.enrollment ? fullReport.enrollment.rows.flatMap((row) => row.offerIds) : fullReport.rows.flatMap((row) => row.offerIds),
 			filters: {
 				...filters,
 				reportMode: fullReport.spec.reportMode,
@@ -41,6 +44,8 @@ export const load: PageServerLoad = async (event) => {
 	const mode = fullReport?.spec.reportMode;
 	const report = fullReport && {
 		...fullReport,
+		enrollment: fullReport.enrollment && { ...fullReport.enrollment,
+			rows: fullReport.spec.includeStudentData ? fullReport.enrollment.rows.slice(0, PREVIEW_ROW_LIMIT) : [] },
 		rows: mode === 'general' ? fullReport.rows.slice(0, PREVIEW_ROW_LIMIT) : [],
 		pivot: mode === 'consolidado' ? fullReport.pivot : [],
 		// The headline indicators always need the status counts, even if "Estado" is unchecked.
@@ -57,6 +62,10 @@ export const load: PageServerLoad = async (event) => {
 	};
 	const filters = spec?.filters;
 	return {
+		closures: await db.select({ id: admissionProcessClosures.id, version: admissionProcessClosures.version,
+			process: proceso_admission.code, closedAt: admissionProcessClosures.closedAt })
+			.from(admissionProcessClosures).innerJoin(proceso_admission, eq(proceso_admission.id, admissionProcessClosures.procesoId))
+			.orderBy(desc(admissionProcessClosures.id)).limit(100),
 		options,
 		spec,
 		errors,

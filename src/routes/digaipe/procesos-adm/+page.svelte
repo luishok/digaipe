@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { can } from '$lib/permissions';
 	import { formatDate } from '$lib/dates';
+	import { resolve } from '$app/paths';
 
 	let { form, data } = $props();
 	const canManage = $derived(can(data.user, 'processes.manage'));
@@ -71,6 +72,8 @@
 </script>
 
 <h1>Procesos de Admisión</h1>
+{#if form?.error}<p role="alert">{form.error}</p>{/if}
+{#if form?.message}<p role="status">{form.message}</p>{/if}
 
 <!-- Step 1: Create the process -->
 <div class="process-container">
@@ -189,6 +192,7 @@
 						<th>Codigo</th>
 						<th>Estado</th>
 						<th>Fechas</th>
+						<th>Cierre e informes</th>
 						{#if canManage}<th>Agregar fechas</th>{/if}
 						{#if canToggle}<th>Activar / Desactivar</th>{/if}
 					</tr>
@@ -199,12 +203,14 @@
 							<td>{process.id}</td>
 							<td>{process.code}</td>
 							<td>
-								{#if process.status === 'active'}
+								{#if process.closedAt}
+									Cerrado el {formatDate(process.closedAt)}
+								{:else if process.status === 'active'}
 									Activo hoy
 								{:else if process.status === 'scheduled'}
 									Programado (próxima: {formatDate(process.nextDate)})
 								{:else if process.status === 'finished'}
-									Finalizado
+									Plazo finalizado — pendiente de cierre
 								{:else if process.status === 'disabled'}
 									Deshabilitado
 								{:else}
@@ -212,10 +218,27 @@
 								{/if}
 							</td>
 							<td>{process.dates.length > 0 ? process.dates.map(formatDate).join(', ') : 'Sin fechas activas'}</td>
+							<td>
+								{#if can(data.user, 'statistics.view')}
+									<a href={resolve(`/digaipe/estadisticas?reportMode=matricula&filter_process=${encodeURIComponent(process.code)}`)}>Ver resultado de matrícula</a>
+									{#each data.closures.filter((closure) => closure.processId === process.id) as closure (closure.id)}
+										<p><a href={resolve(`/digaipe/estadisticas/cierres/${closure.id}`)}>Informe oficial v{closure.version}</a></p>
+									{/each}
+								{/if}
+								{#if canToggle && (process.closedAt || (process.dates.length && process.dates.every((date) => date < data.today)))}
+									<form method="POST" action={process.closedAt ? '?/reopen' : '?/close'} use:enhance={({ cancel }) => {
+										if (!confirm(process.closedAt ? '¿Reabrir el proceso? Se conservarán los informes oficiales anteriores.' : '¿Cerrar el proceso? Las asignaciones sin matrícula quedarán como No matriculado y se guardará un informe oficial.')) cancel();
+									}}>
+										<input type="hidden" name="processId" value={process.id} />
+										<input name="reason" aria-label="Motivo del cierre o reapertura" placeholder="Motivo del cierre o reapertura" maxlength="500" required />
+										<button type="submit">{process.closedAt ? 'Reabrir proceso' : 'Cerrar proceso'}</button>
+									</form>
+								{/if}
+							</td>
 							{#if canManage}
 							<td>
-								<input class="input-date" type="date" bind:value={dateInputs[process.id]} />
-								<button type="button" onclick={() => addProcessDate(process.id, process.dates)}
+								<input class="input-date" type="date" bind:value={dateInputs[process.id]} disabled={!!process.closedAt} />
+								<button type="button" disabled={!!process.closedAt} onclick={() => addProcessDate(process.id, process.dates)}
 									>+</button
 								>
 
@@ -279,7 +302,7 @@
 										required
 										maxlength="500"
 									/>
-									<button type="submit" class={process.isEnabled ? 'button-red' : ''}>
+									<button type="submit" disabled={!!process.closedAt} class={process.isEnabled ? 'button-red' : ''}>
 										{process.isEnabled ? 'Desactivar' : 'Reactivar'}
 									</button>
 								</form>

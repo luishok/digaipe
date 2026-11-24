@@ -4,6 +4,7 @@
 set -eu
 
 echo '==> Migraciones'
+npx tsx scripts/check-student-identities.ts
 npx drizzle-kit migrate
 
 echo '==> Triggers de auditoría (se reconstruyen si faltan, p. ej. tras restaurar)'

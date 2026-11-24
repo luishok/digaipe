@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
 	admissionProcessings,
@@ -8,24 +8,12 @@ import {
 } from '$lib/server/db/schema';
 import type { AuditContext } from '$lib/server/audit';
 import { auditedTransaction, writeAuditLog } from '$lib/server/audit';
+import { assertAdmissionUsable } from './enrollment';
+import { dateValue } from '../../dates';
+export { caracasDateKey, dateValue } from '../../dates';
 
 export const processingStatuses = ['pendiente', 'matriculado', 'devuelto'] as const;
 export type ProcessingStatus = (typeof processingStatuses)[number];
-
-export function caracasDateKey(date = new Date()) {
-	const values = new Intl.DateTimeFormat('en-CA', {
-		timeZone: 'America/Caracas',
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	}).formatToParts(date);
-	const value = (type: string) => values.find((part) => part.type === type)?.value ?? '';
-	return `${value('year')}-${value('month')}-${value('day')}`;
-}
-
-export function dateValue(dateKey: string) {
-	return new Date(`${dateKey}T00:00:00`);
-}
 
 export async function processIsActiveOnDate(processId: number, dateKey: string) {
 	const [row] = await db
@@ -36,6 +24,7 @@ export async function processIsActiveOnDate(processId: number, dateKey: string) 
 			and(
 				eq(proceso_admission.id, processId),
 				eq(proceso_admission.isEnabled, true),
+				isNull(proceso_admission.closedAt),
 				eq(APActiveDates.activeDate, dateValue(dateKey))
 			)
 		)
@@ -69,6 +58,7 @@ export async function ensureAdmissionProcessing(
 	auditContext: AuditContext
 ) {
 	return auditedTransaction(auditContext, async (tx) => {
+		await assertAdmissionUsable(tx, admissionId, processingDate);
 		const [existing] = await tx
 			.select()
 			.from(admissionProcessings)

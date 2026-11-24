@@ -50,6 +50,20 @@
       "when": 1794355200000,
       "tag": "0006_process_enabled_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1795553983024,
+      "tag": "0007_admission_outcomes",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1795557448146,
+      "tag": "0008_student_identity",
+      "breakpoints": true
     }
   ]
 }

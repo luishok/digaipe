@@ -2,13 +2,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as XLSX from 'xlsx';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import type { AuditContext } from '$lib/server/audit';
 import { auditedTransaction, writeAuditLog } from '$lib/server/audit';
+import { lockOpenProcesses, selectionScope, type AdmissionTransaction } from './enrollment';
+import { normalizeStudentIdentity } from '$lib/student-identity';
 import {
 	admissionImportBatches,
 	admissions,
+	admissionSelections,
 	careers,
 	mod_admission,
 	ocre_types,
@@ -25,6 +28,7 @@ export type AdmissionPreviewIssue = {
 export type AdmissionPreviewRow = {
 	row: number;
 	numAsignacion: string;
+	existingAdmissionId: number | null;
 	cedula: string;
 	apellidosNombres: string;
 	telefono: string | null;
@@ -60,7 +64,7 @@ type FileWriteResult = {
 };
 
 type ResolvedCatalogs = {
-	processesByCode: Map<string, { id: number; code: string }>;
+	processesByCode: Map<string, { id: number; code: string; closedAt: Date | null }>;
 	careersByOfae: Map<string, { id: number; ofae: string; name: string | null }>;
 	modalitiesByCode: Map<string, { id: number; code: string; name: string }>;
 	ocreTypesByCode: Map<string, { id: number; code: string; name: string }>;
@@ -423,6 +427,16 @@ export async function previewAdmissionFile(buffer: Buffer): Promise<AdmissionPre
 	const previewRows = rawRows.map((rawRow, index) =>
 		buildPreviewRow(rawRow, index + 2, catalogs, seenAdmissions)
 	);
+	const groups = new Map<string, AdmissionPreviewRow[]>();
+	for (const row of previewRows) {
+		const key = `${row.cedula}:${row.opcion}:${row.numAsignacion}`;
+		const group = groups.get(key) ?? []; group.push(row); groups.set(key, group);
+	}
+	for (const group of groups.values()) if (new Set(group.map((row) => row.modaIngreso)).size > 1)
+		for (const row of group) row.warnings.push({ row: row.row, field: 'Moda_Ingre',
+			message: 'El estudiante tiene varias modalidades para esta carrera y proceso. Solo podrá matricularse por una.' });
+	await annotateStudentProfiles(previewRows, db);
+	await annotateExistingAdmissions(previewRows, catalogs, db);
 	const warnings = previewRows.flatMap((row) => row.warnings);
 	const errors = previewRows.flatMap((row) => row.errors);
 
@@ -431,7 +445,7 @@ export async function previewAdmissionFile(buffer: Buffer): Promise<AdmissionPre
 
 async function loadCatalogs(): Promise<ResolvedCatalogs> {
 	const [processRows, careerRows, modalityRows, ocreTypeRows] = await Promise.all([
-		db.select({ id: proceso_admission.id, code: proceso_admission.code }).from(proceso_admission),
+		db.select({ id: proceso_admission.id, code: proceso_admission.code, closedAt: proceso_admission.closedAt }).from(proceso_admission),
 		db.select({ id: careers.id, ofae: careers.ofae, name: careers.todo }).from(careers),
 		db
 			.select({ id: mod_admission.id, code: mod_admission.code, name: mod_admission.name })
@@ -465,7 +479,10 @@ function buildPreviewRow(
 	const warnings: AdmissionPreviewIssue[] = [];
 	const errors: AdmissionPreviewIssue[] = [];
 	const numAsignacion = normalizeProcessCode(rawRow.Num_Asignacion);
-	const cedula = cleanUpper(rawRow.Ced_estudiante);
+	const originalCedula = cleanUpper(rawRow.Ced_estudiante);
+	const cedula = normalizeStudentIdentity(originalCedula) ?? originalCedula;
+	if (!normalizeStudentIdentity(originalCedula)) errors.push({ row: rowNumber, field: 'Ced_estudiante',
+		message: 'Cédula inválida: indique V o E y entre 1 y 9 dígitos; se permiten espacios, puntos y guiones.' });
 	const apellidosNombres = cleanString(rawRow.Apel_Nom);
 	const telefono = emptyDotToNull(rawRow.Telefono);
 	const correo = emptyDotToNull(rawRow.Correo_e);
@@ -517,6 +534,7 @@ function buildPreviewRow(
 	const career = catalogs.careersByOfae.get(opcion) ?? null;
 	const modality = catalogs.modalitiesByCode.get(modaIngreso) ?? null;
 	const ocreType = catalogs.ocreTypesByCode.get(codOcre) ?? null;
+	if (process?.closedAt) errors.push({ row: rowNumber, field: 'Num_Asignacion', message: 'El proceso está cerrado. Debe reabrirlo antes de cargar admisiones.' });
 
 	if (numAsignacion && !process)
 		errors.push({
@@ -543,7 +561,7 @@ function buildPreviewRow(
 			message: `No existe el tipo OCRE ${codOcre}.`
 		});
 
-	const duplicateKey = `${cedula}:${opcion}:${numAsignacion}`;
+	const duplicateKey = `${cedula}:${opcion}:${numAsignacion}:${modaIngreso}`;
 	if (seenAdmissions.has(duplicateKey)) {
 		errors.push({
 			row: rowNumber,
@@ -555,6 +573,7 @@ function buildPreviewRow(
 
 	return {
 		row: rowNumber,
+		existingAdmissionId: null,
 		numAsignacion,
 		cedula,
 		apellidosNombres,
@@ -602,9 +621,8 @@ export async function saveAdmissionBatch(batchId: number, auditContext: AuditCon
 	}
 
 	const catalogs = await loadCatalogs();
-	await assertNoExistingAdmissions(preview.rows, catalogs);
-
-	await auditedTransaction(auditContext, async (tx) => {
+	const counts = await auditedTransaction(auditContext, async (tx) => {
+		await lockOpenProcesses(tx, preview.rows.map((row) => catalogs.processesByCode.get(row.numAsignacion)!.id));
 		// Re-check under a row lock: two concurrent saves of the same draft both pass the check
 		// above, but only the first to lock the row may insert.
 		const [locked] = await tx
@@ -613,8 +631,14 @@ export async function saveAdmissionBatch(batchId: number, auditContext: AuditCon
 			.where(eq(admissionImportBatches.id, batchId))
 			.for('update');
 		if (locked?.status !== 'draft') throw new Error('Este lote ya fue guardado.');
+		// Another batch may have saved since preview. Recheck under the mutation locks.
+		await annotateExistingAdmissions(preview.rows, catalogs, tx, false);
+		if (preview.rows.some((row) => row.errors.length)) throw new Error('Una admisión existente contiene datos distintos. Revise nuevamente la vista previa.');
+		let inserted = 0;
+		let skipped = 0;
 
 		for (const row of preview.rows) {
+			if (row.existingAdmissionId !== null) { skipped++; continue; }
 			const process = catalogs.processesByCode.get(row.numAsignacion);
 			const career = catalogs.careersByOfae.get(row.opcion);
 			const modality = catalogs.modalitiesByCode.get(row.modaIngreso);
@@ -624,29 +648,16 @@ export async function saveAdmissionBatch(batchId: number, auditContext: AuditCon
 				throw new Error(`La fila ${row.row} no tiene referencias validas.`);
 			}
 
-			await tx
-				.insert(students)
-				.values({
-					cedula: row.cedula,
-					apellidos_nombres: row.apellidosNombres,
-					telefono: row.telefono,
-					correo: row.correo,
-					genero: row.genero
-				})
-				.onDuplicateKeyUpdate({
-					set: {
-						apellidos_nombres: row.apellidosNombres,
-						telefono: row.telefono,
-						correo: row.correo,
-						genero: sql`coalesce(values(genero), ${students.genero})`
-					}
-				});
-
-			const [student] = await tx
+			let [student] = await tx
 				.select({ id: students.id })
 				.from(students)
-				.where(eq(students.cedula, row.cedula))
+				.where(eq(students.identityKey, row.cedula))
 				.limit(1);
+			if (!student) {
+				const [created] = await tx.insert(students).values({ cedula: row.cedula,
+					apellidos_nombres: row.apellidosNombres, telefono: row.telefono, correo: row.correo, genero: row.genero });
+				student = { id: Number(created.insertId) };
+			}
 
 			if (!student) throw new Error(`No se pudo guardar el estudiante de la fila ${row.row}.`);
 
@@ -663,6 +674,7 @@ export async function saveAdmissionBatch(batchId: number, auditContext: AuditCon
 				ano: row.ano ?? 0,
 				proceso: row.proceso ?? 0
 			});
+			inserted++;
 		}
 
 		await tx
@@ -694,48 +706,64 @@ export async function saveAdmissionBatch(batchId: number, auditContext: AuditCon
 					warningCount: preview.warnings.length,
 					errorCount: 0
 				},
-				metadata: { insertedAdmissionCount: preview.rows.length }
+				metadata: { insertedAdmissionCount: inserted, skippedAdmissionCount: skipped }
 			});
 		}
+		return { inserted, skipped };
 	});
 
-	return { saved: true, rowCount: preview.rows.length, warningCount: preview.warnings.length };
+	return { saved: true, rowCount: preview.rows.length, insertedCount: counts.inserted, skippedCount: counts.skipped, warningCount: preview.warnings.length };
 }
 
-async function assertNoExistingAdmissions(rows: AdmissionPreviewRow[], catalogs: ResolvedCatalogs) {
+async function annotateExistingAdmissions(rows: AdmissionPreviewRow[], catalogs: ResolvedCatalogs, reader: Pick<AdmissionTransaction, 'select'>, warn = true) {
 	const cedulas = [...new Set(rows.map((row) => row.cedula))];
 	if (cedulas.length === 0) return;
-
-	const existingStudents = await db
-		.select({ id: students.id, cedula: students.cedula })
-		.from(students)
-		.where(inArray(students.cedula, cedulas));
-
-	const studentIdByCedula = new Map(
-		existingStudents.map((student) => [student.cedula, student.id])
-	);
+	const existing = [];
+	for (let i = 0; i < cedulas.length; i += 1000) existing.push(...await reader
+		.select({ admission: admissions, cedula: students.identityKey, selectedId: admissionSelections.admissionId }).from(admissions)
+		.innerJoin(students, eq(students.id, admissions.studentId))
+		.leftJoin(admissionSelections, selectionScope())
+		.where(inArray(students.identityKey, cedulas.slice(i, i + 1000))));
+	const groups = new Map<string, typeof existing>();
+	for (const item of existing) {
+		const key = `${item.cedula}:${item.admission.careerId}:${item.admission.procesoId}`;
+		const group = groups.get(key) ?? []; group.push(item); groups.set(key, group);
+	}
 	for (const row of rows) {
-		const studentId = studentIdByCedula.get(row.cedula);
 		const process = catalogs.processesByCode.get(row.numAsignacion);
 		const career = catalogs.careersByOfae.get(row.opcion);
+		const modality = catalogs.modalitiesByCode.get(row.modaIngreso);
+		const group = groups.get(`${row.cedula}:${career?.id}:${process?.id}`) ?? [];
+		const same = group.find((item) => item.admission.modalityId === modality?.id)?.admission;
+		row.existingAdmissionId = same?.id ?? null;
+		if (same) {
+			const matches = same.periodoIngreso === row.periodoIngreso && same.fechaAsignacion.toISOString().slice(0, 10) === row.fechaAsignacion
+				&& same.ano === row.ano && same.proceso === row.proceso && same.opcion === row.opcion
+				&& same.ocreTypeId === (catalogs.ocreTypesByCode.get(row.codOcre)?.id ?? null);
+			if (!matches) row.errors.push({ row: row.row, field: 'Moda_Ingre', message: 'Ya existe esta admisión y modalidad con datos distintos. No se sobrescribirá.' });
+			else if (warn) row.warnings.push({ row: row.row, field: 'Moda_Ingre', message: `La admisión #${same.id} ya existe. Se omitirá sin modificarla.` });
+		} else if (group.length && warn) row.warnings.push({ row: row.row, field: 'Moda_Ingre', message: group[0].selectedId !== null
+			? 'Ya existe una matrícula para esta carrera y proceso. Esta alternativa quedará como No matriculado — otra modalidad seleccionada.'
+			: 'Ya existe otra modalidad para este estudiante, carrera y proceso. Solo podrá matricularse por una.' });
+	}
+}
 
-		if (!studentId || !process || !career) continue;
-
-		const existing = await db
-			.select({ id: admissions.id })
-			.from(admissions)
-			.where(
-				and(
-					eq(admissions.studentId, studentId),
-					eq(admissions.careerId, career.id),
-					eq(admissions.procesoId, process.id)
-				)
-			)
-			.limit(1);
-
-		if (existing.length > 0) {
-			throw new Error(`La fila ${row.row} ya existe para estudiante, carrera y proceso.`);
-		}
+async function annotateStudentProfiles(rows: AdmissionPreviewRow[], reader: Pick<AdmissionTransaction, 'select'>) {
+	const keys = [...new Set(rows.map((row) => row.cedula).filter((value) => normalizeStudentIdentity(value)))];
+	const profiles = new Map<string, { name: string; phone: string | null; email: string | null; gender: string | null }>();
+	for (let i = 0; i < keys.length; i += 1000) {
+		const existing = await reader.select({ key: students.identityKey, name: students.apellidos_nombres,
+			phone: students.telefono, email: students.correo, gender: students.genero }).from(students)
+			.where(inArray(students.identityKey, keys.slice(i, i + 1000)));
+		for (const profile of existing) profiles.set(profile.key, profile);
+	}
+	for (const row of rows) {
+		const profile = profiles.get(row.cedula);
+		if (profile && (profile.name !== row.apellidosNombres || profile.phone !== row.telefono
+			|| profile.email !== row.correo || profile.gender !== row.genero)) {
+			row.warnings.push({ row: row.row, field: 'Apel_Nom / contacto',
+				message: 'Los datos personales difieren de los ya registrados o de la primera fila del estudiante. Se conservarán los datos originales; las correcciones se realizan en el detalle del estudiante.' });
+		} else if (!profile) profiles.set(row.cedula, { name: row.apellidosNombres, phone: row.telefono, email: row.correo, gender: row.genero });
 	}
 }
 

@@ -1,8 +1,9 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import {
 	APActiveDates,
 	admissionProcessings,
+	admissionSelections,
 	admissions,
 	careers,
 	mod_admission,
@@ -13,6 +14,7 @@ import {
 import { caracasDateKey } from './processing';
 import { formatDate } from '../../dates';
 import { searchCondition } from './search';
+import { selectionScope, alternativeCountSql } from './enrollment';
 
 export type PlanillaAdmission = Awaited<ReturnType<typeof getActiveAdmissionForPlanilla>>;
 
@@ -33,11 +35,12 @@ export function cleanNullableFormValue(value: FormDataEntryValue | null, maxLeng
 export async function searchActiveAdmissionsForPlanilla(search: string, today = getTodayDateKey()) {
 	const conditions = [
 		eq(proceso_admission.isEnabled, true),
+		isNull(proceso_admission.closedAt),
 		eq(APActiveDates.activeDate, activeDateValue(today))
 	];
 
 	const searchFilter = searchCondition(search, {
-		cedula: students.cedula,
+		cedula: students.identityKey,
 		text: [
 			students.apellidos_nombres,
 			students.telefono,
@@ -51,6 +54,7 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 	return db
 		.select({
 			id: admissions.id,
+			alternativeCount: alternativeCountSql(),
 			cedula: students.cedula,
 			apellidosNombres: students.apellidos_nombres,
 			telefono: students.telefono,
@@ -75,7 +79,8 @@ export async function searchActiveAdmissionsForPlanilla(search: string, today = 
 		.innerJoin(APActiveDates, eq(proceso_admission.id, APActiveDates.codeId))
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 		.leftJoin(admissionProcessings, eq(admissions.id, admissionProcessings.admissionId))
-		.where(and(...conditions))
+		.leftJoin(admissionSelections, selectionScope())
+		.where(and(...conditions, or(isNull(admissionSelections.admissionId), eq(admissionSelections.admissionId, admissions.id))))
 		.orderBy(desc(admissions.fechaAsignacion), desc(admissions.id))
 		.limit(20);
 }
@@ -116,10 +121,13 @@ export async function getActiveAdmissionForPlanilla(
 		.innerJoin(APActiveDates, eq(proceso_admission.id, APActiveDates.codeId))
 		.innerJoin(mod_admission, eq(admissions.modalityId, mod_admission.id))
 		.leftJoin(ocre_types, eq(admissions.ocreTypeId, ocre_types.id))
+		.leftJoin(admissionSelections, selectionScope())
 		.where(
 			and(
 				eq(admissions.id, admissionId),
 				eq(proceso_admission.isEnabled, true),
+				isNull(proceso_admission.closedAt),
+				or(isNull(admissionSelections.admissionId), eq(admissionSelections.admissionId, admissions.id)),
 				eq(APActiveDates.activeDate, activeDateValue(today))
 			)
 		)
@@ -143,6 +151,7 @@ function admissionProcessPrefix(processCode: string) {
 // Only the fields the planilla uses, so rows from the search list work as well as the detail record.
 type PlanillaSource = Pick<
 	NonNullable<PlanillaAdmission>,
+	| 'id'
 	| 'processCode'
 	| 'clave'
 	| 'opcion'
@@ -163,6 +172,7 @@ export function buildLegacyPlanillaFields(admission: PlanillaSource) {
 		fechaMat: formatDate(admission.activeDate),
 		propio: titleCase(admission.apellidosNombres),
 		planilla,
+		admissionReference: `ADM-${admission.id}`,
 		mod: admission.modalityName,
 		prog: admission.careerName ?? admission.programaAcademico,
 		estadisticas: `${admission.cedula} --------- ${admission.apellidosNombres}`,

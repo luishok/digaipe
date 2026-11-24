@@ -27,3 +27,7 @@ vite.config.ts.timestamp-*
 /deploy/.env
 /deploy/backups
 /deploy/anchors
+
+# Generated screenshots using fictitious admission test data.
+/artifacts/admission-review/
+/artifacts/statistics-review/

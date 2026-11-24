@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ReportRow, StatisticsReport, StatisticsSpec } from './statistics';
 import { csvLine } from './csv';
+import { buildEnrollmentCsv, buildEnrollmentPdf } from './enrollment-export';
 import { formatDateTime } from '../../dates';
 import {
 	formatCount,
@@ -78,11 +79,13 @@ function dimensionSelected(spec: StatisticsSpec, title: string) {
 }
 
 export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = {}) {
+	if (report.enrollment) return buildEnrollmentCsv(report.enrollment, report.spec.includeStudentData, meta);
 	const lines = [
 		csvLine([report.spec.reportMode]),
 		...(meta.folio ? [csvLine(['Folio', meta.folio])] : []),
 		...criteria(report).map(csvLine),
-		csvLine(['Total de admisiones', report.totalAdmissions]),
+		csvLine(['Total de asignaciones', report.totalAdmissions]),
+		csvLine(['Ofertas de admisión (incluye modalidades alternativas)', report.totalOffers]),
 		csvLine(['Total de estudiantes únicos', report.totalUniqueStudents]),
 		''
 	];
@@ -96,7 +99,7 @@ export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = 
 	if (report.spec.reportMode === 'consolidado')
 		lines.push(
 			...report.pivot.flatMap((date) => [
-				csvLine(['Fecha válida', formatDate(date.date), date.count]),
+				csvLine([report.spec.dateBasis === 'digaipe' ? 'Fecha válida' : 'Fecha asignación', formatDate(date.date), date.count]),
 				...date.statuses.flatMap((status) => [
 					csvLine([status.label, status.count]),
 					...status.careers.flatMap((career) => [
@@ -116,7 +119,7 @@ export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = 
 			lines.push(
 				'',
 				csvLine([title]),
-				csvLine(['Etiqueta', 'Admisiones', '% del total', 'Estudiantes únicos', '% acumulado']),
+				csvLine(['Etiqueta', 'Asignaciones', '% del total', 'Estudiantes únicos', '% acumulado']),
 				...rows.map((row) => {
 					cum += row.count;
 					return csvLine([
@@ -135,6 +138,7 @@ export function buildStatisticsCsv(report: StatisticsReport, meta: ExportMeta = 
 		lines.push(
 			csvLine(['Embudo', 'Cantidad']),
 			csvLine(['Asignados', r.asignados]),
+			csvLine(['Ofertas de admisión (incluye modalidades alternativas)', r.ofertas]),
 			csvLine(['No procesados', r.noProcesados]),
 			csvLine(['Procesados', r.procesados]),
 			csvLine(['Pendiente', r.byStatus.pendiente]),
@@ -193,7 +197,8 @@ const REPORT_TITLES: Record<StatisticsReport['spec']['reportMode'], string> = {
 	general: 'Análisis general de admisiones',
 	consolidado: 'Consolidado de revisión',
 	estadisticas: 'Estadísticas DIGAIPE',
-	reconciliacion: 'Reconciliación de admisiones'
+	reconciliacion: 'Reconciliación de admisiones',
+	matricula: 'Resultado de matrícula por proceso'
 };
 
 function mastheadMeta(report: StatisticsReport) {
@@ -214,9 +219,10 @@ function mastheadSubtitle(report: StatisticsReport) {
 			? report.spec.dateBasis === 'digaipe'
 				? 'Total de procesados'
 				: 'Total de asignados'
-			: 'Total de admisiones';
+			: 'Total de asignaciones';
 	return [
 		`${total}: ${formatCount(report.totalAdmissions)}`,
+		`Ofertas: ${formatCount(report.totalOffers)}`,
 		`Estudiantes únicos: ${formatCount(report.totalUniqueStudents)}`,
 		`Datos del estudiante: ${report.spec.includeStudentData ? 'Sí' : 'No'}`
 	].join('  ·  ');
@@ -250,7 +256,7 @@ function drawGeneral(doc: ReportDoc, report: StatisticsReport) {
 						col: { header: 'Cédula', width: 66, mono: true },
 						value: (r) => r.cedula
 					},
-					{ key: 'student', col: { header: 'Estudiante', width: 146 }, value: (r) => r.student }
+					{ key: 'student', col: { header: 'Estudiante', width: 146, wrap: true }, value: (r) => r.student }
 				] as Field[])
 			: []),
 		{
@@ -268,11 +274,11 @@ function drawGeneral(doc: ReportDoc, report: StatisticsReport) {
 			col: { header: 'Estado', width: stud ? 62 : 80 },
 			value: (r) => r.status ?? ''
 		},
-		{ key: 'carrera', col: { header: 'Carrera', width: 110 }, value: (r) => r.career },
-		{ key: 'proceso', col: { header: 'Proceso', width: 70 }, value: (r) => r.process },
+		{ key: 'carrera', col: { header: 'Carrera', width: 110, wrap: true }, value: (r) => r.career },
+		{ key: 'proceso', col: { header: 'Proceso', width: 70, wrap: true }, value: (r) => r.process },
 		{
 			key: 'modalidad',
-			col: { header: 'Modalidad', width: stud ? 68 : 84 },
+			col: { header: 'Modalidad', width: stud ? 68 : 84, wrap: true },
 			value: (r) => `${r.modality} - ${r.modalityName}`
 		},
 		{ key: 'periodo', col: { header: 'Período', width: stud ? 42 : 52 }, value: (r) => r.period }
@@ -326,16 +332,17 @@ function drawGeneral(doc: ReportDoc, report: StatisticsReport) {
 
 function drawConsolidado(doc: ReportDoc, report: StatisticsReport) {
 	const stud = report.spec.includeStudentData;
+	const dateHeader = report.spec.dateBasis === 'digaipe' ? 'Fecha válida' : 'Fecha asignación';
 	const columns: Column[] = stud
 		? [
-				{ header: 'Fecha válida', width: 74, mono: true },
+				{ header: dateHeader, width: 74, mono: true, wrap: true },
 				{ header: 'Estado', width: 66 },
 				{ header: 'Carrera', width: 150 },
 				{ header: 'Estudiante', width: 180 },
 				{ header: 'Cuenta', width: 62, align: 'right', mono: true }
 			]
 		: [
-				{ header: 'Fecha válida', width: 92, mono: true },
+				{ header: dateHeader, width: 92, mono: true, wrap: true },
 				{ header: 'Estado', width: 90 },
 				{ header: 'Carrera', width: 290 },
 				{ header: 'Cuenta', width: 60, align: 'right', mono: true }
@@ -391,7 +398,7 @@ function drawConsolidado(doc: ReportDoc, report: StatisticsReport) {
 
 function drawEstadisticas(doc: ReportDoc, report: StatisticsReport) {
 	doc.kpiRow([
-		{ label: 'Admisiones procesadas', value: formatCount(report.totalAdmissions) },
+		{ label: 'Asignaciones procesadas', value: formatCount(report.totalAdmissions) },
 		{ label: 'Estudiantes únicos', value: formatCount(report.totalUniqueStudents) }
 	]);
 	const total = report.totalAdmissions || 1;
@@ -403,7 +410,7 @@ function drawEstadisticas(doc: ReportDoc, report: StatisticsReport) {
 			fontSize: 8,
 			columns: [
 				{ header: 'Etiqueta', width: 232 },
-				{ header: 'Admisiones', width: 80, align: 'right', mono: true, bar: true },
+				{ header: 'Asignaciones', width: 80, align: 'right', mono: true, bar: true },
 				{ header: '% total', width: 66, align: 'right', mono: true },
 				{ header: 'Únicos', width: 88, align: 'right', mono: true },
 				{ header: '% acum.', width: 66, align: 'right', mono: true }
@@ -427,6 +434,7 @@ function drawEstadisticas(doc: ReportDoc, report: StatisticsReport) {
 function drawReconciliacion(doc: ReportDoc, report: StatisticsReport) {
 	const r = report.reconciliation;
 	if (!r) return;
+	doc.note(`Una asignación por estudiante, carrera y proceso: ${r.asignados} asignaciones y ${r.ofertas} ofertas. Una alternativa descartada no cuenta como no procesado.`);
 	// digaipe basis = throughput view (rows processed in the range); no "no procesados" stage.
 	const throughput = report.spec.dateBasis === 'digaipe';
 	const base = throughput ? r.procesados : r.asignados;
@@ -606,12 +614,14 @@ function drawReconciliacion(doc: ReportDoc, report: StatisticsReport) {
 }
 
 export async function buildStatisticsPdf(report: StatisticsReport, meta: ExportMeta = {}) {
+	if (report.enrollment) return buildEnrollmentPdf(report.enrollment, report.spec.includeStudentData, meta);
 	const orientation = report.spec.reportMode === 'general' ? 'landscape' : 'portrait';
 	const doc = await ReportDoc.create(orientation);
 	const title = REPORT_TITLES[report.spec.reportMode];
 	doc.masthead({ title, subtitle: mastheadSubtitle(report), meta: mastheadMeta(report) });
 	const filters = filtersSummary(report.spec);
 	if (filters) doc.note(`Filtros — ${filters}`);
+	if (report.spec.reportMode !== 'reconciliacion') doc.note('Una asignación por estudiante, carrera y proceso. Las ofertas incluyen todas sus modalidades alternativas.');
 
 	if (report.spec.reportMode === 'general') drawGeneral(doc, report);
 	else if (report.spec.reportMode === 'consolidado') drawConsolidado(doc, report);

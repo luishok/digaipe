@@ -89,6 +89,8 @@ const writeRules: Record<string, Permission | null> = {
 	'/digaipe/procesos-adm POST create': 'processes.manage',
 	'/digaipe/procesos-adm POST saveDates': 'processes.manage',
 	'/digaipe/procesos-adm POST setEnabled': 'processes.toggle',
+	'/digaipe/procesos-adm POST close': 'processes.toggle',
+	'/digaipe/procesos-adm POST reopen': 'processes.toggle',
 	'/digaipe/revision-documentos POST review': 'documents.review',
 	'/digaipe/revision-documentos POST unlock': 'documents.unlock'
 };

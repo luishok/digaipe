@@ -203,6 +203,7 @@
                         <option value="pendiente" selected={data.filters.status === 'pendiente'}>Pendiente</option>
                         <option value="matriculado" selected={data.filters.status === 'matriculado'}>Matriculado</option>
                         <option value="devuelto" selected={data.filters.status === 'devuelto'}>Devuelto</option>
+                        <option value="no_matriculado" selected={data.filters.status === 'no_matriculado'}>No matriculado</option>
                     </select>
                 </label>
             </div>
@@ -253,6 +254,7 @@
                     <th>Estado</th>
                     <th>Proceso</th>
                     <th>Carrera</th>
+                    <th>Modalidad</th>
                     <th>Cédula</th>
                     <th>Estudiante</th>
                     <th>Motivo</th>
@@ -266,7 +268,7 @@
                     <tr>
                         {#if data.canReview}
                             <td class="td-checkbox">
-                                {#if row.status != 'matriculado'}
+                                {#if row.canAct}
                                     <input type="checkbox" name="processingId" value={row.id} class="row-checkbox" />
                                 {:else}
                                     <input type="checkbox" name="processingId" disabled value={row.id} class="row-checkbox" />
@@ -276,15 +278,16 @@
                         {/if}
                         <td class="whitespace-nowrap">{formatDate(row.processingDate)}</td>
                         <td>
-                            <span class="status-badge status-{row.status?.toLowerCase()}">
-                                {row.status}
+                            <span class="status-badge {row.outcome === 'no_matriculado' ? '' : `status-${row.status?.toLowerCase()}`}">
+                                {row.outcome === 'no_matriculado' ? 'No matriculado' : row.status}
                             </span>
                         </td>
                         <td><code class="code-tag">{row.processCode}</code></td>
                         <td>{row.career ?? '—'}</td>
+                        <td>{row.modality}</td>
                         <td class="font-mono">{row.cedula}</td>
                         <td class="font-medium">{row.student}</td>
-                        <td class="text-muted">{row.returnReason ?? '—'}</td>
+                        <td class="text-muted">{row.outcome === 'no_matriculado' ? row.reason : row.returnReason ?? '—'}</td>
                         {#if data.canUnlock}
                             <td>
                                 <div class="admin-cell-action">
@@ -302,8 +305,10 @@
                                         name="unlockProcessingId"
                                         value={row.id}
                                         class="btn-unlock"
+                                        disabled={!row.canUnlockRow}
+                                        onclick={(event) => { if (row.status === 'matriculado' && !confirm('¿Anular esta matrícula y devolverla a pendiente? Las modalidades alternativas volverán a estar disponibles.')) event.preventDefault(); }}
                                     >
-                                        Desbloquear
+                                        {row.status === 'matriculado' ? 'Anular matrícula y desbloquear' : 'Desbloquear'}
                                     </button>
                                 </div>
                             </td>
