@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import { resolve } from '$app/paths';
 	import { formatDate } from '$lib/dates';
 	import EnrollmentReport from '$lib/components/EnrollmentReport.svelte';
@@ -614,7 +614,7 @@ details[open] .accordion-icon {
 }
 .btn-chip {
     padding: 6px 12px;
-    background: #e2e8f0;
+    background: #97aac4;
     border: 1px solid #cbd5e1;
     border-radius: 16px;
     cursor: pointer;
@@ -713,7 +713,7 @@ button, .btn-primary, .btn-secondary, .btn-outline {
     box-shadow: 0 4px 6px rgba(0,51,160,0.2);
 }
 .kpi-label { font-size: var(--font-size-small); opacity: 0.9; }
-.kpi-value { font-size: var(--font-size-h3); font-weight: bold; }
+.kpi-value-estadistica { font-size: var(--font-size-h3); font-weight: bold; }
 
 /* Tablas */
 .table_container {
@@ -788,5 +788,101 @@ tr:hover { background-color: var(--color-bg-alt); }
     font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--color-text-main);
+}
+
+/* Media Queries para Mobile / Pantallas pequeñas */
+@media (max-width: 768px) {
+    .dashboard-layout {
+        gap: var(--spacing-md);
+        padding-bottom: var(--spacing-xl);
+    }
+
+    .form-card {
+        padding: var(--spacing-md);
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dates-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .multi-select-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-2-col {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-ranges {
+        justify-content: flex-start;
+    }
+
+    .quick-buttons {
+        width: 100%;
+    }
+
+    .quick-buttons .btn-chip {
+        flex: 1 1 calc(50% - var(--spacing-sm));
+        text-align: center;
+    }
+
+    .checkbox-grid-dense {
+        grid-template-columns: 1fr;
+    }
+
+    .toggle-card {
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: flex-start;
+    }
+
+    .form-actions-bar {
+        position: static;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+
+    .form-actions-bar > button,
+    .form-actions-bar > a {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box;
+    }
+
+    .action-divider {
+        display: none;
+    }
+
+    .report-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .kpi-grid {
+        flex-direction: column;
+        width: 100%;
+        gap: var(--spacing-sm);
+    }
+
+    .kpi-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .table_container {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table_container table {
+        min-width: 500px;
+    }
 }
 </style>

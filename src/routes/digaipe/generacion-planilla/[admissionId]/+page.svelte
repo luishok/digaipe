@@ -35,7 +35,6 @@
 			<div class="label-input">
 				<label for="apellidosNombres"> Nombre </label>
 				<input
-					style="width: fit-content;"
 					name="apellidosNombres"
 					type="text"
 					id="apellidosNombres"
@@ -75,11 +74,10 @@
 					<option value="F" selected={admission.genero === 'F'}>Femenino</option>
 					<option value="O" selected={admission.genero === 'O'}>Otro</option>
 				</select>
-				<!-- <input name="genero" value={admission.genero ?? ''} maxlength="20" /> -->
 			</div>
 
 			{#if can(data.user, 'students.edit')}
-				<button type="submit">Guardar datos</button>
+				<button type="submit" class="btn-save-student">Guardar datos</button>
 			{/if}
 		</div>
 	</form>
@@ -275,46 +273,149 @@
 </div>
 
 <style>
-	.main-container-generacion-planilla {
+	.div-card {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		border-radius: 8px;
+		padding: 20px;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
 		display: flex;
-		gap: 2em;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 1rem;
+		margin-top: 1.5rem;
+		background-color: #ffffff;
 	}
-	.main-container-generacion-planilla .div-card {
-		flex: 1;
-	}
-	.admision-details-flex,
-	.admision-details-flex2 {
+
+	.container-update-student {
 		display: flex;
 		flex-wrap: wrap;
-		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-		gap: 10px;
-		justify-content: space-around;
+		gap: 1rem;
+		width: 100%;
+		box-sizing: border-box;
+		align-items: flex-end;
 	}
+
+	.container-update-student .label-input {
+		flex: 1 1 200px;
+		min-width: 0;
+		width: 100%;
+	}
+
+	.container-update-student input,
+	.container-update-student select {
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	.btn-save-student {
+		height: 42px;
+		padding: 0 20px;
+		border-radius: 6px;
+		background-color: var(--ula-blue, #0033a0);
+		color: white;
+		font-weight: 600;
+		border: none;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: background-color 0.2s;
+	}
+
+	.btn-save-student:hover {
+		background-color: var(--ula-dark, #002266);
+	}
+
+	.main-container-generacion-planilla {
+		display: flex;
+		gap: 1.5rem;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+		margin-top: 1.5rem;
+	}
+
+	.main-container-generacion-planilla .div-card {
+		flex: 1;
+		min-width: 0;
+		margin-top: 0;
+	}
+
+	.admision-details-flex,
+	.admision-details-flex2 {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		gap: 12px;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.col-span-2 {
+		grid-column: span 2;
+	}
+
+	.label-input {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+
+	.label-input label {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #475569;
+		margin: 0;
+	}
+
+	.label-input input,
+	.label-input select {
+		width: 100% !important;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+
 	.label-input input[readonly] {
-		background-color: #f8fafc; /* Fondo gris claro limpio */
-		color: #334155; /* Texto oscuro legible */
-		border: 1px solid #cbd5e1; /* Borde suave */
+		background-color: #f8fafc;
+		color: #334155;
+		border: 1px solid #cbd5e1;
 		border-radius: 6px;
 		padding: 10px 12px;
 		font-size: 0.95rem;
 		font-weight: 500;
 		font-family: inherit;
-		cursor: default; /* Indica que no es editable al pasar el mouse */
+		cursor: default;
 		outline: none;
-		width: fit-content;
+		width: 100% !important;
+		max-width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		text-overflow: ellipsis;
 	}
+
 	.label-input input[readonly]:focus {
 		border-color: #94a3b8;
 		background-color: #f1f5f9;
 	}
 
-	a.btn-submit {
-		padding: 1em;
-		border: 1px solid;
-		border-radius: 8px;
-		background: var(--ula-blue);
-		color: white;
+	.report-alert {
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 100%;
+		word-break: break-word;
 	}
+
+	.alert-list {
+		margin: 8px 0 0 0;
+		padding-left: 20px;
+		word-break: break-word;
+	}
+
 	.div-white h2 {
 		font-size: 20px;
 		color: #1e293b;
@@ -324,14 +425,20 @@
 		border-left: 4px solid #0033a0;
 		padding-left: 10px;
 	}
+
 	.div-blue {
 		background-color: var(--ula-blue);
 	}
+
 	.div-blue-inside {
 		border-radius: 8px;
 		background: white;
 		padding: 1.5rem;
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 100%;
 	}
+
 	.div-blue h2 {
 		font-size: 20px;
 		color: #ffffff;
@@ -341,14 +448,73 @@
 		border-left: 4px solid white;
 		padding-left: 10px;
 	}
-	.div-card {
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		border-radius: 8px;
-		padding: 20px;
-		gap: 0.5rem;
-	}
+
 	.card-actions {
 		text-align: center;
-		margin-top: 1.5em;
+		margin-top: 1.5rem;
+		width: 100%;
+	}
+
+	.card-actions button,
+	.card-actions a.btn-secondary {
+		padding: 12px 24px;
+		font-size: 1rem;
+		font-weight: 600;
+		border-radius: 6px;
+		cursor: pointer;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	@media (max-width: 900px) {
+		.main-container-generacion-planilla {
+			flex-direction: column;
+			gap: 1.5rem;
+		}
+	}
+
+	@media (max-width: 640px) {
+		.div-card {
+			padding: 16px 12px;
+			margin-top: 1rem;
+		}
+
+		.div-blue-inside {
+			padding: 14px 10px;
+		}
+
+		.container-update-student {
+			flex-direction: column;
+			gap: 0.75rem;
+		}
+
+		.container-update-student .label-input {
+			flex: 1 1 100%;
+			width: 100%;
+		}
+
+		.btn-save-student {
+			width: 100%;
+			margin-top: 0.5rem;
+		}
+
+		.admision-details-flex,
+		.admision-details-flex2 {
+			grid-template-columns: 1fr;
+			gap: 10px;
+		}
+
+		.col-span-2 {
+			grid-column: span 1;
+		}
+
+		.card-actions button,
+		.card-actions a.btn-secondary {
+			width: 100%;
+			display: block;
+			text-align: center;
+			padding: 12px;
+			box-sizing: border-box;
+		}
 	}
 </style>

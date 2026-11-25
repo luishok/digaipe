@@ -27,7 +27,7 @@ export function admissionOutcome(
 	>
 ) {
 	if (row.selectedAdmissionId === row.admissionId)
-		return { outcome: 'matriculado' as const, reason: 'Matrícula registrada' };
+		return { outcome: 'matriculado' as const, reason: '' };
 	if (row.selectedAdmissionId !== null)
 		return { outcome: 'no_matriculado' as const, reason: 'Otra modalidad seleccionada' };
 	const reason =
@@ -35,7 +35,7 @@ export function admissionOutcome(
 			? 'Documentación devuelta'
 			: row.processingStatus
 				? 'Trámite incompleto'
-				: 'Sin trámite registrado';
+				: '';
 	return { outcome: row.closedAt ? ('no_matriculado' as const) : ('pendiente' as const), reason };
 }
 

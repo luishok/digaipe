@@ -28,11 +28,11 @@ const offer = (overrides: Partial<EnrollmentSource> = {}): EnrollmentSource => (
 test('unprocessed assignments become no matriculado only after official closure', () => {
 	assert.deepEqual(admissionOutcome(offer()), {
 		outcome: 'pendiente',
-		reason: 'Sin trámite registrado'
+		reason: ''
 	});
 	assert.deepEqual(admissionOutcome(offer({ closedAt: '2026-11-24T12:00:00Z' })), {
 		outcome: 'no_matriculado',
-		reason: 'Sin trámite registrado'
+		reason: ''
 	});
 });
 
@@ -59,7 +59,7 @@ test('an unprinted alternative is excluded immediately when another offer was se
 		pendiente: 0
 	});
 	assert.equal(report.rows[0].modality, 'CV');
-	assert.equal(report.rows[0].reason, 'Matrícula registrada');
+	assert.equal(report.rows[0].reason, '');
 });
 
 test('closure preserves returned/incomplete reasons without counting modalities twice', () => {

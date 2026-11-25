@@ -144,7 +144,16 @@
 					<td>{admission.opcion}</td>
 					<td>{admission.processCode}</td>
 					<td>{admission.modalityCode} - {admission.modalityName}{#if admission.alternativeCount > 1}<p>{admission.alternativeCount} modalidades alternativas</p>{/if}</td>
-					<td><span class="status-badge status-{admission.outcome}">{enrollmentLabels[admission.outcome]}</span><p>{admission.reason}</p></td>
+					<td>
+						{#if admission.outcome === 'pendiente' && admission.reason}
+							<span class="status-badge status-{admission.outcome}">{admission.reason}</span>
+						{:else}
+							<span class="status-badge status-{admission.outcome}">{enrollmentLabels[admission.outcome]}</span>
+							{#if admission.reason}
+								<p>{admission.reason}</p>
+							{/if}
+						{/if}
+					</td>
 					<td>{admission.ocreCode ?? ''}</td>
 					<td>{admission.periodoIngreso}</td>
 					<td>{formatDate(admission.fechaAsignacion)}</td>

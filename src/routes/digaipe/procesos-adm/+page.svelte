@@ -198,7 +198,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each data.all_admission_proc as process (process.id)}
+					{#each data.all_admission_proc.toReversed() as process (process.id)}
 						<tr>
 							<td>{process.id}</td>
 							<td>{process.code}</td>
@@ -220,18 +220,26 @@
 							<td>{process.dates.length > 0 ? process.dates.map(formatDate).join(', ') : 'Sin fechas activas'}</td>
 							<td>
 								{#if can(data.user, 'statistics.view')}
-									<a href={resolve(`/digaipe/estadisticas?reportMode=matricula&filter_process=${encodeURIComponent(process.code)}`)}>Ver resultado de matrícula</a>
-									{#each data.closures.filter((closure) => closure.processId === process.id) as closure (closure.id)}
-										<p><a href={resolve(`/digaipe/estadisticas/cierres/${closure.id}`)}>Informe oficial v{closure.version}</a></p>
-									{/each}
+									<div class="reports-links">
+										<a class="btn-report-link" href={resolve(`/digaipe/estadisticas?reportMode=matricula&filter_process=${encodeURIComponent(process.code)}`)}>
+											<span class="icon">📊</span> Ver resultado de matrícula
+										</a>
+										{#each data.closures.filter((closure) => closure.processId === process.id) as closure (closure.id)}
+											<a class="btn-closure-link" href={resolve(`/digaipe/estadisticas/cierres/${closure.id}`)}>
+												📄 Informe oficial v{closure.version}
+											</a>
+										{/each}
+									</div>
 								{/if}
 								{#if canToggle && (process.closedAt || (process.dates.length && process.dates.every((date) => date < data.today)))}
-									<form method="POST" action={process.closedAt ? '?/reopen' : '?/close'} use:enhance={({ cancel }) => {
+									<form class="action-inline-form" method="POST" action={process.closedAt ? '?/reopen' : '?/close'} use:enhance={({ cancel }) => {
 										if (!confirm(process.closedAt ? '¿Reabrir el proceso? Se conservarán los informes oficiales anteriores.' : '¿Cerrar el proceso? Las asignaciones sin matrícula quedarán como No matriculado y se guardará un informe oficial.')) cancel();
 									}}>
 										<input type="hidden" name="processId" value={process.id} />
-										<input name="reason" aria-label="Motivo del cierre o reapertura" placeholder="Motivo del cierre o reapertura" maxlength="500" required />
-										<button type="submit">{process.closedAt ? 'Reabrir proceso' : 'Cerrar proceso'}</button>
+										<input class="input-reason" name="reason" aria-label="Motivo del cierre o reapertura" placeholder="Motivo del cierre o reapertura" maxlength="500" required />
+										<button type="submit" class={process.closedAt ? 'btn-reopen' : 'btn-close'}>
+											{process.closedAt ? 'Reabrir proceso' : 'Cerrar proceso'}
+										</button>
 									</form>
 								{/if}
 							</td>
@@ -283,6 +291,7 @@
 							{#if canToggle}
 							<td>
 								<form
+									class="action-inline-form"
 									method="POST"
 									action="?/setEnabled"
 									use:enhance={({ cancel }) => {
@@ -295,6 +304,7 @@
 									<input type="hidden" name="processId" value={process.id} />
 									<input type="hidden" name="enabled" value={process.isEnabled ? 'false' : 'true'} />
 									<input
+										class="input-reason"
 										name="reason"
 										type="text"
 										placeholder="Motivo"
@@ -302,7 +312,7 @@
 										required
 										maxlength="500"
 									/>
-									<button type="submit" disabled={!!process.closedAt} class={process.isEnabled ? 'button-red' : ''}>
+									<button type="submit" disabled={!!process.closedAt} class={process.isEnabled ? 'btn-toggle-disable' : 'btn-toggle-enable'}>
 										{process.isEnabled ? 'Desactivar' : 'Reactivar'}
 									</button>
 								</form>
@@ -322,9 +332,10 @@
 	}
 	.process-container {
 		display: flex;
+		flex-direction:column;
 		gap: 2rem;
 		height: max-content;
-		max-height: 70vh;
+		/* max-height: 70vh; */
 	}
 	.process-container p {
 		margin: 0;
@@ -517,5 +528,169 @@
 	.process-right td strong {
 		color: #1e293b;
 		font-weight: 600;
+	}
+
+	/* Enlaces de informes y estadísticas */
+	.reports-links {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-bottom: 8px;
+	}
+
+	.btn-report-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--ula-blue);
+		background-color: #eff6ff;
+		border: 1px solid #bfdbfe;
+		padding: 6px 12px;
+		border-radius: 6px;
+		text-decoration: none;
+		width: fit-content;
+		transition: all 0.2s ease;
+	}
+
+	.btn-report-link:hover {
+		background-color: var(--ula-blue);
+		color: #ffffff;
+		border-color: var(--ula-blue);
+		text-decoration: none;
+		box-shadow: 0 2px 4px rgba(0, 51, 160, 0.15);
+	}
+
+	.btn-closure-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
+		color: #475569;
+		background-color: #f8fafc;
+		border: 1px solid #e2e8f0;
+		padding: 4px 10px;
+		border-radius: 6px;
+		text-decoration: none;
+		width: fit-content;
+		transition: all 0.2s ease;
+	}
+
+	.btn-closure-link:hover {
+		background-color: #e2e8f0;
+		color: #1e293b;
+		text-decoration: none;
+	}
+
+	/* Formularios inline de acciones (Cierre y Activar/Desactivar) */
+	.action-inline-form {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 170px;
+		max-width: 220px;
+	}
+
+	.input-reason {
+		padding: 7px 10px;
+		border: 1px solid #cbd5e1;
+		border-radius: 6px;
+		font-size: 12px;
+		background-color: #ffffff;
+		color: #1e293b;
+		width: 100%;
+		box-sizing: border-box;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.input-reason:focus {
+		outline: none;
+		border-color: var(--ula-blue);
+		box-shadow: 0 0 0 2px rgba(0, 51, 160, 0.15);
+	}
+
+	.input-reason::placeholder {
+		color: #94a3b8;
+		font-size: 11px;
+	}
+
+	/* Botones de acción */
+	.btn-close {
+		background-color: #f59e0b;
+		color: #ffffff;
+		border: none;
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		width: 100%;
+		transition: background-color 0.2s, box-shadow 0.2s;
+	}
+
+	.btn-close:hover {
+		background-color: #d97706;
+		box-shadow: 0 2px 4px rgba(217, 119, 6, 0.25);
+	}
+
+	.btn-reopen {
+		background-color: var(--ula-blue);
+		color: #ffffff;
+		border: none;
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		width: 100%;
+		transition: background-color 0.2s, box-shadow 0.2s;
+	}
+
+	.btn-reopen:hover {
+		background-color: var(--ula-dark);
+		box-shadow: 0 2px 4px rgba(0, 36, 112, 0.25);
+	}
+
+	.btn-toggle-disable {
+		background-color: #ef4444;
+		color: #ffffff;
+		border: none;
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		width: 100%;
+		transition: background-color 0.2s, box-shadow 0.2s;
+	}
+
+	.btn-toggle-disable:hover:not(:disabled) {
+		background-color: #dc2626;
+		box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+	}
+
+	.btn-toggle-disable:disabled,
+	.btn-toggle-enable:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-toggle-enable {
+		background-color: #10b981;
+		color: #ffffff;
+		border: none;
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		width: 100%;
+		transition: background-color 0.2s, box-shadow 0.2s;
+	}
+
+	.btn-toggle-enable:hover:not(:disabled) {
+		background-color: #059669;
+		box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
 	}
 </style>
