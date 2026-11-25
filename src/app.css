@@ -1,12 +1,10 @@
 :root {
 	/* 1. PALETA DE COLORES */
 	--ula-blue: #0033a0; /* Azul Pantone 286 (Color principal) */
-	/* --ula-grey: #335CB3; */
     --ula-dark: #002470;
-	--blue-second: #add8e6;
+    --blue-second: #99add9;
 	--blue-third: #002b88;
     --blue-ford: #4d70bd;
-	/* --blue-ford: #6685C6;  */
 
 	--color-bg-main: #ffffff; /* Fondo principal blanco */
 	--color-bg-alt: #f4f6f9; /* Fondo secundario gris muy claro */
@@ -185,6 +183,11 @@ button:hover,
 	background-color: var(--ula-dark);
 	color: white;
 }
+a.btn-secondary{
+    height: fit-content;
+    line-height: normal;
+}
+
 
 .btn-secondary{
     background-color: white;
@@ -371,6 +374,18 @@ input[type='password'] {
 	box-sizing: border-box;
 }
 
+input[type='text'],
+
+input[type='search'],
+select,
+input[type='file'],
+input[type='email'],
+input[type='tel'],
+input[type='password'] {
+    background-color: #f8fafc; /* Fondo ligeramente gris para inputs */
+
+}
+
 .item-process-left label {
 	display: flex;
 	flex-direction: column;
@@ -408,7 +423,6 @@ input[type='password'] {
 .input-group input {
 	width: 100%;
 	padding: 0.75rem 1rem;
-	border: none;
 	border-bottom: 1px solid #ccc;
 	font-size: var(--font-size-base);
 	font-family: var(--font-body);

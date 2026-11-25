@@ -268,7 +268,7 @@ export const load: PageServerLoad = async () => {
 			activeDate: APActiveDates.activeDate
 		})
 		.from(proceso_admission)
-		.leftJoin(APActiveDates, eq(proceso_admission.id, APActiveDates.codeId));
+		.leftJoin(APActiveDates, eq(proceso_admission.id, APActiveDates.codeId)).orderBy(proceso_admission.id);
 
 	const result = Object.values(
 		rows.reduce(

@@ -236,7 +236,7 @@
 										if (!confirm(process.closedAt ? '¿Reabrir el proceso? Se conservarán los informes oficiales anteriores.' : '¿Cerrar el proceso? Las asignaciones sin matrícula quedarán como No matriculado y se guardará un informe oficial.')) cancel();
 									}}>
 										<input type="hidden" name="processId" value={process.id} />
-										<input class="input-reason" name="reason" aria-label="Motivo del cierre o reapertura" placeholder="Motivo del cierre o reapertura" maxlength="500" required />
+										<input type='text' class="input-reason" name="reason" aria-label="Motivo del cierre o reapertura" placeholder="Motivo del cierre o reapertura" maxlength="500" required />
 										<button type="submit" class={process.closedAt ? 'btn-reopen' : 'btn-close'}>
 											{process.closedAt ? 'Reabrir proceso' : 'Cerrar proceso'}
 										</button>
@@ -456,6 +456,16 @@
 		width: 50%;
 		min-width: fit-content;
 	}
+	.create-process{
+		display: flex;
+		flex-direction: row;
+	}
+	.create-process .input-group2, .create-process .container-button-create {
+		flex: 1;
+	}
+	.create-process #process-code{
+		width: 100%;
+	}
 	.create-process .container-button-create {
 		display: flex;
 		justify-content: center;
@@ -594,10 +604,8 @@
 
 	.input-reason {
 		padding: 7px 10px;
-		border: 1px solid #cbd5e1;
 		border-radius: 6px;
 		font-size: 12px;
-		background-color: #ffffff;
 		color: #1e293b;
 		width: 100%;
 		box-sizing: border-box;

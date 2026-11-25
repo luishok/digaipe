@@ -604,9 +604,7 @@ details[open] .accordion-icon {
 }
 
 /* Botones y Rangos Rápidos */
-.quick-ranges {
-    justify-content: flex-end;
-}
+
 .quick-buttons {
     display: flex;
     gap: var(--spacing-sm);

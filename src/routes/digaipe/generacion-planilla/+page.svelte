@@ -81,7 +81,6 @@
 		font-size: 14px;
 		height: 40px;
 		box-sizing: border-box;
-		background-color: #ffffff;
 		outline: none;
 		transition: border-color 0.2s;
 	}
@@ -347,7 +346,7 @@
 
 	.clickable-row:hover,
 	.clickable-row:hover td {
-		background-color: #f1f5f9;
+		background-color: #e6ebf6;
 	}
 
 	/* Ajuste responsivo para pantallas pequeñas y móviles */

@@ -125,48 +125,50 @@
 {#if data.admissions.length === 0}
 	<p>No hay admisiones para los filtros seleccionados.</p>
 {:else}
-	<table class="table_container">
-		<thead>
-			<tr>
-				{#each headers as header (header)}
-					<th>{header}</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each data.admissions as admission (admission.id)}
+	<div class="table_container">
+		<table>
+			<thead>
 				<tr>
-					<td>{admission.cedula}</td>
-					<td>{admission.apellidosNombres}</td>
-					<td>{admission.telefono ?? ''}</td>
-					<td>{admission.correo ?? ''}</td>
-					<td>{admission.careerName}</td>
-					<td>{admission.opcion}</td>
-					<td>{admission.processCode}</td>
-					<td>{admission.modalityCode} - {admission.modalityName}{#if admission.alternativeCount > 1}<p>{admission.alternativeCount} modalidades alternativas</p>{/if}</td>
-					<td>
-						{#if admission.outcome === 'pendiente' && admission.reason}
-							<span class="status-badge status-{admission.outcome}">{admission.reason}</span>
-						{:else}
-							<span class="status-badge status-{admission.outcome}">{enrollmentLabels[admission.outcome]}</span>
-							{#if admission.reason}
-								<p>{admission.reason}</p>
-							{/if}
-						{/if}
-					</td>
-					<td>{admission.ocreCode ?? ''}</td>
-					<td>{admission.periodoIngreso}</td>
-					<td>{formatDate(admission.fechaAsignacion)}</td>
-					<td>
-						{#if admission.batchId}
-							<a href={resolve(`/digaipe/admisiones/lotes/${admission.batchId}`)}
-								title="Ver los documentos de este lote">#{admission.batchId} {admission.sourceFileName ?? ''}</a>
-						{/if}
-					</td>
+					{#each headers as header (header)}
+						<th>{header}</th>
+					{/each}
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each data.admissions as admission (admission.id)}
+					<tr>
+						<td>{admission.cedula}</td>
+						<td>{admission.apellidosNombres}</td>
+						<td>{admission.telefono ?? ''}</td>
+						<td>{admission.correo ?? ''}</td>
+						<td>{admission.careerName}</td>
+						<td>{admission.opcion}</td>
+						<td>{admission.processCode}</td>
+						<td>{admission.modalityCode} - {admission.modalityName}{#if admission.alternativeCount > 1}<p>{admission.alternativeCount} modalidades alternativas</p>{/if}</td>
+						<td>
+							{#if admission.outcome === 'pendiente' && admission.reason}
+								<span class="status-badge status-{admission.outcome}">{admission.reason}</span>
+							{:else}
+								<span class="status-badge status-{admission.outcome}">{enrollmentLabels[admission.outcome]}</span>
+								{#if admission.reason}
+									<p>{admission.reason}</p>
+								{/if}
+							{/if}
+						</td>
+						<td>{admission.ocreCode ?? ''}</td>
+						<td>{admission.periodoIngreso}</td>
+						<td>{formatDate(admission.fechaAsignacion)}</td>
+						<td>
+							{#if admission.batchId}
+								<a href={resolve(`/digaipe/admisiones/lotes/${admission.batchId}`)}
+									title="Ver los documentos de este lote">#{admission.batchId} {admission.sourceFileName ?? ''}</a>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 {/if}
 
 <style>
@@ -202,4 +204,96 @@
 		border-radius: 8px;
 	}
 
+	.button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border-radius: 8px;
+		height: 3.5em;
+		padding: 0.5em 1.5em;
+		font-weight: 600;
+	}
+
+	.button p {
+		margin: 0;
+	}
+
+	/* Responsive para Mobile y Tablets */
+	@media (max-width: 900px) {
+		.container-header-admisiones {
+			flex-direction: column;
+			gap: 1.5em;
+			align-items: stretch;
+		}
+
+		.container-header-admisiones form {
+			width: 100%;
+		}
+
+		.admisiones-actions {
+			flex-direction: row;
+			flex-wrap: wrap;
+			width: 100%;
+		}
+
+		.admisiones-actions .button,
+		.admisiones-actions .btn-secondary {
+			flex: 1 1 calc(50% - 0.5em);
+			min-width: 160px;
+			text-align: center;
+			justify-content: center;
+		}
+
+		.container-inputs-admisiones {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+			gap: 1em;
+		}
+
+		.container-inputs-admisiones .label-input {
+			width: 100% !important;
+		}
+
+		.container-header-admisiones input,
+		.container-header-admisiones select {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.button-admisiones,
+		.container-inputs-admisiones .btn-secondary {
+			width: 100%;
+			text-align: center;
+			justify-content: center;
+			align-self: stretch;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.admisiones-actions {
+			flex-direction: column;
+		}
+
+		.admisiones-actions .button,
+		.admisiones-actions .btn-secondary {
+			width: 100%;
+			flex: 1 1 100%;
+		}
+
+		.container-inputs-admisiones {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	.table_container {
+		width: 100%;
+		max-width: 100%;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.table_container table {
+		min-width: 1000px;
+	}
 </style>
