@@ -333,9 +333,8 @@
 	.process-container {
 		display: flex;
 		flex-direction:column;
-		gap: 2rem;
+		gap: 1rem;
 		height: max-content;
-		/* max-height: 70vh; */
 	}
 	.process-container p {
 		margin: 0;
@@ -352,7 +351,6 @@
 		gap: 0.5rem;
 		display: flex;
 		flex-direction: column;
-		padding: 24px;
 		border-radius: 12px;
 		box-shadow:
 			0 4px 6px 4px rgba(0, 0, 0, 0.05),
@@ -385,7 +383,6 @@
 	.process-right {
 		background-color: var(--ula-light);
 		padding: 1rem;
-		padding: 24px;
 		border-radius: 12px;
 		box-shadow:
 			0 4px 6px 4px rgba(0, 0, 0, 0.05),

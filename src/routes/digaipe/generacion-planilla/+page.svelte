@@ -52,7 +52,7 @@
 		padding: 24px;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 		max-width: 700px; /* Controla el ancho máximo de la tarjeta */
-		margin: 30px auto; /* margin auto a los lados lo centra horizontalmente */
+		margin: 1.5rem auto; /* margin auto a los lados lo centra horizontalmente */
 	}
 
 	.search-form {
@@ -162,6 +162,13 @@
 		top: 16px;
 		right: 16px;
 	}
+
+	.tag-table{
+		display: flex;
+		justify-content: space-between;
+
+	}
+
 	.table_container {
 		width: 100%;
 		max-width: 100%;
@@ -482,7 +489,7 @@
 
 <h1>Generacion de planilla</h1>
 
-<p>Admisiones con proceso activo para <b>{data.today}</b></p>
+
 
 <div class="search-card">
 	<form method="GET" class="search-form">
@@ -503,7 +510,10 @@
 	</form>
 </div>
 
-<p>{data.admissions.length} admisiones</p>
+<div class="tag-table">
+	<p>{data.admissions.length} admisiones</p>
+	<p>Admisiones con proceso activo para <b>{data.today}</b></p>
+</div>
 
 {#if data.admissions.length === 0}
 	<p>No hay admisiones disponibles para generar planilla hoy.</p>
